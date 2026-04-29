@@ -11,11 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('driver_unique_ids', function (Blueprint $table) {
+        Schema::create('faculties', function (Blueprint $table) {
             $table->id();
-            $table->string('driver_unique_id', 10)->unique();
-            $table->foreignId('serial')->nullable();
-            $table->foreignId('driver_id')->constrained("drivers")->onDelete('cascade');
+            $table->string('faculty_name');
+            $table->string('faculty_code', 50)->unique();
+            $table->string('dean_name');
+            $table->string('email');
+            $table->string('phone', 30);
+            $table->string('status', 20)->default('Active');
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
             $table->timestamps();
         });
@@ -26,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('driver_unique_ids');
+        Schema::dropIfExists('faculties');
     }
 };

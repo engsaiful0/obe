@@ -58,6 +58,7 @@ use App\Http\Controllers\settings\Religion;
 
 use App\Http\Controllers\settings\Year;
 use App\Http\Controllers\settings\AppSettings;
+use App\Http\Controllers\settings\Faculty;
 use App\Http\Controllers\settings\PaymentMethod;
 use App\Http\Controllers\settings\Nationality;
 use App\Http\Controllers\settings\Month;
@@ -340,6 +341,13 @@ Route::get('/app/settings/get-department', [\App\Http\Controllers\settings\Depar
 Route::post('/app/settings/department', [\App\Http\Controllers\settings\Department::class, 'store'])->name('app-settings-department.store');
 Route::put('/app/settings/department/{id}', [\App\Http\Controllers\settings\Department::class, 'update'])->name('app-settings-department.update');
 Route::delete('/app/settings/department/{id}', [\App\Http\Controllers\settings\Department::class, 'destroy'])->name('app-settings-department.destroy');
+
+// Faculty Routes
+Route::get('/app/settings/faculty', [Faculty::class, 'index'])->name('faculty');
+Route::get('/app/settings/get-faculty', [Faculty::class, 'getFaculty'])->name('app-settings-get-faculty');
+Route::post('/app/settings/faculty', [Faculty::class, 'store'])->name('app-settings-faculty.store');
+Route::put('/app/settings/faculty/{id}', [Faculty::class, 'update'])->name('app-settings-faculty.update');
+Route::delete('/app/settings/faculty/{id}', [Faculty::class, 'destroy'])->name('app-settings-faculty.destroy');
 
 
 Route::get('/app/settings/item', [Item::class, 'index'])->name('app-settings-item');

@@ -10,7 +10,13 @@ class Department extends Model
     use HasFactory;
 
     protected $fillable = [
+        'faculty_id',
         'name',
+        'department_code',
+        'head_chairman_name',
+        'email',
+        'phone',
+        'status',
         'user_id',
     ];
 
@@ -18,6 +24,11 @@ class Department extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    public function faculty()
+    {
+        return $this->belongsTo(Faculty::class);
+    }
 
     public function user()
     {
