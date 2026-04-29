@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chart Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .chart-container { width: 400px; height: 300px; margin: 20px 0; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>Chart.js Test Page</h1>
+    
+    <div class="chart-container">
+        <canvas id="testChart"></canvas>
+    </div>
+    
+    <div id="status"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const statusDiv = document.getElementById('status');
+            
+            // Check if Chart.js is loaded
+            if (typeof Chart === 'undefined') {
+                statusDiv.innerHTML = '<p style="color: red;">Chart.js failed to load!</p>';
+                return;
+            }
+            
+            statusDiv.innerHTML = '<p style="color: green;">Chart.js loaded successfully! Version: ' + Chart.version + '</p>';
+            
+            // Create a simple test chart
+            const ctx = document.getElementById('testChart').getContext('2d');
+            
+            try {
+                const testChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Computer Technology', 'Civil Technology', 'Electrical Technology', 'Mechanical Technology'],
+                        datasets: [{
+                            label: 'Students',
+                            data: [45, 32, 28, 35],
+                            backgroundColor: [
+                                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+                
+                statusDiv.innerHTML += '<p style="color: green;">Test chart created successfully!</p>';
+                
+            } catch (error) {
+                statusDiv.innerHTML += '<p style="color: red;">Error creating chart: ' + error.message + '</p>';
+            }
+        });
+    </script>
+</body>
+</html>

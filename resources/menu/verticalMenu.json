@@ -1,0 +1,647 @@
+{
+  "menu": [
+    {
+      "name": "Dashboards",
+      "url": "/layouts/vertical",
+      "icon": "menu-icon tf-icons ti ti-smart-home",
+      "slug": "dashboard"
+    },
+    {
+      "name": "Assistant",
+      "icon": "menu-icon tf-icons ti ti-user-plus",
+      "slug": "app-assistants",
+      "submenu": [
+        {
+          "url": "app/assistants/add-assistant",
+          "name": "Add Assistant",
+          "slug": "app-assistants-create",
+          "permission": "assistant-add"
+        },
+        {
+          "url": "app/assistants/view-assistant",
+          "name": "View Assistants",
+          "slug": "app-assistants-view",
+          "permission": "assistant-view"
+        }
+      ]
+    },
+    {
+      "name": "Bus Schedule",
+      "icon": "menu-icon tf-icons ti ti-list-check ",
+      "slug": "bus-schedules",
+      "submenu": [
+        {
+          "url": "/app/bus-schedules/create",
+          "name": "Add",
+          "slug": "bus-schedules.create",
+          "permission": "bus-schedule-add"
+        },
+        {
+          "url": "/app/bus-schedules",
+          "name": "View",
+          "slug": "bus-schedules.index",
+          "permission": "bus-schedule-view"
+        }
+      ]
+    },
+    {
+      "name": "Deployment Plan",
+      "icon": "menu-icon tf-icons ti ti-list-check ",
+      "slug": "app-deployment-plans",
+      "submenu": [
+        {
+          "url": "/app/deployment-plans/create-daily-deployment-plan",
+          "name": "Add Daily Deployment Plan",
+          "slug": "deployment-plans.create-daily-deployment-plan",
+          "permission": "daily-deployment-plan-add"
+        },
+        {
+          "url": "/app/deployment-plans/view-daily-deployment-plan",
+          "name": "View Daily Deployment Plan",
+          "slug": "deployment-plans.view-daily-deployment-plan",
+          "permission": "daily-deployment-plan-view"
+        },
+        {
+          "url": "/app/deployment-plans/create-friday-deployment-plan",
+          "name": "Add Friday Deployment Plan",
+          "slug": "deployment-plans.create-friday-deployment-plan",
+          "permission": "friday-deployment-plan-add"
+        },
+        {
+          "url": "/app/deployment-plans/view-friday-deployment-plan",
+          "name": "View Friday Deployment Plan",
+          "slug": "deployment-plans.view-friday-deployment-plan",
+          "permission": "friday-deployment-plan-view"
+        }
+      ]
+    },
+    {
+      "name": "Bus",
+      "icon": "menu-icon tf-icons ti ti-car",
+      "slug": "app-Buses",
+      "submenu": [
+        {
+          "url": "app/buses/add-daily-deployment-plan",
+          "name": "Add Daily Deployment Plan",
+          "slug": "app-daily-deployment-plan-create",
+          "permission": "daily-deployment-plan-add"
+        },
+        {
+          "url": "app/Buses/add-Bus",
+          "name": "Add Bus",
+          "slug": "app-Buses-create",
+          "permission": "bus-add"
+        },
+        {
+          "url": "app/Buses",
+          "name": "View Buses",
+          "slug": "app-Buses-index",
+          "permission": "bus-view"
+        },
+        
+        {
+          "url": "app/Buses/expired-documents",
+          "name": "Expired Documents",
+          "slug": "app-Buses-expired-documents",
+          "permission": "bus-view"
+        },
+        {
+          "url": "app/Buses/service-due",
+          "name": "Service Due",
+          "slug": "app-Buses-service-due",
+          "permission": "bus-view"
+        },
+        {
+          "url": "app/daily-bus-lists",
+          "name": "Daily Bus Lists",
+          "slug": "app-daily-bus-lists",
+          "permission": "daily-bus-list-view"
+        },
+        {
+          "url": "punishments",
+          "name": "Punishment",
+          "slug": "app-punishments-index",
+          "permission": "punishment-view"
+        },
+        {
+          "url": "rewards",
+          "name": "Reward",
+          "slug": "app-rewards-index",
+          "permission": "reward-view"
+        }
+      ]
+    },
+    {
+      "name": "Bus List",
+      "icon": "menu-icon tf-icons ti ti-list-check ",
+      "slug": "bus-lists",
+      "submenu": [
+        {
+          "url": "/app/daily-bus-lists/create",
+          "name": "Add Bus",
+          "slug": "bus-lists.create",
+          "permission": "daily-bus-list-add"
+        },
+        {
+          "url": "/app/daily-bus-lists/add-all-buses-list",
+          "name": "Add All Bus",
+          "slug": "bus-lists.add-all-buses-list",
+          "permission": "daily-bus-list-add"
+        },
+        {
+          "url": "/app/daily-bus-lists/all-buses-list",
+          "name": "View Bus List",
+          "slug": "bus-lists.all-buses-list",
+          "permission": "daily-bus-list-view"
+        }
+      ]
+    },
+    {
+      "name": "Damage",
+      "icon": "menu-icon tf-icons ti ti-logout ",
+      "slug": "damage",
+      "submenu": [
+        {
+          "url": "/app/damage/add-damage",
+          "name": "Add Damage",
+          "slug": "damage.add-damage",
+          "permission": "damage-add"
+        },
+        {
+          "url": "/app/damage/view-damage",
+          "name": "View Damage",
+          "slug": "damage.view-damage",
+          "permission": "damage-view"
+        }
+      ]
+    },
+    {
+      "name": "Distance",
+      "icon": "menu-icon tf-icons ti ti-route",
+      "slug": "distance",
+      "submenu": [
+        {
+          "url": "/app/distances",
+          "name": "All Distances",
+          "slug": "app-distances-index",
+          "permission": "distance-view"
+        },
+        {
+          "url": "/app/distances/create",
+          "name": "Add Distance",
+          "slug": "app-distances-create",
+          "permission": "distance-add"
+        }
+      ]
+    },
+    {
+      "name": "Driver",
+      "icon": "menu-icon tf-icons ti ti-user-check",
+      "slug": "app-drivers",
+      "submenu": [
+        {
+          "url": "app/drivers/add-driver",
+          "name": "Add Driver",
+          "slug": "app-drivers-create",
+          "permission": "driver-add"
+        },
+        {
+          "url": "app/drivers",
+          "name": "View Driver",
+          "slug": "app-drivers-index",
+          "permission": "driver-view"
+        }
+      ]
+    },
+   
+    {
+      "name": "Employee Attendance",
+      "icon": "menu-icon tf-icons ti ti-user-check ",
+      "slug": "schedules",
+      "submenu": [
+        {
+          "url": "/app/employee-attendance/add-employee-attendance",
+          "name": "Add",
+          "slug": "employee-attendance.add-employee-attendance",
+          "permission": "employee-attendance-add"
+        },
+        {
+          "url": "/app/employee-attendance/add-all-attendance",
+          "name": "Add All Attendance",
+          "slug": "employee-attendance.add-all-attendance",
+          "permission": "employee-attendance-add"
+        },
+        {
+          "url": "/app/employee-attendance/view-employee-attendance",
+          "name": "View",
+          "slug": "employee-attendance.view-employee-attendance",
+          "permission": "employee-attendance-view"
+        }
+      ]
+    },
+    {
+      "name": "Employee",
+      "icon": "menu-icon tf-icons ti ti-users",
+      "slug": "app-employees",
+      "submenu": [
+        {
+          "url": "app/employees/add-employee",
+          "name": "Add Employee",
+          "slug": "app-add-employee",
+          "permission": "employee-add"
+        },
+        {
+          "url": "app/employees/view-employee",
+          "name": "View Employee",
+          "slug": "app-view-employee",
+          "permission": "employee-view"
+        }
+      ]
+    },
+    {
+      "name": "Expense",
+      "icon": "menu-icon tf-icons ti ti-file-dollar",
+      "slug": "app-expense",
+      "submenu": [
+        {
+          "url": "app/expenses",
+          "name": "Expense Management",
+          "slug": "app-expenses",
+          "permission": "expense-view"
+        },
+        {
+          "url": "app/expenses",
+          "name": "View Expense",
+          "slug": "app-view-expense",
+          "permission": "expense-view"
+        }
+      ]
+    },
+    {
+      "name": "Income",
+      "icon": "menu-icon tf-icons ti ti-file-dollar",
+      "slug": "app-income",
+      "submenu": [
+        {
+          "url": "app/incomes",
+          "name": "Income Management",
+          "slug": "app-incomes",
+          "permission": "income-view"
+        },
+        {
+          "url": "app/incomes/view-income",
+          "name": "View Income",
+          "slug": "app-view-income",
+          "permission": "income-view"
+        }
+      ]
+    },
+    {
+      "name": "Issue",
+      "icon": "menu-icon tf-icons ti ti-logout ",
+      "slug": "issue",
+      "submenu": [
+        {
+          "url": "/app/issue/add-issue",
+          "name": "Add Issue",
+          "slug": "issue.add-issue",
+          "permission": "issue-add"
+        },
+        {
+          "url": "/app/issue/view-issue",
+          "name": "View Issue",
+          "slug": "issue.view-issue",
+          "permission": "issue-view"
+        }
+      ]
+    },
+    {
+      "name": "Purchase",
+      "icon": "menu-icon tf-icons ti ti-shopping-cart ",
+      "slug": "purchase",
+      "submenu": [
+        {
+          "url": "/app/purchase/add-purchase",
+          "name": "Add Purchase",
+          "slug": "purchase.add-purchase",
+          "permission": "purchase-add"
+        },
+        {
+          "url": "/app/purchase/view-purchase",
+          "name": "View Purchase",
+          "slug": "purchase.view-purchase",
+          "permission": "purchase-view"
+        }
+      ]
+    },
+   
+  
+    {
+      "name": "Report",
+      "icon": "menu-icon tf-icons ti ti-report",
+      "slug": "app-report",
+      "submenu": [
+        {
+          "url": "app/expense-report",
+          "name": "Expense Report",
+          "slug": "expense-report",
+          "permission": "expense-report-view"
+        },
+        {
+          "url": "app/employee-list-report",
+          "name": "Employee List Report",
+          "slug": "employee-list-report",
+          "permission": "employee-list-report-view"
+        },
+        {
+          "url": "app/monthly-bill",
+          "name": "Monthly Bill",
+          "slug": "monthly-bill",
+          "permission": "monthly-bill-view"
+        },
+        {
+          "url": "app/punishment-report",
+          "name": "Punishment Report",
+          "slug": "punishment-report",
+          "permission": "punishment-report-view"
+        },
+        {
+          "url": "app/purchase-report",
+          "name": "Purchase Report",
+          "slug": "purchase-report",
+          "permission": "purchase-report-view"
+        },
+        {
+          "url": "app/issue-report",
+          "name": "Issue Report",
+          "slug": "issue-report",
+          "permission": "issue-report-view"
+        },
+        {
+          "url": "app/stock-report",
+          "name": "Stock Report",
+          "slug": "stock-report",
+          "permission": "stock-report-view"
+        },
+        {
+          "url": "app/reward-report",
+          "name": "Reward Report",
+          "slug": "reward-report",
+          "permission": "reward-report-view"
+        },
+        {
+          "url": "app/reports/salary-sheet",
+          "name": "Salary Sheet",
+          "slug": "salary-sheet",
+          "permission": "salary-sheet-view"
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "icon": "menu-icon tf-icons ti ti-settings",
+      "slug": "basic-settings",
+      "permission": "settings-view",
+      "submenu": [
+        {
+          "url": "app/settings/app-settings",
+          "name": "App Setting",
+          "slug": "app-setting"
+        },
+        {
+          "url": "app/settings/brand",
+          "name": "Brand",
+          "slug": "brand"
+        },
+        {
+          "url": "app/settings/blood-group  ",
+          "name": "Blood Group",
+          "slug": "blood-group"
+        },
+        {
+          "url": "app/settings/bus-schedule-keyword",
+          "name": "Bus Schedule Keyword",
+          "slug": "bus-schedule-keyword"
+        },
+        {
+          "url": "app/settings/cache-clear",
+          "name": "Cache Clear",
+          "slug": "cache-clear"
+        },
+        {
+          "url": "app/settings/color",
+          "name": "Color",
+          "slug": "color"
+        },
+        {
+          "url": "app/settings/designation",
+          "name": "Designation",
+          "slug": "designation"
+        },
+        {
+          "url": "app/settings/driver-type",
+          "name": "Driver Type",
+          "slug": "driver-type"
+        },
+        {
+          "url": "app/settings/educational-qualification",
+          "name": "Educational Qualification",
+          "slug": "educational-qualification"
+        },
+        {
+          "url": "app/settings/expense-head",
+          "name": "Expense Head",
+          "slug": "expense-head"
+        },
+        {
+          "url": "app/settings/experience-year",
+          "name": "Experience Year",
+          "slug": "experience-year"
+        },
+        {
+          "url": "app/settings/fuel-type",
+          "name": "Fuel Type",
+          "slug": "fuel-type"
+        },
+        {
+          "url": "app/settings/gender",
+          "name": "Gender",
+          "slug": "gender"
+        },
+        {
+          "url": "app/settings/income-head",
+          "name": "Income Head",
+          "slug": "income-head"
+        },
+        {
+          "url": "app/settings/issuing-authority",
+          "name": "Issuing Authority",
+          "slug": "issuing-authority"
+        },
+        {
+          "url": "app/settings/item",
+          "name": "Item",
+          "slug": "item"
+        },
+        {
+          "url": "app/settings/bus-schedule-keyword",
+          "name": "Bus Schedule Keyword",
+          "slug": "bus-schedule-keyword"
+        },
+        {
+          "url": "app/settings/license-type",
+          "name": "License Type",
+          "slug": "license-type"
+        },
+        {
+          "url": "app/settings/blood-group",
+          "name": "Blood Group",
+          "slug": "blood-group"
+        },
+        {
+          "url": "app/settings/driver-type",
+          "name": "Driver Type",
+          "slug": "driver-type"
+        },
+        {
+          "url": "app/settings/marital-status",
+          "name": "Marital Status",
+          "slug": "marital-status"
+        },
+        {
+          "url": "app/settings/nationality",
+          "name": "Nationality",
+          "slug": "nationality"
+        },
+        {
+          "url": "app/settings/payment-method",
+          "name": "Payment Method",
+          "slug": "payment-method"
+        },
+        {
+          "url": "app/settings/punishment-type",
+          "name": "Punishment Type",
+          "slug": "punishment-type"
+        },
+        {
+          "url": "app/settings/violation-type",
+          "name": "Violation Type",
+          "slug": "violation-type"
+        },
+        {
+          "url": "app/settings/religion",
+          "name": "Religion",
+          "slug": "religion"
+        },
+        {
+          "url": "app/settings/reward-type",
+          "name": "Reward Type",
+          "slug": "reward-type"
+        },
+        {
+          "url": "rules",
+          "name": "Rules & Permissions",
+          "slug": "app-access-rules"
+        },
+        {
+          "url": "app/settings/status",
+          "name": "Status",
+          "slug": "status"
+        },
+        {
+          "url": "app/settings/deployment-type",
+          "name": "Deployment Type",
+          "slug": "deployment-type"
+        },
+        {
+          "url": "app/settings/salary-configuration",
+          "name": "Salary Configuration",
+          "slug": "salary-configuration"
+        },
+        {
+          "url": "app/settings/stoppage",
+          "name": "Stoppage",
+          "slug": "stoppage"
+        },
+        {
+          "url": "app/settings/supplier",
+          "name": "Supplier",
+          "slug": "supplier"
+        },
+        {
+          "url": "app/settings/supplier_type",
+          "name": "Supplier Type",
+          "slug": "supplier_type"
+        },
+        {
+          "url": "app/settings/trip-time",
+          "name": "Trip Time",
+          "slug": "trip-time"
+        },
+        {
+          "url": "app/settings/employee-type",
+          "name": "Employee Type",
+          "slug": "employee-type"
+        },
+        {
+          "url": "app/settings/bus-type",
+          "name": "Bus Type",
+          "slug": "bus-type"
+        },
+        {
+          "url": "app/settings/bus-sub-type",
+          "name": "Bus Sub Type",
+          "slug": "bus-sub-type"
+        },
+        {
+          "url": "app/settings/Bus-user",
+          "name": "Bus User",
+          "slug": "bus-user"
+        },
+        {
+          "url": "app/settings/unit",
+          "name": "Unit",
+          "slug": "unit"
+        },
+        {
+          "url": "app/settings/Bus-route",
+          "name": "Bus Route",
+          "slug": "Bus-route"
+        },
+        {
+          "url": "app/settings/users",
+          "name": "Users",
+          "slug": "users"
+        },
+        {
+          "url": "app/settings/warehouse",
+          "name": "Warehouse",
+          "slug": "warehouse"
+        },
+        {
+          "url": "app/settings/year",
+          "name": "Year",
+          "slug": "year"
+        }
+      ]
+    }, {
+      "name": "Trip",
+      "icon": "menu-icon tf-icons ti ti-bus-off ",
+      "slug": "Bus-trip",
+      "submenu": [
+        {
+          "url": "app/bus-trip/add-bus-trip",
+          "name": "Add Trip",
+          "slug": "bus-trip.add-bus-trip",
+          "permission": "bus-trip-add"
+        },
+        {
+          "url": "app/bus-trip/view-bus-trip",
+          "name": "View Trip",
+          "slug": "bus-trip.view-bus-trip",
+          "permission": "Bus-trip-view"
+        }
+      ]
+    }
+  ]
+}

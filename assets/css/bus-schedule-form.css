@@ -1,0 +1,76 @@
+/* Bus Schedule Form Styles */
+.loading-overlay {
+    background-color: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(2px);
+    border-radius: 0.375rem;
+}
+
+.loading-overlay .spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Disabled form fields styling */
+#scheduleForm input:disabled,
+#scheduleForm select:disabled,
+#scheduleForm textarea:disabled {
+    background-color: #f8f9fa;
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Form validation styles */
+.is-invalid {
+    border-color: #dc3545;
+}
+
+.is-valid {
+    border-color: #198754;
+}
+
+.invalid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #dc3545;
+}
+
+/* Button loading state */
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Notification styles */
+.alert.position-fixed {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    border: none;
+    border-radius: 0.5rem;
+}
+
+/* Select2 disabled state */
+.select2-container--disabled .select2-selection {
+    background-color: #f8f9fa;
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Form success state */
+#scheduleForm.was-validated {
+    border: 2px solid #198754;
+    border-radius: 0.375rem;
+    background-color: rgba(25, 135, 84, 0.05);
+    transition: all 0.3s ease;
+}
+
+/* Success notification specific styles */
+.alert-success {
+    background-color: #d1e7dd;
+    border-color: #badbcc;
+    color: #0f5132;
+}
+
+.alert-success .ti-check-circle {
+    color: #198754;
+}

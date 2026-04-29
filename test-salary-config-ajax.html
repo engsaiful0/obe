@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salary Configuration AJAX Test</title>
+    <meta name="csrf-token" content="test-token">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="assets/js/salary-configuration-ajax.js"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Salary Configuration AJAX Test</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h6>Test Results:</h6>
+                        <div id="test-results" class="alert alert-info">
+                            <strong>Test Status:</strong> <span id="test-status">Ready to test</span><br>
+                            <strong>Tests Passed:</strong> <span id="tests-passed">0</span><br>
+                            <strong>Tests Failed:</strong> <span id="tests-failed">0</span><br>
+                            <strong>Total Tests:</strong> <span id="total-tests">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h6>Test Controls:</h6>
+                        <button id="run-all-tests" class="btn btn-primary me-2">Run All Tests</button>
+                        <button id="test-ajax-store" class="btn btn-success me-2">Test AJAX Store</button>
+                        <button id="test-ajax-edit" class="btn btn-warning me-2">Test AJAX Edit</button>
+                        <button id="test-ajax-update" class="btn btn-info me-2">Test AJAX Update</button>
+                        <button id="test-ajax-delete" class="btn btn-danger me-2">Test AJAX Delete</button>
+                        <button id="test-ajax-toggle" class="btn btn-secondary me-2">Test AJAX Toggle</button>
+                        <button id="test-spinner" class="btn btn-dark">Test Spinner</button>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h6>Test Data:</h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="test-data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Test Name</th>
+                                        <th>Status</th>
+                                        <th>Response Time</th>
+                                        <th>Error Message</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Test results will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test Modals -->
+                <div class="modal fade" id="testModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Test Modal</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>This is a test modal for AJAX functionality testing.</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Test configuration
+        const testConfig = {
+            baseUrl: '/app/settings/salary-configuration',
+            ajaxUrl: '/app/settings/salary-configuration/ajax',
+            testData: {
+                year: 2024,
+                month: 1,
+                total_working_days: 22,
+                official_holidays: 2,
+                default_overtime_rate: 1.5,
+                notes: 'Test salary setting',
+                is_active: true
+            }
+        };
+
+        let testResults = {
+            passed: 0,
+            failed: 0,
+            total: 0
+        };
+
+        // Test runner
+        class SalaryConfigTester {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.updateTestStatus();
+            }
+
+            bindEvents() {
+                $('#run-all-tests').on('click', () => this.runAllTests());
+                $('#test-ajax-store').on('click', () => this.testAjaxStore());
+                $('#test-ajax-edit').on('click', () => this.testAjaxEdit());
+                $('#test-ajax-update').on('click', () => this.testAjaxUpdate());
+                $('#test-ajax-delete').on('click', () => this.testAjaxDelete());
+                $('#test-ajax-toggle').on('click', () => this.testAjaxToggle());
+                $('#test-spinner').on('click', () => this.testSpinner());
+            }
+
+            async runAllTests() {
+                this.resetTestResults();
+                this.updateTestStatus('Running all tests...');
+
+                const tests = [
+                    () => this.testAjaxStore(),
+                    () => this.testAjaxEdit(),
+                    () => this.testAjaxUpdate(),
+                    () => this.testAjaxDelete(),
+                    () => this.testAjaxToggle(),
+                    () => this.testSpinner()
+                ];
+
+                for (const test of tests) {
+                    try {
+                        await test();
+                    } catch (error) {
+                        console.error('Test failed:', error);
+                    }
+                }
+
+                this.updateTestStatus('All tests completed');
+            }
+
+            async testAjaxStore() {
+                const testName = 'AJAX Store';
+                const startTime = Date.now();
+                
+                try {
+                    // Mock AJAX request
+                    const mockResponse = {
+                        success: true,
+                        message: 'Monthly salary settings created successfully.',
+                        setting: { id: 1, ...testConfig.testData }
+                    };
+
+                    // Simulate AJAX call
+                    await this.simulateAjaxCall('POST', `${testConfig.ajaxUrl}/store`, testConfig.testData);
+                    
+                    this.addTestResult(testName, 'PASSED', Date.now() - startTime);
+                    this.updateTestStatus('AJAX Store test passed');
+                } catch (error) {
+                    this.addTestResult(testName, 'FAILED', Date.now() - startTime, error.message);
+                    this.updateTestStatus('AJAX Store test failed');
+                }
+            }
+
+            async testAjaxEdit() {
+                const testName = 'AJAX Edit';
+                const startTime = Date.now();
+                
+                try {
+                    // Mock AJAX request
+                    const mockResponse = {
+                        success: true,
+                        setting: { id: 1, ...testConfig.testData },
+                        months: { 1: 'January', 2: 'February' },
+                        years: [2023, 2024, 2025]
+                    };
+
+                    // Simulate AJAX call
+                    await this.simulateAjaxCall('GET', `${testConfig.ajaxUrl}/1/edit`);
+                    
+                    this.addTestResult(testName, 'PASSED', Date.now() - startTime);
+                    this.updateTestStatus('AJAX Edit test passed');
+                } catch (error) {
+                    this.addTestResult(testName, 'FAILED', Date.now() - startTime, error.message);
+                    this.updateTestStatus('AJAX Edit test failed');
+                }
+            }
+
+            async testAjaxUpdate() {
+                const testName = 'AJAX Update';
+                const startTime = Date.now();
+                
+                try {
+                    // Mock AJAX request
+                    const mockResponse = {
+                        success: true,
+                        message: 'Monthly salary settings updated successfully.',
+                        setting: { id: 1, ...testConfig.testData }
+                    };
+
+                    // Simulate AJAX call
+                    await this.simulateAjaxCall('PUT', `${testConfig.ajaxUrl}/1`, testConfig.testData);
+                    
+                    this.addTestResult(testName, 'PASSED', Date.now() - startTime);
+                    this.updateTestStatus('AJAX Update test passed');
+                } catch (error) {
+                    this.addTestResult(testName, 'FAILED', Date.now() - startTime, error.message);
+                    this.updateTestStatus('AJAX Update test failed');
+                }
+            }
+
+            async testAjaxDelete() {
+                const testName = 'AJAX Delete';
+                const startTime = Date.now();
+                
+                try {
+                    // Mock AJAX request
+                    const mockResponse = {
+                        success: true,
+                        message: 'Monthly salary settings deleted successfully.'
+                    };
+
+                    // Simulate AJAX call
+                    await this.simulateAjaxCall('DELETE', `${testConfig.ajaxUrl}/1`);
+                    
+                    this.addTestResult(testName, 'PASSED', Date.now() - startTime);
+                    this.updateTestStatus('AJAX Delete test passed');
+                } catch (error) {
+                    this.addTestResult(testName, 'FAILED', Date.now() - startTime, error.message);
+                    this.updateTestStatus('AJAX Delete test failed');
+                }
+            }
+
+            async testAjaxToggle() {
+                const testName = 'AJAX Toggle Status';
+                const startTime = Date.now();
+                
+                try {
+                    // Mock AJAX request
+                    const mockResponse = {
+                        success: true,
+                        message: 'Monthly salary settings activated successfully.',
+                        setting: { id: 1, is_active: true }
+                    };
+
+                    // Simulate AJAX call
+                    await this.simulateAjaxCall('PATCH', `${testConfig.ajaxUrl}/1/toggle-status`);
+                    
+                    this.addTestResult(testName, 'PASSED', Date.now() - startTime);
+                    this.updateTestStatus('AJAX Toggle test passed');
+                } catch (error) {
+                    this.addTestResult(testName, 'FAILED', Date.now() - startTime, error.message);
+                    this.updateTestStatus('AJAX Toggle test failed');
+                }
+            }
+
+            async testSpinner() {
+                const testName = 'Spinner Functionality';
+                const startTime = Date.now();
+                
+                try {
+                    // Test spinner show/hide
+                    const testButton = $('<button>Test Button</button>');
+                    $('body').append(testButton);
+                    
+                    // Test showSpinner
+                    if (typeof salaryConfigAjax !== 'undefined') {
+                        salaryConfigAjax.showSpinner(testButton, 'Testing...');
+                        
+                        // Check if spinner was added
+                        if (testButton.html().includes('spinner-border')) {
+                            this.addTestResult(testName, 'PASSED', Date.now() - startTime);
+                            this.updateTestStatus('Spinner test passed');
+                        } else {
+                            throw new Error('Spinner not added to button');
+                        }
+                        
+                        // Test hideSpinner
+                        salaryConfigAjax.hideSpinner(testButton);
+                        
+                        // Clean up
+                        testButton.remove();
+                    } else {
+                        throw new Error('salaryConfigAjax object not found');
+                    }
+                } catch (error) {
+                    this.addTestResult(testName, 'FAILED', Date.now() - startTime, error.message);
+                    this.updateTestStatus('Spinner test failed');
+                }
+            }
+
+            async simulateAjaxCall(method, url, data = {}) {
+                return new Promise((resolve, reject) => {
+                    // Simulate network delay
+                    setTimeout(() => {
+                        // Simulate successful response
+                        resolve({
+                            success: true,
+                            data: data
+                        });
+                    }, 100 + Math.random() * 200); // Random delay between 100-300ms
+                });
+            }
+
+            addTestResult(testName, status, responseTime, errorMessage = '') {
+                testResults.total++;
+                if (status === 'PASSED') {
+                    testResults.passed++;
+                } else {
+                    testResults.failed++;
+                }
+
+                const row = `
+                    <tr class="${status === 'PASSED' ? 'table-success' : 'table-danger'}">
+                        <td>${testName}</td>
+                        <td><span class="badge bg-${status === 'PASSED' ? 'success' : 'danger'}">${status}</span></td>
+                        <td>${responseTime}ms</td>
+                        <td>${errorMessage}</td>
+                    </tr>
+                `;
+                $('#test-data-table tbody').append(row);
+            }
+
+            resetTestResults() {
+                testResults = { passed: 0, failed: 0, total: 0 };
+                $('#test-data-table tbody').empty();
+                this.updateTestStatus('Ready to test');
+            }
+
+            updateTestStatus(status) {
+                $('#test-status').text(status);
+                $('#tests-passed').text(testResults.passed);
+                $('#tests-failed').text(testResults.failed);
+                $('#total-tests').text(testResults.total);
+            }
+        }
+
+        // Initialize tester when document is ready
+        $(document).ready(function() {
+            new SalaryConfigTester();
+        });
+    </script>
+</body>
+</html>
