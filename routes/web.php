@@ -59,6 +59,7 @@ use App\Http\Controllers\settings\Religion;
 use App\Http\Controllers\settings\Year;
 use App\Http\Controllers\settings\AppSettings;
 use App\Http\Controllers\settings\Faculty;
+use App\Http\Controllers\settings\Program;
 use App\Http\Controllers\settings\PaymentMethod;
 use App\Http\Controllers\settings\Nationality;
 use App\Http\Controllers\settings\Month;
@@ -349,6 +350,12 @@ Route::post('/app/settings/faculty', [Faculty::class, 'store'])->name('app-setti
 Route::put('/app/settings/faculty/{id}', [Faculty::class, 'update'])->name('app-settings-faculty.update');
 Route::delete('/app/settings/faculty/{id}', [Faculty::class, 'destroy'])->name('app-settings-faculty.destroy');
 
+// Program Routes
+Route::get('/app/settings/program', [Program::class, 'index'])->name('program');
+Route::get('/app/settings/get-program', [Program::class, 'getProgram'])->name('app-settings-get-program');
+Route::post('/app/settings/program', [Program::class, 'store'])->name('app-settings-program.store');
+Route::put('/app/settings/program/{id}', [Program::class, 'update'])->name('app-settings-program.update');
+Route::delete('/app/settings/program/{id}', [Program::class, 'destroy'])->name('app-settings-program.destroy');
 
 Route::get('/app/settings/item', [Item::class, 'index'])->name('app-settings-item');
 Route::get('/app/settings/get-item', [Item::class, 'getItem'])->name('app-settings-get-item');
