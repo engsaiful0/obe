@@ -15,7 +15,16 @@ return new class extends Migration
     {
         Schema::create('app_settings', function (Blueprint $table) {
             $table->id();
-            $table->string('app_name')->nullable();
+            $table->string('university_name')->nullable();
+            $table->string('short_name')->nullable();
+            $table->string('established_year')->nullable();
+            $table->string('vc_name')->nullable();
+            $table->string('pro_vc_name')->nullable();
+            $table->string('registrar_name')->nullable();
+            $table->string('controller_name')->nullable();
+            $table->string('time_zone')->nullable();
+            $table->string('academic_system')->nullable();
+            $table->string('status')->nullable();
             $table->string('address')->nullable();
             $table->string('phone')->nullable();
             $table->string('email')->nullable();

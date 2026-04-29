@@ -92,6 +92,12 @@
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
+                                <label class="form-label" for="pro_vc_name">Pro VC Name</label>
+                                <input type="text" class="form-control" id="pro_vc_name" name="pro_vc_name" value="{{ $settings->pro_vc_name }}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
                                 <label class="form-label" for="registrar_name">Registrar Name</label>
                                 <input type="text" class="form-control" id="registrar_name" name="registrar_name" value="{{ $settings->registrar_name }}">
                             </div>

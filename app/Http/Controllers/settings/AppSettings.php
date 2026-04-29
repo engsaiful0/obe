@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class AppSettings extends Controller
 {
@@ -27,7 +28,25 @@ class AppSettings extends Controller
                 return redirect()->back()->with('error', 'Settings not found');
             }
 
-            $data = $request->except(['_token', '_method', 'logo', 'fevicon']);
+            $validated = $request->validate([
+                'university_name' => ['nullable', 'string', 'max:255'],
+                'short_name' => ['nullable', 'string', 'max:255'],
+                'address' => ['nullable', 'string', 'max:255'],
+                'phone' => ['nullable', 'string', 'max:50'],
+                'email' => ['nullable', 'email', 'max:255'],
+                'website' => ['nullable', 'string', 'max:255'],
+                'established_year' => ['nullable', 'integer', 'digits:4'],
+                'vc_name' => ['nullable', 'string', 'max:255'],
+                'pro_vc_name' => ['nullable', 'string', 'max:255'],
+                'registrar_name' => ['nullable', 'string', 'max:255'],
+                'controller_name' => ['nullable', 'string', 'max:255'],
+                'time_zone' => ['nullable', 'string', 'max:100'],
+                'academic_system' => ['nullable', 'in:Semester,Trimester,Yearly'],
+                'status' => ['nullable', 'in:Active,Inactive'],
+                'logo' => ['nullable', 'image', 'max:2048'],
+            ]);
+
+            $data = collect($validated)->except(['logo'])->toArray();
             $user = Auth::user();
             $userId = $user->id;
             $data['user_id'] = $userId;
@@ -37,13 +56,6 @@ class AppSettings extends Controller
                 $logoName = 'logo.' . $logo->getClientOriginalExtension();
                 $logo->move(public_path('assets/img/branding'), $logoName);
                 $data['logo'] = $logoName;
-            }
-
-            if ($request->hasFile('fevicon')) {
-                $fevicon = $request->file('fevicon');
-                $feviconName = 'fevicon.' . $fevicon->getClientOriginalExtension();
-                $fevicon->move(public_path('assets/img/branding'), $feviconName);
-                $data['fevicon'] = $feviconName;
             }
 
             $settings->update($data);
@@ -59,6 +71,16 @@ class AppSettings extends Controller
 
             return redirect()->back()->with('success', 'Settings updated successfully');
             
+        } catch (ValidationException $e) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Validation failed.',
+                    'errors' => $e->errors(),
+                ], 422);
+            }
+
+            throw $e;
         } catch (\Exception $e) {
             if ($request->ajax()) {
                 return response()->json([
