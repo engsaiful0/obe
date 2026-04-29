@@ -60,6 +60,7 @@ use App\Http\Controllers\settings\Year;
 use App\Http\Controllers\settings\AppSettings;
 use App\Http\Controllers\settings\Faculty;
 use App\Http\Controllers\settings\Program;
+use App\Http\Controllers\settings\AcademicSession;
 use App\Http\Controllers\settings\PaymentMethod;
 use App\Http\Controllers\settings\Nationality;
 use App\Http\Controllers\settings\Month;
@@ -356,6 +357,13 @@ Route::get('/app/settings/get-program', [Program::class, 'getProgram'])->name('a
 Route::post('/app/settings/program', [Program::class, 'store'])->name('app-settings-program.store');
 Route::put('/app/settings/program/{id}', [Program::class, 'update'])->name('app-settings-program.update');
 Route::delete('/app/settings/program/{id}', [Program::class, 'destroy'])->name('app-settings-program.destroy');
+
+// Academic Session Routes
+Route::get('/app/settings/academic-session', [AcademicSession::class, 'index'])->name('academic-session');
+Route::get('/app/settings/get-academic-session', [AcademicSession::class, 'getAcademicSession'])->name('app-settings-get-academic-session');
+Route::post('/app/settings/academic-session', [AcademicSession::class, 'store'])->name('app-settings-academic-session.store');
+Route::put('/app/settings/academic-session/{id}', [AcademicSession::class, 'update'])->name('app-settings-academic-session.update');
+Route::delete('/app/settings/academic-session/{id}', [AcademicSession::class, 'destroy'])->name('app-settings-academic-session.destroy');
 
 Route::get('/app/settings/item', [Item::class, 'index'])->name('app-settings-item');
 Route::get('/app/settings/get-item', [Item::class, 'getItem'])->name('app-settings-get-item');

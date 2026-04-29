@@ -646,7 +646,11 @@ return '';
                         <div>{{ __('Academic Session') }}</div>
                     </a>
                 </li>
-
+                <li class="menu-item {{ $currentRouteName === 'program' ? 'active' : '' }}">
+                    <a href="{{ url('app/settings/program') }}" class="menu-link">
+                        <div>{{ __('Program') }}</div>
+                    </a>
+                </li>
                 <li class="menu-item {{ $currentRouteName === 'blood-group' ? 'active' : '' }}">
                     <a href="{{ url('app/settings/blood-group') }}" class="menu-link">
                         <div>{{ __('Blood Group') }}</div>
