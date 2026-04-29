@@ -3,59 +3,92 @@
 namespace App\Http\Controllers\settings;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\Program;
 use App\Models\Semester as SemesterModel;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class Semester extends Controller
 {
-  public function index()
-  {
-    return view('content.settings.semester');
-  }
+    public function index()
+    {
+        $programs = Program::with(['faculty:id,faculty_name', 'department:id,name'])
+            ->orderBy('program_name')
+            ->get(['id', 'program_name', 'program_code', 'faculty_id', 'department_id']);
 
-  public function getSemester(Request $request)
-  {
-    $semesters = SemesterModel::all();
-    return response()->json([
-      'data' => $semesters,
-    ]);
-  }
+        return view('content.settings.semester', compact('programs'));
+    }
 
-  public function store(Request $request)
-  {
-    $request->validate([
-      'semester_name' => 'required|string|max:255|unique:semesters,semester_name',
-    ]);
-$user = Auth::user();
-        $userId = $user->id;
-    $semester = SemesterModel::create([
-      'semester_name' => $request->semester_name,
-      'user_id' => $userId,
-    ]);
-     return response()->json(['message' => 'Semester created successfully.', 'data' => $semester], Response::HTTP_CREATED);
-  }
+    public function getSemester(Request $request)
+    {
+        $rows = SemesterModel::with(['program:id,program_name,program_code'])
+            ->orderBy('program_id')
+            ->orderBy('semester_order')
+            ->get();
 
-  public function update(Request $request, $id)
-  {
-    $request->validate([
-      'semester_name' => 'required|string|max:255|unique:semesters,semester_name,' . $id,
-    ]);
+        return response()->json([
+            'data' => $rows,
+        ]);
+    }
 
-    $semester = SemesterModel::findOrFail($id);
-    $semester->update([
-      'semester_name' => $request->semester_name,
-    ]);
+    public function store(Request $request)
+    {
+        $data = $this->validatedSemester($request);
 
-    return response()->json(['message' => 'Semester updated successfully.', 'data' => $semester]);
-  }
+        $user = Auth::user();
 
-  public function destroy($id)
-  {
-    $semester = SemesterModel::findOrFail($id);
-    $semester->delete();
+        $semester = SemesterModel::create(array_merge($data, [
+            'user_id' => $user->id,
+        ]));
 
-    return response()->json(['message' => 'Semester deleted successfully.']);
-  }
+        $semester->load('program:id,program_name,program_code');
+
+        return response()->json($semester, Response::HTTP_CREATED);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $data = $this->validatedSemester($request, $id);
+
+        $semester = SemesterModel::findOrFail($id);
+        $semester->update($data);
+
+        $semester->load('program:id,program_name,program_code');
+
+        return response()->json($semester);
+    }
+
+    public function destroy($id)
+    {
+        $semester = SemesterModel::findOrFail($id);
+        $semester->delete();
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * @param  int|string|null  $ignoreId
+     */
+    protected function validatedSemester(Request $request, $ignoreId = null): array
+    {
+        $nameRule = Rule::unique('semesters', 'semester_name')
+            ->where(fn ($q) => $q->where('program_id', (int) $request->input('program_id')));
+
+        $orderRule = Rule::unique('semesters', 'semester_order')
+            ->where(fn ($q) => $q->where('program_id', (int) $request->input('program_id')));
+
+        if ($ignoreId !== null) {
+            $nameRule = $nameRule->ignore($ignoreId);
+            $orderRule = $orderRule->ignore($ignoreId);
+        }
+
+        return $request->validate([
+            'program_id' => ['required', 'exists:programs,id'],
+            'semester_name' => ['required', 'string', 'max:255', $nameRule],
+            'semester_order' => ['required', 'integer', 'min:1', 'max:32767', $orderRule],
+            'status' => ['required', 'in:Active,Inactive'],
+        ]);
+    }
 }

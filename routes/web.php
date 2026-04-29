@@ -61,6 +61,7 @@ use App\Http\Controllers\settings\AppSettings;
 use App\Http\Controllers\settings\Faculty;
 use App\Http\Controllers\settings\Program;
 use App\Http\Controllers\settings\AcademicSession;
+use App\Http\Controllers\settings\Semester;
 use App\Http\Controllers\settings\PaymentMethod;
 use App\Http\Controllers\settings\Nationality;
 use App\Http\Controllers\settings\Month;
@@ -364,6 +365,13 @@ Route::get('/app/settings/get-academic-session', [AcademicSession::class, 'getAc
 Route::post('/app/settings/academic-session', [AcademicSession::class, 'store'])->name('app-settings-academic-session.store');
 Route::put('/app/settings/academic-session/{id}', [AcademicSession::class, 'update'])->name('app-settings-academic-session.update');
 Route::delete('/app/settings/academic-session/{id}', [AcademicSession::class, 'destroy'])->name('app-settings-academic-session.destroy');
+
+// Semester Routes
+Route::get('/app/settings/semester', [Semester::class, 'index'])->name('semester');
+Route::get('/app/settings/get-semester', [Semester::class, 'getSemester'])->name('app-settings-get-semester');
+Route::post('/app/settings/semester', [Semester::class, 'store'])->name('app-settings-semester.store');
+Route::put('/app/settings/semester/{id}', [Semester::class, 'update'])->name('app-settings-semester.update');
+Route::delete('/app/settings/semester/{id}', [Semester::class, 'destroy'])->name('app-settings-semester.destroy');
 
 Route::get('/app/settings/item', [Item::class, 'index'])->name('app-settings-item');
 Route::get('/app/settings/get-item', [Item::class, 'getItem'])->name('app-settings-get-item');

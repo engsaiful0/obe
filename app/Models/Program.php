@@ -41,4 +41,9 @@ class Program extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function semesters()
+    {
+        return $this->hasMany(Semester::class);
+    }
 }

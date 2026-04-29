@@ -646,9 +646,9 @@ return '';
                         <div>{{ __('Academic Session') }}</div>
                     </a>
                 </li>
-                <li class="menu-item {{ $currentRouteName === 'program' ? 'active' : '' }}">
-                    <a href="{{ url('app/settings/program') }}" class="menu-link">
-                        <div>{{ __('Program') }}</div>
+                <li class="menu-item {{ $currentRouteName === 'semester' ? 'active' : '' }}">
+                    <a href="{{ url('app/settings/semester') }}" class="menu-link">
+                        <div>{{ __('Semester') }}</div>
                     </a>
                 </li>
                 <li class="menu-item {{ $currentRouteName === 'blood-group' ? 'active' : '' }}">
