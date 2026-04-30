@@ -14,20 +14,18 @@ class Status extends Model
         'related_to',
         'user_id',
     ];
-    
-    // Related to options
+
+    /**
+     * Labels for Related To dropdown (Status settings), sourced from Related To CRUD.
+     *
+     * @return array<string, string>
+     */
     public static function getRelatedToOptions()
     {
-        return [
-            'bus-helper' => 'Bus Helper',
-            'bus' => 'Bus',
-            'bus-schedule' => 'Bus Schedule',
-            'driver' => 'Driver',
-            'driver-helper-assignment' => 'Driver & Helper Assignment',
-            'employee' => 'Employee',
-          
-            
-        ];
+        return RelatedTo::query()
+            ->orderBy('name')
+            ->pluck('name', 'name')
+            ->all();
     }
 
     protected $casts = [

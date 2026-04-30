@@ -27,6 +27,7 @@ use App\Http\Controllers\BusScheduleKeywordController;
 use App\Http\Controllers\settings\PunishmentType;
 use App\Http\Controllers\settings\RewardType;
 use App\Http\Controllers\settings\ViolationType;
+use App\Http\Controllers\settings\RelatedTo as RelatedToSettingController;
 use App\Http\Controllers\settings\Status;
 use App\Http\Controllers\settings\DeploymentType;
 use App\Http\Controllers\settings\EducationalQualification;
@@ -501,6 +502,13 @@ Route::get('/app/settings/get-status', [Status::class, 'getStatus'])->name('app-
 Route::post('/app/settings/status', [Status::class, 'store'])->name('app-settings-status.store');
 Route::put('/app/settings/status/{id}', [Status::class, 'update'])->name('app-settings-status.update');
 Route::delete('/app/settings/status/{id}', [Status::class, 'destroy'])->name('app-settings-status.destroy');
+
+// Related To (Status dropdown source)
+Route::get('/app/settings/status-related-to', [RelatedToSettingController::class, 'index'])->name('status-related-to');
+Route::get('/app/settings/get-status-related-to', [RelatedToSettingController::class, 'getRelatedTo'])->name('app-settings-get-status-related-to');
+Route::post('/app/settings/status-related-to', [RelatedToSettingController::class, 'store'])->name('app-settings-status-related-to.store');
+Route::put('/app/settings/status-related-to/{id}', [RelatedToSettingController::class, 'update'])->name('app-settings-status-related-to.update');
+Route::delete('/app/settings/status-related-to/{id}', [RelatedToSettingController::class, 'destroy'])->name('app-settings-status-related-to.destroy');
 
 Route::get('/app/settings/deployment-type', [DeploymentType::class, 'index'])->name('app-settings-deployment-type');
 Route::get('/app/settings/get-deployment-type', [DeploymentType::class, 'getDeploymentType'])->name('app-settings-get-deployment-type');

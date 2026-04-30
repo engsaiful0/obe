@@ -34,7 +34,7 @@ class Status extends Controller
                 Rule::unique('statuses', 'status_name')
                     ->where('related_to', $request->related_to)
             ],
-            'related_to' => 'required|in:bus-helper,driver,employee,bus,driver-helper-assignment,bus-schedule',
+            'related_to' => ['required', 'string', 'max:255', Rule::exists('related_tos', 'name')],
         ]);
 
         $user = Auth::user();
@@ -60,7 +60,7 @@ class Status extends Controller
                     ->ignore($id)
                     ->where('related_to', $request->related_to)
             ],
-            'related_to' => 'required|in:bus-helper,driver,employee,bus,driver-helper-assignment,bus-schedule',
+            'related_to' => ['required', 'string', 'max:255', Rule::exists('related_tos', 'name')],
         ]);
 
         $status = StatusModel::where('id', $id)->where('user_id', Auth::id())->firstOrFail();

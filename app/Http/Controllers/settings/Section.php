@@ -69,7 +69,7 @@ class Section extends Controller
 
         $items = Batch::query()
             ->where('program_id', $request->program_id)
-            ->where('status', 'Active')
+            ->whereNot('status', 'Inactive')
             ->orderBy('batch_name')
             ->get(['id', 'batch_name', 'batch_code', 'program_id']);
 

@@ -276,7 +276,11 @@ return '';
                         <div>{{ __('Rules & Permissions') }}</div>
                     </a>
                 </li>
-
+                <li class="menu-item {{ $currentRouteName === 'status-related-to' ? 'active' : '' }}">
+                    <a href="{{ url('app/settings/status-related-to') }}" class="menu-link">
+                        <div>{{ __('Related To') }}</div>
+                    </a>
+                </li>
                 <li class="menu-item {{ $currentRouteName === 'status' ? 'active' : '' }}">
                     <a href="{{ url('app/settings/status') }}" class="menu-link">
                         <div>{{ __('Status') }}</div>
