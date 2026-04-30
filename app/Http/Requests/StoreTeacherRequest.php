@@ -2,11 +2,19 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\NormalizesTeacherEducations;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreTeacherRequest extends FormRequest
 {
+    use NormalizesTeacherEducations;
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizeTeacherEducationsInput();
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -16,18 +24,23 @@ class StoreTeacherRequest extends FormRequest
     {
         return [
             'department_id' => ['required', 'exists:departments,id'],
-            'name' => ['required', 'string', 'max:255'],
+            'teacher_name' => ['required', 'string', 'max:255'],
             'employee_id' => ['required', 'string', 'max:50', 'unique:teachers,employee_id'],
-            'designation' => ['required', Rule::in(['Lecturer', 'Assistant Professor', 'Associate Professor', 'Professor', 'Adjunct'])],
+            'designation_id' => [
+                'required',
+                Rule::exists('designations', 'id')->where(fn ($q) => $q->where('designation_type', 'Teacher')),
+            ],
             'email' => ['required', 'email', 'max:255', 'unique:teachers,email'],
             'phone' => ['nullable', 'string', 'max:30'],
             'login_email' => ['required', 'email', 'max:255', 'unique:teachers,login_email'],
             'password' => ['required', 'string', 'min:6', 'max:255'],
-            'status' => ['required', Rule::in(['Active', 'Inactive'])],
+            'gender_id' => ['nullable', 'exists:genders,id'],
+            'status_id' => ['required', 'exists:statuses,id'],
+            'religion_id' => ['nullable', 'exists:religions,id'],
             'profile_photo' => ['nullable', 'image', 'max:4096'],
             'joining_date' => ['nullable', 'date'],
-            'employment_type' => ['required', Rule::in(['Full-time', 'Part-time', 'Adjunct'])],
-            'experience_years' => ['nullable', 'integer', 'min:0', 'max:80'],
+            'employee_type_id' => ['required', 'exists:employee_types,id'],
+            'experience_year_id' => ['nullable', 'exists:experience_years,id'],
             'office_room' => ['nullable', 'string', 'max:120'],
 
             'is_program_coordinator' => ['nullable', 'boolean'],
@@ -36,27 +49,26 @@ class StoreTeacherRequest extends FormRequest
             'can_submit_cqi' => ['nullable', 'boolean'],
 
             'date_of_birth' => ['nullable', 'date'],
-            'gender' => ['nullable', Rule::in(['Male', 'Female', 'Other'])],
-            'blood_group' => ['nullable', 'string', 'max:20'],
+            'blood_group_id' => ['nullable', 'exists:blood_groups,id'],
             'nid' => ['nullable', 'string', 'max:50'],
-            'marital_status' => ['nullable', 'string', 'max:40'],
+            'marital_status_id' => ['nullable', 'exists:marital_statuses,id'],
             'address' => ['nullable', 'string'],
 
-            'research_area' => ['nullable', 'string', 'max:255'],
-            'google_scholar_link' => ['nullable', 'url', 'max:255'],
-            'orcid_id' => ['nullable', 'string', 'max:50'],
+            'research_area' => ['nullable', 'string'],
+            'google_scholar_link' => ['nullable', 'string', 'max:500'],
+            'orcid_id' => ['nullable', 'string', 'max:100'],
             'total_publications' => ['nullable', 'integer', 'min:0'],
 
             'educations' => ['nullable', 'array'],
-            'educations.*.degree' => ['required_with:educations.*.subject,educations.*.university,educations.*.passing_year', Rule::in(['BSc', 'MSc', 'PhD'])],
+            'educations.*.degree' => ['required', Rule::in(['BSc', 'MSc', 'PhD'])],
             'educations.*.subject' => ['nullable', 'string', 'max:150'],
             'educations.*.university' => ['nullable', 'string', 'max:200'],
-            'educations.*.passing_year' => ['nullable', 'integer', 'digits:4', 'min:1950', 'max:2100'],
+            'educations.*.passing_year' => ['nullable', 'integer', 'min:1950', 'max:2100'],
             'educations.*.result' => ['nullable', 'string', 'max:50'],
 
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],
             'emergency_contact_phone' => ['nullable', 'string', 'max:30'],
-            'emergency_contact_relation' => ['nullable', 'string', 'max:60'],
+            'emergency_contact_relation' => ['nullable', 'string', 'max:100'],
         ];
     }
 }

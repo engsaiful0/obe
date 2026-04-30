@@ -1,6 +1,7 @@
 @php
-$isEdit = isset($teacher);
-$detail = $teacher->detail ?? null;
+$teacher = $teacher ?? null;
+$isEdit = $teacher !== null;
+$detail = $isEdit ? ($teacher->detail ?? null) : null;
 $oldEducations = old('educations');
 $educations = is_array($oldEducations) ? $oldEducations : ($isEdit ? $teacher->educations->toArray() : []);
 @endphp
@@ -24,9 +25,10 @@ $educations = is_array($oldEducations) ? $oldEducations : ($isEdit ? $teacher->e
 
     <div class="col-md-4">
         <label class="form-label">Designation</label>
-        <select name="designation" class="form-select" required>
-            @foreach(['Lecturer','Assistant Professor','Associate Professor','Professor','Adjunct'] as $designation)
-            <option value="{{ $designation }}" @selected(old('designation', $teacher->designation ?? '') === $designation)>{{ $designation }}</option>
+        <select name="designation_id" class="form-select" required>
+            <option value="">Select Designation</option>
+            @foreach($designations as $des)
+            <option value="{{ $des->id }}" @selected(old('designation_id', $teacher->designation_id ?? '') == $des->id)>{{ $des->designation_name }}</option>
             @endforeach
         </select>
     </div>
@@ -45,10 +47,10 @@ $educations = is_array($oldEducations) ? $oldEducations : ($isEdit ? $teacher->e
     <div class="col-12 mt-3">
         <h6 class="text-primary mb-0">Section 3: Personal Info</h6>
     </div>
-    <div class="col-md-4"><label class="form-label">DOB</label><input type="date" class="form-control" name="date_of_birth" value="{{ old('date_of_birth', optional($detail?->date_of_birth)->format('Y-m-d')) }}"></div>
+    <div class="col-md-4"><label class="form-label">DOB</label><input type="date" class="form-control" name="date_of_birth" value="{{ old('date_of_birth', $isEdit ? optional($teacher->date_of_birth ?? $detail?->date_of_birth)->format('Y-m-d') : '') }}"></div>
 
     <div class="col-md-4">
-        <label class="form-label">Gender</label><select name="gender" class="form-select">
+        <label class="form-label">Gender</label><select name="gender_id" class="form-select">
             <option value="">Select</option>
             @foreach($genders as $gender)
             <option value="{{ $gender->id }}" @selected(old('gender_id', $teacher->gender_id ?? '') == $gender->id)>{{ $gender->gender_name }}</option>
@@ -66,7 +68,17 @@ $educations = is_array($oldEducations) ? $oldEducations : ($isEdit ? $teacher->e
         </select>
     </div>
 
-    <div class="col-md-4"><label class="form-label">NID</label><input class="form-control" name="nid" value="{{ old('nid', $detail->nid ?? '') }}"></div>
+    <div class="col-md-4"><label class="form-label">NID</label><input class="form-control" name="nid" value="{{ old('nid', $isEdit ? ($teacher->nid ?? $detail?->nid ?? '') : '') }}"></div>
+
+    <div class="col-md-4">
+        <label class="form-label">Religion</label>
+        <select class="form-select" name="religion_id">
+            <option value="">Select Religion</option>
+            @foreach($religions as $religion)
+            <option value="{{ $religion->id }}" @selected(old('religion_id', $teacher->religion_id ?? '') == $religion->id)>{{ $religion->religion_name }}</option>
+            @endforeach
+        </select>
+    </div>
 
     <div class="col-md-4">
         <label class="form-label">Marital Status</label>
@@ -84,17 +96,17 @@ $educations = is_array($oldEducations) ? $oldEducations : ($isEdit ? $teacher->e
         <input type="file" class="form-control" name="profile_photo">
     </div>
 
-    <div class="col-12"><label class="form-label">Address</label><textarea class="form-control" name="address" rows="2">{{ old('address', $detail->address ?? '') }}</textarea></div>
+    <div class="col-12"><label class="form-label">Address</label><textarea class="form-control" name="address" rows="2">{{ old('address', $isEdit ? ($teacher->address ?? $detail?->address ?? '') : '') }}</textarea></div>
 
     <div class="col-12 mt-3">
         <h6 class="text-primary mb-0">Section 4: Professional Info</h6>
     </div>
 
-    <div class="col-md-3"><label class="form-label">Joining Date</label><input type="date" class="form-control" name="joining_date" value="{{ old('joining_date', optional($teacher->joining_date ?? null)->format('Y-m-d')) }}"></div>
+    <div class="col-md-3"><label class="form-label">Joining Date</label><input type="date" class="form-control" name="joining_date" value="{{ old('joining_date', $isEdit ? optional($teacher->joining_date)->format('Y-m-d') : '') }}"></div>
 
     <div class="col-md-3">
         <label class="form-label">Employment Type</label>
-        <select name="employment_type" class="form-select" required>
+        <select name="employee_type_id" class="form-select" required>
             <option value="">Select Employment Type</option>
             @foreach($employee_types as $employee_type)
             <option value="{{ $employee_type->id }}" @selected(old('employee_type_id', $teacher->employee_type_id ?? '') == $employee_type->id)>{{ $employee_type->employee_type_name }}</option>
@@ -128,16 +140,16 @@ $educations = is_array($oldEducations) ? $oldEducations : ($isEdit ? $teacher->e
     <div class="col-12 mt-3">
         <h6 class="text-primary mb-0">Section 6: Research Info</h6>
     </div>
-    <div class="col-md-4"><label class="form-label">Research Area</label><input class="form-control" name="research_area" value="{{ old('research_area', $detail->research_area ?? '') }}"></div>
+    <div class="col-md-4"><label class="form-label">Research Area</label><input class="form-control" name="research_area" value="{{ old('research_area', $isEdit ? ($teacher->research_area ?? $detail?->research_area ?? '') : '') }}"></div>
 
-    <div class="col-md-4"><label class="form-label">Google Scholar Link</label><input class="form-control" name="google_scholar_link" value="{{ old('google_scholar_link', $detail->google_scholar_link ?? '') }}"></div>
+    <div class="col-md-4"><label class="form-label">Google Scholar Link</label><input class="form-control" name="google_scholar_link" value="{{ old('google_scholar_link', $isEdit ? ($teacher->google_scholar_link ?? $detail?->google_scholar_link ?? '') : '') }}"></div>
 
-    <div class="col-md-2"><label class="form-label">ORCID</label><input class="form-control" name="orcid_id" value="{{ old('orcid_id', $detail->orcid_id ?? '') }}"></div>
+    <div class="col-md-2"><label class="form-label">ORCID</label><input class="form-control" name="orcid_id" value="{{ old('orcid_id', $isEdit ? ($teacher->orcid_id ?? $detail?->orcid_id ?? '') : '') }}"></div>
 
-    <div class="col-md-2"><label class="form-label">Total Publications</label><input type="number" min="0" class="form-control" name="total_publications" value="{{ old('total_publications', $detail->total_publications ?? 0) }}"></div>
+    <div class="col-md-2"><label class="form-label">Total Publications</label><input type="number" min="0" class="form-control" name="total_publications" value="{{ old('total_publications', $isEdit ? ($teacher->total_publications ?? $detail?->total_publications ?? 0) : 0) }}"></div>
 
     <div class="col-12 mt-3">
-        <h6 class="text-primary mb-0">Section 7: Education</h6>
+        <h6 class="text-primary mb-0">Section 7: Education <span class="text-muted fw-normal">(optional)</span></h6>
     </div>
     <div class="col-12">
         <div id="education-wrapper">
@@ -181,15 +193,15 @@ $educations = is_array($oldEducations) ? $oldEducations : ($isEdit ? $teacher->e
     <div class="col-12 mt-3">
         <h6 class="text-primary mb-0">Section 8: Emergency Contact</h6>
     </div>
-    <div class="col-md-4"><label class="form-label">Name</label><input class="form-control" name="emergency_contact_name" value="{{ old('emergency_contact_name', $detail->emergency_contact_name ?? '') }}"></div>
+    <div class="col-md-4"><label class="form-label">Name</label><input class="form-control" name="emergency_contact_name" value="{{ old('emergency_contact_name', $isEdit ? ($teacher->emergency_contact_name ?? $detail?->emergency_contact_name ?? '') : '') }}"></div>
 
-    <div class="col-md-4"><label class="form-label">Phone</label><input class="form-control" name="emergency_contact_phone" value="{{ old('emergency_contact_phone', $detail->emergency_contact_phone ?? '') }}"></div>
+    <div class="col-md-4"><label class="form-label">Phone</label><input class="form-control" name="emergency_contact_phone" value="{{ old('emergency_contact_phone', $isEdit ? ($teacher->emergency_contact_phone ?? $detail?->emergency_contact_phone ?? '') : '') }}"></div>
 
-    <div class="col-md-4"><label class="form-label">Relation</label><input class="form-control" name="emergency_contact_relation" value="{{ old('emergency_contact_relation', $detail->emergency_contact_relation ?? '') }}"></div>
+    <div class="col-md-4"><label class="form-label">Relation</label><input class="form-control" name="emergency_contact_relation" value="{{ old('emergency_contact_relation', $isEdit ? ($teacher->emergency_contact_relation ?? $detail?->emergency_contact_relation ?? '') : '') }}"></div>
 
     <div class="col-md-3">
         <label class="form-label">Status</label>
-        <select class="form-select" name="status" required>
+        <select class="form-select" name="status_id" required>
             @foreach($teacherStatuses as $teacher_status)
             <option value="{{ $teacher_status->id }}" @selected(old('status_id', $teacher->status_id ?? '') == $teacher_status->id)>{{ $teacher_status->status_name }}</option>
             @endforeach

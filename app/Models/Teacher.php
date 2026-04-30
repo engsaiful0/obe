@@ -26,16 +26,24 @@ class Teacher extends Model
         'gender_id',
         'profile_photo',
         'joining_date',
-        'employment_type',
-        'experience_years',
+        'employee_type_id',
+        'experience_year_id',
         'office_room',
         'is_program_coordinator',
         'is_course_coordinator',
         'can_submit_clo',
         'can_submit_cqi',
         'user_id',
-        // Backward-compat columns used by old settings module
-        'designation_id',
+        'date_of_birth',
+        'nid',
+        'address',
+        'research_area',
+        'google_scholar_link',
+        'orcid_id',
+        'total_publications',
+        'emergency_contact_name',
+        'emergency_contact_phone',
+        'emergency_contact_relation',
     ];
 
     protected $hidden = [
@@ -44,16 +52,22 @@ class Teacher extends Model
 
     protected $casts = [
         'joining_date' => 'date',
+        'date_of_birth' => 'date',
         'is_program_coordinator' => 'boolean',
         'is_course_coordinator' => 'boolean',
         'can_submit_clo' => 'boolean',
         'can_submit_cqi' => 'boolean',
-        'experience_years' => 'integer',
+        'total_publications' => 'integer',
     ];
 
     public function department()
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function teacherStatus()
+    {
+        return $this->belongsTo(Status::class, 'status_id');
     }
 
     public function designation()

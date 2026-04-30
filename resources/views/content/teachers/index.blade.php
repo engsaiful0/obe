@@ -45,12 +45,13 @@
                 <tbody>
                     @forelse($teachers as $teacher)
                         <tr>
-                            <td>{{ $teacher->name }}</td>
+                            <td>{{ $teacher->teacher_name }}</td>
                             <td>{{ $teacher->employee_id }}</td>
                             <td>{{ $teacher->department->name ?? 'N/A' }}</td>
-                            <td>{{ $teacher->designation }}</td>
+                            <td>{{ $teacher->designation->designation_name ?? 'N/A' }}</td>
                             <td>{{ $teacher->email }}</td>
-                            <td><span class="badge {{ $teacher->status === 'Active' ? 'bg-success' : 'bg-secondary' }}">{{ $teacher->status }}</span></td>
+                            @php $statusName = $teacher->teacherStatus->status_name ?? ''; @endphp
+                            <td><span class="badge {{ $statusName === 'Active' ? 'bg-success' : 'bg-secondary' }}">{{ $statusName ?: 'N/A' }}</span></td>
                             <td class="d-flex gap-1">
                                 <a class="btn btn-info btn-sm" href="{{ route('teachers.show', $teacher->id) }}">View</a>
                                 <a class="btn btn-warning btn-sm" href="{{ route('teachers.edit', $teacher->id) }}">Edit</a>
