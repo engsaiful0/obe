@@ -1,5 +1,5 @@
 /**
- * Permission CRUD (permissions table) — AJAX + Spinner
+ * Permission CRUD — Religion-style layout, AJAX + Spinner
  */
 'use strict';
 
@@ -97,23 +97,25 @@ function rulesBadges(rules) {
     .join('');
 }
 
+/** Opens offcanvas for new permission (header button, DataTables “Create Permission”, or ?create=1). */
+function openNewPermissionForm() {
+  const formAddNewRecord = document.getElementById('form-add-new-record');
+  const offCanvasElement = document.querySelector('#add-new-record');
+  if (!formAddNewRecord || !offCanvasElement) {
+    return;
+  }
+  offCanvasEl = new bootstrap.Offcanvas(offCanvasElement);
+  formAddNewRecord.reset();
+  $('#form-add-new-record').removeAttr('data-id');
+  const titleEl = document.querySelector('#exampleModalLabel');
+  if (titleEl) {
+    titleEl.textContent = 'New Permission';
+  }
+  offCanvasEl.show();
+}
+
 document.addEventListener('DOMContentLoaded', function () {
   const formAddNewRecord = document.getElementById('form-add-new-record');
-
-  setTimeout(() => {
-    const newRecord = document.querySelector('.create-new');
-    const offCanvasElement = document.querySelector('#add-new-record');
-
-    if (newRecord) {
-      newRecord.addEventListener('click', function () {
-        offCanvasEl = new bootstrap.Offcanvas(offCanvasElement);
-        formAddNewRecord.reset();
-        $('#form-add-new-record').removeAttr('data-id');
-        document.querySelector('#exampleModalLabel').textContent = 'New Permission';
-        offCanvasEl.show();
-      });
-    }
-  }, 200);
 
   fv = FormValidation.formValidation(formAddNewRecord, {
     fields: {
@@ -133,16 +135,33 @@ document.addEventListener('DOMContentLoaded', function () {
       }),
       submitButton: new FormValidation.plugins.SubmitButton(),
       autoFocus: new FormValidation.plugins.AutoFocus()
+    },
+    init: function (instance) {
+      instance.on('plugins.message.placed', function (e) {
+        if (e.element.parentElement.classList.contains('input-group')) {
+          e.element.parentElement.insertAdjacentElement('afterend', e.messageElement);
+        }
+      });
     }
   });
 });
 
 $(function () {
+  $(document).on('click', '.btn-create-permission', function (e) {
+    e.preventDefault();
+    openNewPermissionForm();
+  });
+
+  $(document).on('click', '.dt-action-buttons .create-new', function (e) {
+    e.preventDefault();
+    openNewPermissionForm();
+  });
+
   if (typeof window.permissionUrls === 'undefined') {
     return;
   }
 
-  const dt_basic_table = $('.datatables-basic');
+  const dt_basic_table = $('#permission-table');
 
   if (dt_basic_table.length) {
     dt_basic = dt_basic_table.DataTable({
@@ -195,14 +214,65 @@ $(function () {
       ],
       order: [[0, 'desc']],
       dom: '<"card-header flex-column flex-md-row"<"head-label text-center"><"dt-action-buttons text-end pt-6 pt-md-0"B>><"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-center justify-content-md-end mt-n6 mt-md-0"f>>t<"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
-      displayLength: 10,
+      displayLength: 7,
       lengthMenu: [7, 10, 25, 50, 75, 100],
+      language: {
+        paginate: {
+          next: '<i class="ti ti-chevron-right ti-sm"></i>',
+          previous: '<i class="ti ti-chevron-left ti-sm"></i>'
+        }
+      },
+      buttons: [
+        {
+          text: '<i class="ti ti-plus me-sm-1"></i> <span class="d-none d-sm-inline-block">Create Permission</span>',
+          className: 'create-new btn btn-primary waves-effect waves-light'
+        }
+      ],
+      responsive: {
+        details: {
+          display: $.fn.dataTable.Responsive.display.modal({
+            header: function (row) {
+              const data = row.data();
+              return 'Details of ' + data.name;
+            }
+          }),
+          type: 'column',
+          renderer: function (api, rowIdx, columns) {
+            const data = $.map(columns, function (col) {
+              return col.title !== ''
+                ? '<tr data-dt-row="' +
+                    col.rowIndex +
+                    '" data-dt-column="' +
+                    col.columnIndex +
+                    '">' +
+                    '<td>' +
+                    col.title +
+                    ':' +
+                    '</td> ' +
+                    '<td>' +
+                    col.data +
+                    '</td>' +
+                    '</tr>'
+                : '';
+            }).join('');
+
+            return data ? $('<table class="table"/><tbody />').append(data) : false;
+          }
+        }
+      },
       initComplete: function () {
-        $('.card-header').after('<hr class="my-0">');
+        $('#permission-table').closest('.dataTables_wrapper').children('.card-header').first().after('<hr class="my-0">');
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('create') === '1') {
+          openNewPermissionForm();
+          if (window.history && window.history.replaceState) {
+            window.history.replaceState({}, '', window.location.pathname);
+          }
+        }
       }
     });
 
-    $('div.head-label').html('<h5 class="card-title mb-0">Permissions</h5>');
+    $('div.head-label').html('<h5 class="card-title mb-0">Permission records</h5>');
   }
 
   fv.on('core.form.valid', function () {
@@ -244,7 +314,7 @@ $(function () {
     });
   });
 
-  $('.datatables-basic tbody').on('click', '.permission-edit', function () {
+  $('#permission-table').on('click', '.permission-edit', function () {
     const row = dt_basic.row($(this).parents('tr'));
     const data = row.data();
     const $editBtn = $(this);
@@ -260,7 +330,7 @@ $(function () {
     }, 100);
   });
 
-  $('.datatables-basic tbody').on('click', '.delete-record', function () {
+  $('#permission-table').on('click', '.delete-record', function () {
     const row = dt_basic.row($(this).parents('tr'));
     const data = row.data();
     const $deleteBtn = $(this);
@@ -277,7 +347,7 @@ $(function () {
       },
       buttonsStyling: false
     }).then(function (result) {
-      if (result.value) {
+      if (result.isConfirmed || result.value) {
         SpinnerUtils.show($deleteBtn, 'Deleting...');
         AjaxUtils.request({
           url: window.permissionUrls.destroy + '/' + data.id,
