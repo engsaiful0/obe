@@ -225,7 +225,7 @@ $(function () {
           toastr.success(res.message || 'Student created successfully.');
         }
         $form[0].reset();
-        $('#status').val('Active');
+        
         $('#shift').val('Morning');
         $('#student_type').val('Regular');
         loadFormMeta();

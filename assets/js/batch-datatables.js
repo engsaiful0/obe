@@ -80,7 +80,7 @@ function formatDateInput(iso) {
     return String(iso).split(/[T\s]/)[0];
 }
 
-function statusBadge(status) {
+function legacyStatusBadge(status) {
     if (!status) {
         return '—';
     }
@@ -93,6 +93,28 @@ function statusBadge(status) {
         cls = 'bg-label-secondary';
     }
     return `<span class="badge ${cls}">${status}</span>`;
+}
+
+function batchStatusBadgeFromRow(row) {
+    var rel = row.batch_status || row.batchStatus;
+    var name = rel && rel.status_name ? rel.status_name : '';
+    if (!name && row.status) {
+        return legacyStatusBadge(row.status);
+    }
+    if (!name) {
+        return '—';
+    }
+    var escaped = $('<div/>').text(name).html();
+    var cls = 'bg-label-primary';
+    var s = (row.status || '').toLowerCase();
+    if (s === 'running') {
+        cls = 'bg-label-success';
+    } else if (s === 'completed') {
+        cls = 'bg-label-info';
+    } else if (s === 'inactive') {
+        cls = 'bg-label-secondary';
+    }
+    return `<span class="badge ${cls}">${escaped}</span>`;
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -110,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 offCanvasBatch =
                     offCanvasBatch || new bootstrap.Offcanvas(canvas);
                 formEl.reset();
-                $('.batch-form .dt-status').val('Running');
+                $('.batch-form .dt-batch-status-id').val('');
                 $('#form-batch-record').removeAttr('data-record-id');
                 $('#batchCanvasTitle').text('New Batch');
                 offCanvasBatch.show();
@@ -246,9 +268,9 @@ $(function () {
                 },
                 { data: 'expected_passing_year' },
                 {
-                    data: 'status',
-                    render: function (d) {
-                        return statusBadge(d);
+                    data: null,
+                    render: function (data, type, row) {
+                        return batchStatusBadgeFromRow(row);
                     }
                 },
                 { data: null, orderable: false, searchable: false }
@@ -300,6 +322,7 @@ $(function () {
                 msg = 'Batch updated successfully.';
             }
 
+            var statusIdRaw = $('.dt-batch-status-id').val();
             var payload = {
                 _token: $('meta[name="csrf-token"]').attr('content'),
                 program_id: $('.dt-program-id').val(),
@@ -308,7 +331,7 @@ $(function () {
                 academic_session_id: $('.dt-academic-session-id').val(),
                 start_date: $('.dt-start-date').val(),
                 expected_passing_year: $('.dt-expected-year').val(),
-                status: $('.dt-status').val()
+                status_id: parseInt(statusIdRaw, 10)
             };
 
             var $btn = $('#form-batch-record button[type="submit"]');
@@ -327,7 +350,7 @@ $(function () {
                     }
                     $('#form-batch-record').removeAttr('data-record-id');
                     document.getElementById('form-batch-record').reset();
-                    $('.batch-form .dt-status').val('Running');
+                    $('.batch-form .dt-batch-status-id').val('');
                     if (typeof toastr !== 'undefined') {
                         toastr.success(msg);
                     }
@@ -356,7 +379,11 @@ $(function () {
             $('.dt-expected-year').val(
                 rd.expected_passing_year != null ? rd.expected_passing_year : ''
             );
-            $('.dt-status').val(rd.status || 'Running');
+            $('.dt-batch-status-id').val(
+                rd.status_id != null && rd.status_id !== ''
+                    ? String(rd.status_id)
+                    : ''
+            );
             $('#form-batch-record').attr('data-record-id', rd.id);
             $('#batchCanvasTitle').text('Edit Batch');
             offCanvasBatch.show();

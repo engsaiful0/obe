@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('academic_session_id')->constrained('academic_sessions')->restrictOnDelete();
             $table->date('start_date');
             $table->unsignedSmallInteger('expected_passing_year');
-            $table->string('status', 20)->default('Running');
+            $table->foreignId('status_id')->nullable()->constrained('statuses')->nullOnDelete();
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
             $table->timestamps();
 

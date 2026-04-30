@@ -110,6 +110,48 @@ const AjaxUtils = {
     }
 };
 
+function refillStatusRelatedToSelect(preserveVal) {
+  var url = typeof window.statusRelatedToListUrl !== 'undefined' ? window.statusRelatedToListUrl : '';
+  if (!url) {
+    return $.Deferred().resolve().promise();
+  }
+  var $sel = $('.add-new-record .dt-related-to');
+  return $.ajax({
+    url: url,
+    type: 'GET',
+    dataType: 'json',
+    headers: {
+      'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+    }
+  })
+    .done(function (res) {
+      var keep = preserveVal !== undefined ? preserveVal : '';
+      $sel.find('option:not(:first)').remove();
+      var rows = (res.data || []).slice().sort(function (a, b) {
+        return (a.name || '').localeCompare(b.name || '', undefined, {
+          sensitivity: 'base'
+        });
+      });
+      rows.forEach(function (row) {
+        if (row.id === null || row.id === undefined || row.id === '') {
+          return;
+        }
+        $sel.append(
+          $('<option></option>')
+            .attr('value', String(row.id))
+            .text(row.name || '#' + row.id)
+        );
+      });
+      var keepStr = keep === '' || keep === null ? '' : String(keep);
+      $sel.val(keepStr);
+    })
+    .fail(function () {
+      if (typeof toastr !== 'undefined') {
+        toastr.error('Could not load Related To options.');
+      }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function (e) {
   (function () {
     const formAddNewRecord = document.getElementById('form-add-new-record');
@@ -121,15 +163,15 @@ document.addEventListener('DOMContentLoaded', function (e) {
       // To open offCanvas, to add new record
       if (newRecord) {
         newRecord.addEventListener('click', function () {
-          offCanvasEl = new bootstrap.Offcanvas(offCanvasElement);
-          // Empty fields on offCanvas open
-          offCanvasElement.querySelector('.dt-full-name').value = '';
-          offCanvasElement.querySelector('.dt-related-to').value = '';
-          $('#form-add-new-record').removeAttr('data-id');
-          // Update modal title
-          document.querySelector('#exampleModalLabel').textContent = 'New Status';
-          // Open offCanvas with form
-          offCanvasEl.show();
+          offCanvasEl = offCanvasEl || new bootstrap.Offcanvas(offCanvasElement);
+          refillStatusRelatedToSelect('')
+            .done(function () {
+              offCanvasElement.querySelector('.dt-full-name').value = '';
+              $('.add-new-record .dt-related-to').val('');
+              $('#form-add-new-record').removeAttr('data-id');
+              document.querySelector('#exampleModalLabel').textContent = 'New Status';
+              offCanvasEl.show();
+            });
         });
       }
     }, 200);
@@ -144,7 +186,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             }
           }
         },
-        related_to: {
+        related_to_id: {
           validators: {
             notEmpty: {
               message: 'The related to field is required'
@@ -177,6 +219,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
 // datatable (jquery)
 $(function () {
+  if (typeof window.statusUrls === 'undefined') {
+    return;
+  }
+
   var dt_basic_table = $('.datatables-basic');
 
   // DataTable with buttons
@@ -206,23 +252,23 @@ $(function () {
           }
         },
         { data: 'status_name' },
-        { 
-          data: 'related_to',
+        {
+          data: null,
           render: function (data, type, row) {
-            const options = {
-              'bus-helper': 'Bus Helper',
-              'driver': 'Driver',
-              'employee': 'Employee',
-              'bus': 'Bus'
-            };
-            const label = options[data] || data;
-            const badgeClass = {
-              'bus-helper': 'bg-label-info',
-              'driver': 'bg-label-primary',
-              'employee': 'bg-label-success',
-              'bus': 'bg-label-warning'
-            }[data] || 'bg-label-secondary';
-            return '<span class="badge ' + badgeClass + '">' + label + '</span>';
+            var name =
+              row.related_to && row.related_to.name
+                ? row.related_to.name
+                : null;
+            var label =
+              name ||
+              (row.related_to_id != null && row.related_to_id !== ''
+                ? '#' + row.related_to_id
+                : '');
+            if (!label) {
+              return '—';
+            }
+            var escaped = $('<div/>').text(label).html();
+            return '<span class="badge bg-label-primary">' + escaped + '</span>';
           }
         },
         { data: '' }
@@ -302,17 +348,22 @@ $(function () {
   // Add/Update Record
   fv.on('core.form.valid', function () {
     var $new_name = $('.add-new-record .dt-full-name').val();
-    var $related_to = $('.add-new-record .dt-related-to').val();
+    var $related_to_id = $('.add-new-record .dt-related-to').val();
     var id = $('#form-add-new-record').attr('data-id');
 
-    if ($new_name != '' && $related_to != '') {
+    if (
+      $new_name != '' &&
+      $related_to_id != '' &&
+      !isNaN(parseInt($related_to_id, 10))
+    ) {
+      var parsedRelatedId = parseInt($related_to_id, 10);
       var url = window.statusUrls.store;
       var method = 'POST';
       var message = 'Status added successfully.';
       var data = {
         _token: $('meta[name="csrf-token"]').attr('content'),
         status_name: $new_name,
-        related_to: $related_to
+        related_to_id: parsedRelatedId
       };
 
       if (id) {
@@ -343,6 +394,7 @@ $(function () {
           $('#form-add-new-record').removeAttr('data-id');
           $('.add-new-record .dt-full-name').val(''); // clear input
           $('.add-new-record .dt-related-to').val(''); // clear select
+          refillStatusRelatedToSelect('');
           
           if (typeof toastr !== 'undefined') {
             toastr.success(message);
@@ -411,22 +463,22 @@ $(function () {
     var row = dt_basic.row($(this).parents('tr'));
     var data = row.data();
     var $editBtn = $(this);
-    
-    // Show spinner on edit button
+
     SpinnerUtils.show($editBtn, 'Loading...');
-    
-    // Small delay to show spinner, then load data
-    setTimeout(function() {
-      offCanvasEl = new bootstrap.Offcanvas(document.querySelector('#add-new-record'));
-      document.querySelector('.dt-full-name').value = data.status_name;
-      document.querySelector('.dt-related-to').value = data.related_to || '';
-      $('#form-add-new-record').attr('data-id', data.id);
-      // Update modal title
-      document.querySelector('#exampleModalLabel').textContent = 'Edit Status';
-      offCanvasEl.show();
-      
-      // Hide spinner
-      SpinnerUtils.hide($editBtn);
-    }, 100);
+
+    refillStatusRelatedToSelect(data.related_to_id || '')
+      .always(function () {
+        SpinnerUtils.hide($editBtn);
+      })
+      .done(function () {
+        offCanvasEl =
+          offCanvasEl ||
+          new bootstrap.Offcanvas(document.querySelector('#add-new-record'));
+        document.querySelector('.dt-full-name').value = data.status_name || '';
+        document.querySelector('.dt-related-to').value = data.related_to_id || '';
+        $('#form-add-new-record').attr('data-id', data.id);
+        document.querySelector('#exampleModalLabel').textContent = 'Edit Status';
+        offCanvasEl.show();
+      });
   });
 });

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\settings;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\RelatedTo;
 use App\Models\Status as StatusModel;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
@@ -13,12 +14,17 @@ class Status extends Controller
 {
     public function index()
     {
-        return view('content.settings.status');
+        return view('content.settings.status', [
+            'relatedTos' => RelatedTo::query()->orderBy('name')->get(['id', 'name']),
+        ]);
     }
 
     public function getStatus(Request $request)
     {
-        $statuses = StatusModel::where('user_id', Auth::id())->get();
+        $statuses = StatusModel::query()
+            ->where('user_id', Auth::id())
+            ->with(['relatedTo:id,name'])
+            ->get();
         return response()->json([
             'data' => $statuses,
         ]);
@@ -32,9 +38,9 @@ class Status extends Controller
                 'string',
                 'max:255',
                 Rule::unique('statuses', 'status_name')
-                    ->where('related_to', $request->related_to)
+                    ->where('related_to_id', $request->related_to_id)
             ],
-            'related_to' => ['required', 'string', 'max:255', Rule::exists('related_tos', 'name')],
+            'related_to_id' => ['required', 'integer', Rule::exists('related_tos', 'id')],
         ]);
 
         $user = Auth::user();
@@ -42,7 +48,7 @@ class Status extends Controller
         
         $status = StatusModel::create([
             'status_name' => $request->status_name,
-            'related_to' => $request->related_to,
+            'related_to_id' => $request->related_to_id,
             'user_id' => $userId,
         ]);
         
@@ -58,15 +64,15 @@ class Status extends Controller
                 'max:255',
                 Rule::unique('statuses', 'status_name')
                     ->ignore($id)
-                    ->where('related_to', $request->related_to)
+                    ->where('related_to_id', $request->related_to_id)
             ],
-            'related_to' => ['required', 'string', 'max:255', Rule::exists('related_tos', 'name')],
+            'related_to_id' => ['required', 'integer', Rule::exists('related_tos', 'id')],
         ]);
 
         $status = StatusModel::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
         $status->update([
             'status_name' => $request->status_name,
-            'related_to' => $request->related_to,
+            'related_to_id' => $request->related_to_id,
         ]);
 
         return response()->json(['message' => 'Status updated successfully.', 'data' => $status]);

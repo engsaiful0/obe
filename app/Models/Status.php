@@ -11,7 +11,7 @@ class Status extends Model
 
     protected $fillable = [
         'status_name',
-        'related_to',
+        'related_to_id',
         'user_id',
     ];
 
@@ -24,18 +24,24 @@ class Status extends Model
     {
         return RelatedTo::query()
             ->orderBy('name')
-            ->pluck('name', 'name')
+            ->pluck('name', 'id')
             ->all();
     }
 
     protected $casts = [
+        'related_to_id' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
 
-    // Relationship with User
     public function user()
     {
         return $this->belongsTo(User::class);
     }
+
+    public function relatedTo()
+    {
+        return $this->belongsTo(RelatedTo::class, 'related_to_id');
+    }
+    
 }

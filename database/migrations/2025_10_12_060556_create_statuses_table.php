@@ -14,10 +14,12 @@ return new class extends Migration
         Schema::create('statuses', function (Blueprint $table) {
             $table->id();
             $table->string('status_name');
+            $table->unsignedBigInteger('related_to_id');
             $table->unsignedBigInteger('user_id');
             $table->timestamps();
             
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('related_to_id')->references('id')->on('related_tos')->onDelete('cascade');
         });
     }
 

@@ -17,12 +17,14 @@ class Batch extends Model
         'start_date',
         'expected_passing_year',
         'status',
+        'status_id',
         'user_id',
     ];
 
     protected $casts = [
         'start_date' => 'date',
         'expected_passing_year' => 'integer',
+        'status_id' => 'integer',
     ];
 
     public function program()
@@ -38,5 +40,10 @@ class Batch extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function batchStatus()
+    {
+        return $this->belongsTo(Status::class, 'status_id');
     }
 }

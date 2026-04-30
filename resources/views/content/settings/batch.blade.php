@@ -75,12 +75,16 @@
                         class="form-control dt-expected-year" min="1990" max="2100" step="1" placeholder="2029" />
                 </div>
                 <div class="col-sm-12">
-                    <label class="form-label" for="batch_status">Status</label>
-                    <select id="batch_status" name="status" class="form-select dt-status">
-                        <option value="Running">Running</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Inactive">Inactive</option>
+                    <label class="form-label" for="batch_status_id">Status</label>
+                    <select id="batch_status_id" name="status_id" class="form-select dt-batch-status-id" required>
+                        <option value="">Select status</option>
+                        @foreach($batchStatuses ?? [] as $st)
+                            <option value="{{ $st->id }}">{{ $st->status_name }}</option>
+                        @endforeach
                     </select>
+                    @if(($batchStatuses ?? collect())->isEmpty())
+                        <div class="form-text text-warning mt-1">Add statuses with Related To = Batch under Status settings first.</div>
+                    @endif
                 </div>
                 <div class="col-sm-12">
                     <button type="submit" class="btn btn-primary data-submit me-sm-4 me-1">Submit</button>

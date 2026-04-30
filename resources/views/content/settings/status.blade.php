@@ -6,7 +6,7 @@
 @section('page-script')
     <script>
         window.statusUrls = AppUtils.buildApiUrls('app/settings/status');
-        console.log('Status URLs:', window.statusUrls);
+        window.statusRelatedToListUrl = @json(route('app-settings-get-status-related-to'));
     </script>
     <script src="{{ asset('assets/js/status-datatables.js') }}?v={{ time() }}"></script>
 @endsection
@@ -45,12 +45,14 @@
                     </div>
                 </div>
                 <div class="col-sm-12">
-                    <label class="form-label" for="related_to">Related To</label>
-                    <select id="related_to" class="form-select dt-related-to" name="related_to" required>
+                    <label class="form-label" for="related_to_id">Related To</label>
+                    <select id="related_to_id" class="form-select dt-related-to" name="related_to_id" required>
                         <option value="">Select Related To</option>
-                        @foreach(\App\Models\Status::getRelatedToOptions() as $value => $label)
-                        <option value="{{ $value }}">{{ $label }}</option>
-                        @endforeach
+                        @isset($relatedTos)
+                            @foreach($relatedTos as $rt)
+                                <option value="{{ $rt->id }}">{{ $rt->name }}</option>
+                            @endforeach
+                        @endisset
                     </select>
                 </div>
                 <div class="col-sm-12">

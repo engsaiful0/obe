@@ -11,6 +11,8 @@ use App\Models\Nationality;
 use App\Models\Program;
 use App\Models\Religion;
 use App\Models\Rule;
+use App\Models\Status;
+use App\Models\RelatedTo;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -26,10 +28,19 @@ class StudentController extends Controller
         'Grandfather', 'Grandmother', 'Other',
     ];
 
+    /** Lowercased status_name values on `statuses` (Related To = Batch) eligible for student admission. */
+    private const BATCH_ELIGIBLE_STATUS_NAMES = ['active', 'running', 'actve'];
+
     public function create()
     {
+        $studentStatuses = Status::query()
+            ->where('related_to_id', RelatedTo::where('name', 'Student')->value('id'))
+            ->orderBy('status_name')
+            ->get(['id', 'status_name']);
+
         return view('content.student.create', [
             'guardian_relations' => self::GUARDIAN_RELATIONS,
+            'studentStatuses' => $studentStatuses,
         ]);
     }
 
@@ -73,12 +84,29 @@ class StudentController extends Controller
             'program_id' => 'required|exists:programs,id',
         ]);
 
+        // batches.status_id → statuses.id → statuses.related_to_id → related_tos.id (name Batch);
+        // status_name matched case-insensitively (covers "Active", common typo "Actve", and "Running").
+        $placeholders = implode(',', array_fill(0, count(self::BATCH_ELIGIBLE_STATUS_NAMES), '?'));
+
         $batches = Batch::query()
-            ->where('program_id', $request->program_id)
-            ->where('status', 'Active')
-            ->with('academicSession:id,session_name')
-            ->orderBy('batch_name')
-            ->get(['id', 'program_id', 'batch_name', 'batch_code', 'academic_session_id']);
+            ->join('statuses', 'statuses.id', '=', 'batches.status_id')
+            ->join('related_tos', 'related_tos.id', '=', 'statuses.related_to_id')
+            ->where('batches.program_id', $request->program_id)
+            ->whereRaw('LOWER(TRIM(related_tos.name)) = ?', ['batch'])
+            ->whereRaw(
+                'LOWER(TRIM(statuses.status_name)) IN ('.$placeholders.')',
+                self::BATCH_ELIGIBLE_STATUS_NAMES
+            )
+            ->with(['academicSession:id,session_name'])
+            ->orderBy('batches.batch_name')
+            ->select([
+                'batches.id',
+                'batches.program_id',
+                'batches.batch_name',
+                'batches.batch_code',
+                'batches.academic_session_id',
+            ])
+            ->get();
 
         return response()->json(['data' => $batches]);
     }
@@ -103,7 +131,7 @@ class StudentController extends Controller
             'gender_id' => 'required|exists:genders,id',
             'religion_id' => 'required|exists:religions,id',
             'academic_session_id' => 'required|exists:academic_sessions,id',
-            'status' => 'required|in:Active,Inactive',
+            'status_id' => 'required|exists:statuses,id',
             'date_of_birth' => 'nullable|date',
             'nationality_id' => 'nullable|exists:nationalities,id',
             'nid_or_birth_cert_no' => 'nullable|string|max:120',
@@ -189,7 +217,7 @@ class StudentController extends Controller
                 'religion_id' => $validated['religion_id'],
                 'academic_session_id' => $validated['academic_session_id'],
                 'user_id' => $userId,
-                'status' => $validated['status'],
+                'status_id' => $validated['status_id'],
                 'date_of_birth' => $request->input('date_of_birth'),
                 'nationality_id' => $request->input('nationality_id'),
                 'nid_or_birth_cert_no' => $request->input('nid_or_birth_cert_no'),

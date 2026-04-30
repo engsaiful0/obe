@@ -70,9 +70,10 @@
                             </div>
                             <div class="col-12 col-md-4">
                                 <label class="form-label" for="status">Status <span class="text-danger">*</span></label>
-                                <select name="status" id="status" class="form-select" required>
-                                    <option value="Active" selected>Active</option>
-                                    <option value="Inactive">Inactive</option>
+                                <select name="status_id" id="status_id" class="form-select" required>
+                                    @foreach ($studentStatuses ?? [] as $ss)
+                                        <option value="{{ $ss->id }}">{{ $ss->status_name }}</option>
+                                    @endforeach
                                 </select>
                             </div>
 

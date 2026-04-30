@@ -129,7 +129,8 @@ class Section extends Controller
                 'string',
                 'max:80',
                 Rule::unique('sections', 'section_code')
-                    ->where(fn ($q) => $q->where('program_id', (int) $request->program_id)
+                    ->where(fn($q) => $q
+                        ->where('program_id', (int) $request->program_id)
                         ->where('batch_id', (int) $request->batch_id)
                         ->where('semester_id', (int) $request->semester_id))
                     ->ignore($sectionId),
@@ -147,10 +148,9 @@ class Section extends Controller
 
     private function assertHierarchy(Request $request, ?Program $program): void
     {
-        if (! $program ||
-            $program->department_id !== (int) $request->department_id ||
-            $program->faculty_id !== (int) $request->faculty_id
-        ) {
+        if (!$program ||
+                $program->department_id !== (int) $request->department_id ||
+                $program->faculty_id !== (int) $request->faculty_id) {
             throw ValidationException::withMessages([
                 'program_id' => 'The program does not match the selected faculty and department.',
             ]);
@@ -159,7 +159,7 @@ class Section extends Controller
         $batchBelongs = Batch::where('id', $request->batch_id)
             ->where('program_id', $request->program_id)
             ->exists();
-        if (! $batchBelongs) {
+        if (!$batchBelongs) {
             throw ValidationException::withMessages([
                 'batch_id' => 'The batch does not belong to the selected program.',
             ]);
@@ -168,7 +168,7 @@ class Section extends Controller
         $semesterBelongs = Semester::where('id', $request->semester_id)
             ->where('program_id', $request->program_id)
             ->exists();
-        if (! $semesterBelongs) {
+        if (!$semesterBelongs) {
             throw ValidationException::withMessages([
                 'semester_id' => 'The semester does not belong to the selected program.',
             ]);
@@ -177,7 +177,7 @@ class Section extends Controller
         $deptFacultyOk = Department::where('id', $request->department_id)
             ->where('faculty_id', $request->faculty_id)
             ->exists();
-        if (! $deptFacultyOk) {
+        if (!$deptFacultyOk) {
             throw ValidationException::withMessages([
                 'department_id' => 'The department does not belong to the selected faculty.',
             ]);
@@ -202,7 +202,7 @@ class Section extends Controller
             'status' => $request->status,
         ]);
 
-        if (! $section->exists && $userId) {
+        if (!$section->exists && $userId) {
             $section->user_id = $userId;
         }
 
