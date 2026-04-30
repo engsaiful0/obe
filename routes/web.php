@@ -66,6 +66,7 @@ use App\Http\Controllers\settings\AcademicSession;
 use App\Http\Controllers\settings\Semester;
 use App\Http\Controllers\settings\Batch;
 use App\Http\Controllers\settings\Course;
+use App\Http\Controllers\settings\Section as SectionSettingsController;
 use App\Http\Controllers\settings\PaymentMethod;
 use App\Http\Controllers\settings\Nationality;
 use App\Http\Controllers\settings\Month;
@@ -412,6 +413,17 @@ Route::get('/app/settings/get-course', [Course::class, 'getCourse'])->name('app-
 Route::post('/app/settings/course', [Course::class, 'store'])->name('app-settings-course.store');
 Route::put('/app/settings/course/{id}', [Course::class, 'update'])->name('app-settings-course.update');
 Route::delete('/app/settings/course/{id}', [Course::class, 'destroy'])->name('app-settings-course.destroy');
+
+// Section Routes
+Route::get('/app/settings/section', [SectionSettingsController::class, 'index'])->name('section');
+Route::get('/app/settings/get-section', [SectionSettingsController::class, 'getSections'])->name('app-settings-get-section');
+Route::get('/app/settings/section/departments-by-faculty', [SectionSettingsController::class, 'departmentsByFaculty'])->name('section.departments-by-faculty');
+Route::get('/app/settings/section/programs-by-department', [SectionSettingsController::class, 'programsByDepartment'])->name('section.programs-by-department');
+Route::get('/app/settings/section/batches-by-program', [SectionSettingsController::class, 'batchesByProgram'])->name('section.batches-by-program');
+Route::get('/app/settings/section/semesters-by-program', [SectionSettingsController::class, 'semestersByProgram'])->name('section.semesters-by-program');
+Route::post('/app/settings/section', [SectionSettingsController::class, 'store'])->name('app-settings-section.store');
+Route::put('/app/settings/section/{id}', [SectionSettingsController::class, 'update'])->name('app-settings-section.update');
+Route::delete('/app/settings/section/{id}', [SectionSettingsController::class, 'destroy'])->name('app-settings-section.destroy');
 
 Route::get('/app/settings/item', [Item::class, 'index'])->name('app-settings-item');
 Route::get('/app/settings/get-item', [Item::class, 'getItem'])->name('app-settings-get-item');
