@@ -41,20 +41,23 @@ class Vertical extends Controller
         $lastMonth = Carbon::now()->subMonth()->startOfMonth();
         $thisYear = Carbon::now()->startOfYear();
         $lastYear = Carbon::now()->subYear()->startOfYear();
-         // Get active status ID for buses
-         $activeStatus = StatusModel::where('related_to', 'bus')
-         ->where('status_name', 'like', '%active%')
-         ->first();
+        // Get active status ID for buses
+        $activeStatus = StatusModel::query()
+            ->whereHas('relatedTo', function ($q) {
+                $q->whereRaw('LOWER(name) = ?', ['bus']);
+            })
+            ->where('status_name', 'like', '%active%')
+            ->first();
 
          
 
         $busStats = [
             'total' => Bus::count(),
-            'active' => Bus::where('status_id', $activeStatus->id)->count(),
-            'maintenance' => Bus::where('status_id', $activeStatus->id)->count(),
-            'inactive' => Bus::where('status_id', $activeStatus->id)->count(),
-            'this_month' => Bus::where('status_id', $activeStatus->id)->where('created_at', '>=', $thisMonth)->count(),
-            'this_year' => Bus::where('status_id', $activeStatus->id)->where('created_at', '>=', $thisYear)->count(),
+            'active' => $activeStatus ? Bus::where('status_id', $activeStatus->id)->count() : 0,
+            'maintenance' => $activeStatus ? Bus::where('status_id', $activeStatus->id)->count() : 0,
+            'inactive' => $activeStatus ? Bus::where('status_id', $activeStatus->id)->count() : 0,
+            'this_month' => $activeStatus ? Bus::where('status_id', $activeStatus->id)->where('created_at', '>=', $thisMonth)->count() : 0,
+            'this_year' => $activeStatus ? Bus::where('status_id', $activeStatus->id)->where('created_at', '>=', $thisYear)->count() : 0,
         ];
 
         $busByType = Bus::query()
@@ -77,16 +80,19 @@ class Vertical extends Controller
             'this_year' => Driver::where('created_at', '>=', $thisYear)->count(),
         ];
 
-        $activeBusHelperStatus = StatusModel::where('related_to', 'bus-helper')
-        ->where('status_name', 'like', '%active%')
-        ->first();
+        $activeBusHelperStatus = StatusModel::query()
+            ->whereHas('relatedTo', function ($q) {
+                $q->whereRaw('LOWER(name) = ?', ['bus-helper']);
+            })
+            ->where('status_name', 'like', '%active%')
+            ->first();
         
         $busHelperQuery = BusHelper::query();
         $assistantStats = [
             'total' => (clone $busHelperQuery)->count(),
-            'active' => (clone $busHelperQuery)->where('status_id', $activeBusHelperStatus->id)->count(),
-            'inactive' => (clone $busHelperQuery)->where('status_id', $activeBusHelperStatus->id)->count(),
-            'this_month' => (clone $busHelperQuery)->where('status_id', $activeBusHelperStatus->id)->where('created_at', '>=', $thisMonth)->count(),
+            'active' => $activeBusHelperStatus ? (clone $busHelperQuery)->where('status_id', $activeBusHelperStatus->id)->count() : 0,
+            'inactive' => $activeBusHelperStatus ? (clone $busHelperQuery)->where('status_id', $activeBusHelperStatus->id)->count() : 0,
+            'this_month' => $activeBusHelperStatus ? (clone $busHelperQuery)->where('status_id', $activeBusHelperStatus->id)->where('created_at', '>=', $thisMonth)->count() : 0,
         ];
         $employeeQuery = Employee::query();
   

@@ -18,7 +18,7 @@ class PermissionSetting extends Controller
     public function getPermission(Request $request)
     {
         $permissions = PermissionModel::with(['rules:id,name'])
-            ->orderBy('name')
+            ->orderBy('id', 'desc')
             ->get();
 
         return response()->json([

@@ -39,4 +39,9 @@ class Department extends Model
     {
         return $this->hasMany(BusRequisition::class);
     }
+
+    public function teachers()
+    {
+        return $this->hasMany(Teacher::class);
+    }
 }

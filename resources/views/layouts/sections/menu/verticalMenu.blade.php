@@ -60,30 +60,31 @@ return '';
         </li>
 
     
-        <!-- Employee -->
-        <li class="menu-item {{ isMenuActive('app-employees', $currentRouteName) }}">
+        <!-- Teacher -->
+        @permission('add-teacher')
+        <li class="menu-item {{ isMenuActive('teachers', $currentRouteName) }}">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons ti ti-users"></i>
                 <div>{{ __('Teacher') }}</div>
             </a>
             <ul class="menu-sub">
-                @permission('teacher-add')
-                <li class="menu-item {{ $currentRouteName === 'teacher.add-teacher' ? 'active' : '' }}">
-                    <a href="{{ url('app/teachers/add-teacher') }}" class="menu-link">
+                @permission('add-teacher')
+                <li class="menu-item {{ $currentRouteName === 'teachers.create' ? 'active' : '' }}">
+                    <a href="{{ route('teachers.create') }}" class="menu-link">
                         <div>{{ __('Add Teacher') }}</div>
                     </a>
                 </li>
                 @endpermission
-                @permission('teacher-view')
-                <li class="menu-item {{ $currentRouteName === 'app-view-employee' ? 'active' : '' }}">
-                    <a href="{{ url('app/teachers/view-teacher') }}" class="menu-link">
+                @permission('view-teacher')
+                <li class="menu-item {{ $currentRouteName === 'teachers.index' ? 'active' : '' }}">
+                    <a href="{{ route('teachers.index') }}" class="menu-link">
                         <div>{{ __('View Teacher') }}</div>
                     </a>
                 </li>
                 @endpermission
             </ul>
         </li>
-
+        @endpermission
         @permission('student-add')
         <!-- Student -->
         <li class="menu-item {{ isMenuActive('student', $currentRouteName) }}">
@@ -185,11 +186,6 @@ return '';
                 <li class="menu-item {{ $currentRouteName === 'section' ? 'active' : '' }}">
                     <a href="{{ url('app/settings/section') }}" class="menu-link">
                         <div>{{ __('Section') }}</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ $currentRouteName === 'teacher' ? 'active' : '' }}">
-                    <a href="{{ url('app/settings/teacher') }}" class="menu-link">
-                        <div>{{ __('Teacher') }}</div>
                     </a>
                 </li>
                 <li class="menu-item {{ $currentRouteName === 'blood-group' ? 'active' : '' }}">

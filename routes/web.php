@@ -105,6 +105,7 @@ use App\Http\Controllers\DaywiseTripReportController;
 use App\Http\Controllers\StudentInReportController;
 use App\Http\Controllers\StudentOutReportController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\DriverHelperAssignmentReportController;
 use App\Http\Controllers\DriverTripReportController;
 use App\Http\Controllers\FuelController;
@@ -178,6 +179,7 @@ Route::get('/app/student/{student}/show', [StudentController::class, 'show'])->n
 Route::get('/app/student/{student}/edit', [StudentController::class, 'edit'])->name('student.edit');
 Route::put('/app/student/{student}', [StudentController::class, 'update'])->name('student.update');
 Route::delete('/app/student/{student}', [StudentController::class, 'destroy'])->name('student.destroy');
+Route::resource('teachers', TeacherController::class);
 
 // Driver Helper Assignment Report Routes
 Route::get('/app/driver-helper-assignment-report', [DriverHelperAssignmentReportController::class, 'index'])->name('driver-helper-assignment-report');
