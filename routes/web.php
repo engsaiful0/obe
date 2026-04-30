@@ -50,6 +50,7 @@ use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\IssueController;
 use App\Http\Controllers\IncomeController;
 use App\Http\Controllers\settings\Designation;
+use App\Http\Controllers\settings\PermissionSetting;
 use App\Http\Controllers\settings\IncomeHead;
 use App\Http\Controllers\settings\ExpenseHead;
 use App\Http\Controllers\settings\FeeHead;
@@ -340,6 +341,13 @@ Route::get('/app/settings/get-designation', [Designation::class, 'getDesignation
 Route::post('/app/settings/designation', [Designation::class, 'store'])->name('app-settings-designation.store');
 Route::put('/app/settings/designation/{id}', [Designation::class, 'update'])->name('app-settings-designation.update');
 Route::delete('/app/settings/designation/{id}', [Designation::class, 'destroy'])->name('app-settings-designation.destroy');
+
+// Permission (Settings — permissions table)
+Route::get('/app/settings/permission', [PermissionSetting::class, 'index'])->name('app-settings-permission');
+Route::get('/app/settings/get-permission', [PermissionSetting::class, 'getPermission'])->name('app-settings-get-permission');
+Route::post('/app/settings/permission', [PermissionSetting::class, 'store'])->name('app-settings-permission.store');
+Route::put('/app/settings/permission/{id}', [PermissionSetting::class, 'update'])->name('app-settings-permission.update');
+Route::delete('/app/settings/permission/{id}', [PermissionSetting::class, 'destroy'])->name('app-settings-permission.destroy');
 
 // Department Routes
 Route::get('/app/settings/department', [\App\Http\Controllers\settings\Department::class, 'index'])->name('app-settings-department');
