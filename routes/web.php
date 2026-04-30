@@ -102,6 +102,7 @@ use App\Http\Controllers\BRTCBusMonthlyBillController;
 use App\Http\Controllers\DaywiseTripReportController;
 use App\Http\Controllers\StudentInReportController;
 use App\Http\Controllers\StudentOutReportController;
+use App\Http\Controllers\StudentController;
 use App\Http\Controllers\DriverHelperAssignmentReportController;
 use App\Http\Controllers\DriverTripReportController;
 use App\Http\Controllers\FuelController;
@@ -163,6 +164,12 @@ Route::get('/app/student-out-report', [StudentOutReportController::class, 'index
 Route::get('/app/student-out-report/print', [StudentOutReportController::class, 'print'])->name('student-out-report.print');
 Route::get('/app/student-out-report/pdf', [StudentOutReportController::class, 'pdf'])->name('student-out-report.pdf');
 Route::get('/app/student-out-report/excel', [StudentOutReportController::class, 'excel'])->name('student-out-report.excel');
+
+// Student registration (create student)
+Route::get('/app/student/add-student', [StudentController::class, 'create'])->name('student.add-student');
+Route::get('/app/student/create-meta', [StudentController::class, 'createMeta'])->name('student.create-meta');
+Route::get('/app/student/batches-by-program', [StudentController::class, 'batchesByProgram'])->name('student.batches-by-program');
+Route::post('/app/student', [StudentController::class, 'store'])->name('students.store');
 
 // Driver Helper Assignment Report Routes
 Route::get('/app/driver-helper-assignment-report', [DriverHelperAssignmentReportController::class, 'index'])->name('driver-helper-assignment-report');

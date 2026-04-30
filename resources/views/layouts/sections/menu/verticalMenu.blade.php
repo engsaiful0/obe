@@ -119,97 +119,10 @@ return '';
                 <div>{{ __('Report') }}</div>
             </a>
             <ul class="menu-sub">
-                @permission('bus-helper-report')
-                <li class="menu-item {{ $currentRouteName === 'helper-list' ? 'active' : '' }}">
-                    <a href="{{ url('app/helper-list') }}" class="menu-link">
-                        <div>{{ __('Helper List') }}</div>
-                    </a>
-                </li>
-                @endpermission
-                @permission('driver-list')
-                <li class="menu-item {{ $currentRouteName === 'driver-list' ? 'active' : '' }}">
-                    <a href="{{ url('app/driver-list') }}" class="menu-link">
-                        <div>{{ __('Driver List') }}</div>
-                    </a>
-                </li>
-                @endpermission
-                @permission('expense-report-view')
-                <li class="menu-item {{ $currentRouteName === 'expense-report' ? 'active' : '' }}">
-                    <a href="{{ url('app/expense-report') }}" class="menu-link">
-                        <div>{{ __('Expense Report') }}</div>
-                    </a>
-                </li>
-                @endpermission
-                @permission('employee-list-report-view')
-                <li class="menu-item {{ $currentRouteName === 'employee-list-report' ? 'active' : '' }}">
-                    <a href="{{ url('app/employee-list-report') }}" class="menu-link">
-                        <div>{{ __('Employee List Report') }}</div>
-                    </a>
-                </li>
-                @endpermission
-                @permission('monthly-bill-view')
-                <li class="menu-item {{ $currentRouteName === 'monthly-bill' ? 'active' : '' }}">
-                    <a href="{{ url('app/monthly-bill') }}" class="menu-link">
-                        <div>{{ __('Monthly Bill') }}</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ $currentRouteName === 'monthly-bill' ? 'active' : '' }}">
-                    <a href="{{ url('app/bus-list') }}" class="menu-link">
-                        <div>{{ __('Bus List') }}</div>
-                    </a>
-                </li>
+              
 
-                <li class="menu-item {{ $currentRouteName === 'monthly-bill' ? 'active' : '' }}">
-                    <a href="{{ url('app/trip-report') }}" class="menu-link">
-                        <div>{{ __('Trip Report') }}</div>
-                    </a>
-                </li>
-                @endpermission
-                @permission('punishment-report-view')
-                <li class="menu-item {{ $currentRouteName === 'punishment-report' ? 'active' : '' }}">
-                    <a href="{{ url('app/punishment-report') }}" class="menu-link">
-                        <div>{{ __('Punishment Report') }}</div>
-                    </a>
-                </li>
-                @endpermission
-                @permission('purchase-report-view')
-                <li class="menu-item {{ $currentRouteName === 'purchase-report' ? 'active' : '' }}">
-                    <a href="{{ url('app/purchase-report') }}" class="menu-link">
-                        <div>{{ __('Purchase Report') }}</div>
-                    </a>
-                </li>
-                @endpermission
-                @permission('issue-report-view')
-                <li class="menu-item {{ $currentRouteName === 'issue-report' ? 'active' : '' }}">
-                    <a href="{{ url('app/issue-report') }}" class="menu-link">
-                        <div>{{ __('Issue Report') }}</div>
-                    </a>
-                </li>
-                @endpermission
-                @permission('stock-report-view')
-                <li class="menu-item {{ $currentRouteName === 'stock-report' ? 'active' : '' }}">
-                    <a href="{{ url('app/stock-report') }}" class="menu-link">
-                        <div>{{ __('Stock Report') }}</div>
-                    </a>
-                </li>
-                @endpermission
-                @permission('reward-report-view')
-                <li class="menu-item {{ $currentRouteName === 'reward-report' ? 'active' : '' }}">
-                    <a href="{{ url('app/reward-report') }}" class="menu-link">
-                        <div>{{ __('Reward Report') }}</div>
-                    </a>
-                </li>
-                @endpermission
-                <li class="menu-item {{ $currentRouteName === 'brtc-bus-monthly-bill' ? 'active' : '' }}">
-                    <a href="{{ url('app/brtc-bus-monthly-bill') }}" class="menu-link">
-                        <div>{{ __('BRTC Bus Monthly Bill') }}</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ $currentRouteName === 'daywise-trip-report' ? 'active' : '' }}">
-                    <a href="{{ url('app/daywise-trip-report') }}" class="menu-link">
-                        <div>{{ __('Daywise Trip Report') }}</div>
-                    </a>
-                </li>
+                
+               
                 <li class="menu-item {{ $currentRouteName === 'student-in-report' ? 'active' : '' }}">
                     <a href="{{ url('app/student-in-report') }}" class="menu-link">
                         <div>{{ __('Student IN Report') }}</div>
@@ -220,23 +133,7 @@ return '';
                         <div>{{ __('Student OUT Report') }}</div>
                     </a>
                 </li>
-                <li class="menu-item {{ $currentRouteName === 'driver-helper-assignment-report' ? 'active' : '' }}">
-                    <a href="{{ route('driver-helper-assignment-report') }}" class="menu-link">
-                        <div>{{ __('Driver Helper Assignment Report') }}</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ $currentRouteName === 'driver-trip-report' ? 'active' : '' }}">
-                    <a href="{{ route('driver-trip-report') }}" class="menu-link">
-                        <div>{{ __('Driver Trip Report') }}</div>
-                    </a>
-                </li>
-                @permission('salary-sheet-view')
-                <li class="menu-item {{ $currentRouteName === 'salary-sheet' ? 'active' : '' }}">
-                    <a href="{{ url('app/reports/salary-sheet') }}" class="menu-link">
-                        <div>{{ __('Salary Sheet') }}</div>
-                    </a>
-                </li>
-                @endpermission
+                
             </ul>
         </li>
 
@@ -283,6 +180,11 @@ return '';
                 <li class="menu-item {{ $currentRouteName === 'course' ? 'active' : '' }}">
                     <a href="{{ url('app/settings/course') }}" class="menu-link">
                         <div>{{ __('Course') }}</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ $currentRouteName === 'section' ? 'active' : '' }}">
+                    <a href="{{ url('app/settings/section') }}" class="menu-link">
+                        <div>{{ __('Section') }}</div>
                     </a>
                 </li>
                 <li class="menu-item {{ $currentRouteName === 'teacher' ? 'active' : '' }}">
