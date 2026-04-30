@@ -85,6 +85,7 @@ return '';
             </ul>
         </li>
         @endpermission
+
         @permission('student-add')
         <!-- Student -->
         <li class="menu-item {{ isMenuActive('student', $currentRouteName) }}">
@@ -111,7 +112,31 @@ return '';
         </li>
         @endpermission
         
-     
+       <!-- Teacher -->
+        @permission('add-course-assignment')
+        <li class="menu-item {{ isMenuActive('course-assignment', $currentRouteName) }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons ti ti-users"></i>
+                <div>{{ __('Course Assignment') }}</div>
+            </a>
+            <ul class="menu-sub">
+                @permission('add-course-assignment')
+                <li class="menu-item {{ $currentRouteName === 'course-assignment.create' ? 'active' : '' }}">
+                    <a href="{{ route('course-assignment.create') }}" class="menu-link">
+                        <div>{{ __('Add Course Assignment') }}</div>
+                    </a>
+                </li>
+                @endpermission
+                @permission('view-course-assignment')
+                <li class="menu-item {{ $currentRouteName === 'course-assignment.index' ? 'active' : '' }}">
+                    <a href="{{ route('course-assignment.index') }}" class="menu-link">
+                        <div>{{ __('View Course Assignment') }}</div>
+                    </a>
+                </li>
+                @endpermission
+            </ul>
+        </li>
+        @endpermission
 
         <!-- Report -->
         <li class="menu-item {{ isMenuActive('app-report', $currentRouteName) }}">

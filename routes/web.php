@@ -106,6 +106,8 @@ use App\Http\Controllers\StudentInReportController;
 use App\Http\Controllers\StudentOutReportController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\TeacherController;
+use App\Http\Controllers\CourseAssignmentController;
+use App\Http\Controllers\CourseAssignmentCascadeController;
 use App\Http\Controllers\DriverHelperAssignmentReportController;
 use App\Http\Controllers\DriverTripReportController;
 use App\Http\Controllers\FuelController;
@@ -180,6 +182,29 @@ Route::get('/app/student/{student}/edit', [StudentController::class, 'edit'])->n
 Route::put('/app/student/{student}', [StudentController::class, 'update'])->name('student.update');
 Route::delete('/app/student/{student}', [StudentController::class, 'destroy'])->name('student.destroy');
 Route::resource('teachers', TeacherController::class);
+
+Route::prefix('ajax')->group(function () {
+    Route::get('program/{program}/batches', [CourseAssignmentCascadeController::class, 'programBatches'])
+        ->name('ajax.program.batches');
+    Route::get('program/{program}/semesters', [CourseAssignmentCascadeController::class, 'programSemesters'])
+        ->name('ajax.program.semesters');
+    Route::get('program/{program}/courses', [CourseAssignmentCascadeController::class, 'programCourses'])
+        ->name('ajax.program.courses');
+    Route::get('batch/{batch}/sections', [CourseAssignmentCascadeController::class, 'batchSections'])
+        ->name('ajax.batch.sections');
+    Route::get('semester/{semester}/courses', [CourseAssignmentCascadeController::class, 'semesterCourses'])
+        ->name('ajax.semester.courses');
+});
+
+Route::resource('course-assignments', CourseAssignmentController::class)->names([
+    'index' => 'course-assignment.index',
+    'create' => 'course-assignment.create',
+    'store' => 'course-assignment.store',
+    'show' => 'course-assignment.show',
+    'edit' => 'course-assignment.edit',
+    'update' => 'course-assignment.update',
+    'destroy' => 'course-assignment.destroy',
+]);
 
 // Driver Helper Assignment Report Routes
 Route::get('/app/driver-helper-assignment-report', [DriverHelperAssignmentReportController::class, 'index'])->name('driver-helper-assignment-report');

@@ -33,4 +33,9 @@ class AcademicSession extends Model
     {
         return $this->hasMany(Batch::class);
     }
+
+    public function courseAssignments()
+    {
+        return $this->hasMany(CourseAssignment::class);
+    }
 }

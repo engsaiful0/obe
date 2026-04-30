@@ -92,6 +92,6 @@ class Teacher extends Model
 
     public function courseAssignments()
     {
-        return $this->hasMany(\App\Models\CourseAssignment::class);
+        return $this->hasMany(CourseAssignment::class);
     }
 }

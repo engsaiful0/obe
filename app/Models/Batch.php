@@ -46,4 +46,14 @@ class Batch extends Model
     {
         return $this->belongsTo(Status::class, 'status_id');
     }
+
+    public function sections()
+    {
+        return $this->hasMany(Section::class);
+    }
+
+    public function courseAssignments()
+    {
+        return $this->hasMany(CourseAssignment::class);
+    }
 }

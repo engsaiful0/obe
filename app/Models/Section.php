@@ -57,4 +57,9 @@ class Section extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function courseAssignments()
+    {
+        return $this->hasMany(CourseAssignment::class);
+    }
 }
