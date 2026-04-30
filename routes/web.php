@@ -174,6 +174,10 @@ Route::get('/app/student/add-student', [StudentController::class, 'create'])->na
 Route::get('/app/student/create-meta', [StudentController::class, 'createMeta'])->name('student.create-meta');
 Route::get('/app/student/batches-by-program', [StudentController::class, 'batchesByProgram'])->name('student.batches-by-program');
 Route::post('/app/student', [StudentController::class, 'store'])->name('students.store');
+Route::get('/app/student/{student}/show', [StudentController::class, 'show'])->name('student.show');
+Route::get('/app/student/{student}/edit', [StudentController::class, 'edit'])->name('student.edit');
+Route::put('/app/student/{student}', [StudentController::class, 'update'])->name('student.update');
+Route::delete('/app/student/{student}', [StudentController::class, 'destroy'])->name('student.destroy');
 
 // Driver Helper Assignment Report Routes
 Route::get('/app/driver-helper-assignment-report', [DriverHelperAssignmentReportController::class, 'index'])->name('driver-helper-assignment-report');

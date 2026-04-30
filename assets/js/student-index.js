@@ -112,6 +112,24 @@
         return '<span class="badge ' + cls + '">' + escapeHtml(status || '') + '</span>';
     }
 
+    function actionButtons(row) {
+        var actions = row.actions || {};
+        var viewUrl = actions.show_url || '#';
+        var editUrl = actions.edit_url || '#';
+        var deleteUrl = actions.delete_url || '#';
+
+        return (
+            '<div class="d-flex gap-1">' +
+            '<a href="' + escapeHtml(viewUrl) + '" class="btn btn-sm btn-icon btn-outline-info" title="View">' +
+            '<i class="ti ti-eye"></i></a>' +
+            '<a href="' + escapeHtml(editUrl) + '" class="btn btn-sm btn-icon btn-outline-primary" title="Edit">' +
+            '<i class="ti ti-pencil"></i></a>' +
+            '<button type="button" class="btn btn-sm btn-icon btn-outline-danger js-student-delete" data-delete-url="' + escapeHtml(deleteUrl) + '" title="Delete">' +
+            '<i class="ti ti-trash"></i></button>' +
+            '</div>'
+        );
+    }
+
     function renderRows(rows, meta) {
         $tbody.empty();
         var from = meta && meta.from != null ? meta.from : 0;
@@ -161,6 +179,9 @@
                 '</td>' +
                 '<td>' +
                 badgeStatus(row.status) +
+                '</td>' +
+                '<td>' +
+                actionButtons(row) +
                 '</td>' +
                 '</tr>';
             $tbody.append(tr);
@@ -262,7 +283,7 @@
             $empty.addClass('d-none');
             if (rows.length === 0) {
                 $tbody.html(
-                    '<tr><td colspan="10" class="text-center text-muted py-4">' +
+                    '<tr><td colspan="11" class="text-center text-muted py-4">' +
                         (totalAll === 0 ? 'No students in the database yet.' : 'No students match your filters.') +
                         '</td></tr>'
                 );
@@ -296,7 +317,7 @@
             }
             $alert.text(msg).removeClass('d-none');
             $tbody.html(
-                '<tr><td colspan="10" class="text-center text-danger py-4">Failed to load data.</td></tr>'
+                '<tr><td colspan="11" class="text-center text-danger py-4">Failed to load data.</td></tr>'
             );
         }).always(function () {
             showSpinner(false);
@@ -364,6 +385,39 @@
             $('#filter-dir').val('asc');
             $('#filter-per_page').val('40');
             fetchPage(1);
+        });
+
+        $('#student-table-body').on('click', '.js-student-delete', function () {
+            var url = $(this).data('delete-url');
+            if (!url) {
+                return;
+            }
+            if (!window.confirm('Delete this student? This action cannot be undone.')) {
+                return;
+            }
+            $.ajax({
+                url: url,
+                type: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).done(function (res) {
+                if (typeof toastr !== 'undefined' && res && res.message) {
+                    toastr.success(res.message);
+                }
+                fetchPage(1);
+            }).fail(function (xhr) {
+                var msg = 'Could not delete student.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    msg = xhr.responseJSON.message;
+                }
+                if (typeof toastr !== 'undefined') {
+                    toastr.error(msg);
+                } else {
+                    alert(msg);
+                }
+            });
         });
 
         function reloadCurrentFromFilters() {
