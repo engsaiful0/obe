@@ -6,7 +6,6 @@
 @section('page-script')
     <script>
         window.designationUrls = AppUtils.buildApiUrls('app/settings/designation');
-        console.log('Designation URLs:', window.designationUrls);
     </script>
     <script src="{{ asset('assets/js/designation-datatables.js') }}?v={{ time() }}"></script>
 @endsection
@@ -49,7 +48,7 @@
                     <label class="form-label" for="designation_type">Designation Type</label>
                     <div class="input-group input-group-merge">
                         <span id="designation_type2" class="input-group-text"><i class="ti ti-briefcase"></i></span>
-                        <select id="designation_type" name="designation_type" class="form-select">
+                        <select id="designation_type" name="designation_type" class="form-select dt-designation-type">
                             <option value="">Select Type</option>
                             <option value="Teacher">Teacher</option>
                             <option value="Employee">Employee</option>
