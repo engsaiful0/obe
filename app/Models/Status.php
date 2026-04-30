@@ -43,5 +43,4 @@ class Status extends Model
     {
         return $this->belongsTo(RelatedTo::class, 'related_to_id');
     }
-    
 }

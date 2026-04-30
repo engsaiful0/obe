@@ -15,9 +15,11 @@ use App\Models\Status;
 use App\Models\RelatedTo;
 use App\Models\Student;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule as ValidationRule;
 use Illuminate\Validation\ValidationException;
 
@@ -30,6 +32,165 @@ class StudentController extends Controller
 
     /** Lowercased status_name values on `statuses` (Related To = Batch) eligible for student admission. */
     private const BATCH_ELIGIBLE_STATUS_NAMES = ['active', 'running', 'actve'];
+
+    public function index(Request $request)
+    {
+        $studentStatuses = Status::query()
+        ->where('related_to_id', RelatedTo::where('name', 'Student')->value('id'))
+        ->orderBy('status_name')
+        ->get(['id', 'status_name']);
+
+        $programs = Program::query()
+            ->where('status', 'Active')
+            ->orderBy('program_name')
+            ->get(['id', 'program_name', 'program_code']);
+
+        $academicSessions = AcademicSession::query()
+            ->where('status', 'Active')
+            ->orderByDesc('academic_year')
+            ->orderBy('session_name')
+            ->get(['id', 'session_name', 'academic_year']);
+
+        $genders = Gender::query()->orderBy('gender_name')->get(['id', 'gender_name']);
+
+        $religions = Religion::query()->orderBy('religion_name')->get(['id', 'religion_name']);
+
+        return view('content.student.index', [
+            'programs' => $programs,
+            'academicSessions' => $academicSessions,
+            'genders' => $genders,
+            'religions' => $religions,
+            'studentStatuses' => $studentStatuses,
+        ]);
+    }
+
+    /**
+     * Paginated student list JSON for AJAX (default 40 per page).
+     */
+    public function listPaginated(Request $request): JsonResponse
+    {
+        $perPage = (int) $request->integer('per_page', 40);
+        if (! in_array($perPage, [10, 20, 40, 50, 100], true)) {
+            $perPage = 40;
+        }
+
+        $sort = $request->input('sort', 'student_name');
+        $allowedSort = ['student_name', 'student_code', 'created_at', 'admission_date', 'id'];
+        if (! in_array($sort, $allowedSort, true)) {
+            $sort = 'student_name';
+        }
+
+        $dir = strtolower((string) $request->input('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+
+        $query = Student::query()
+            ->with([
+                'program:id,program_name,program_code',
+                'batch:id,batch_name,batch_code',
+                'academicSession:id,session_name,academic_year',
+                'gender:id,gender_name',
+                'religion:id,religion_name',
+            ]);
+
+        if ($request->filled('q')) {
+            $term = '%'.trim((string) $request->input('q')).'%';
+            $query->where(function ($w) use ($term) {
+                $w->where('students.student_name', 'like', $term)
+                    ->orWhere('students.student_code', 'like', $term)
+                    ->orWhere('students.email', 'like', $term)
+                    ->orWhere('students.phone', 'like', $term)
+                    ->orWhere('students.father_name', 'like', $term)
+                    ->orWhere('students.mother_name', 'like', $term)
+                    ->orWhere('students.guardian_name', 'like', $term);
+            });
+        }
+
+        if ($request->filled('program_id')) {
+            $query->where('students.program_id', (int) $request->input('program_id'));
+        }
+
+        if ($request->filled('batch_id')) {
+            $query->where('students.batch_id', (int) $request->input('batch_id'));
+        }
+
+        if ($request->filled('academic_session_id')) {
+            $query->where('students.academic_session_id', (int) $request->input('academic_session_id'));
+        }
+
+        if ($request->filled('gender_id')) {
+            $query->where('students.gender_id', (int) $request->input('gender_id'));
+        }
+
+        if ($request->filled('religion_id')) {
+            $query->where('students.religion_id', (int) $request->input('religion_id'));
+        }
+
+        if ($request->filled('status_id')) {
+            $query->where('students.status_id', (int) $request->input('status_id'));
+        }
+
+        if ($request->filled('shift')) {
+            $shift = $request->input('shift');
+            if (in_array($shift, ['Morning', 'Evening', 'Weekend'], true)) {
+                $query->where('students.shift', $shift);
+            }
+        }
+
+        if ($request->filled('student_type')) {
+            $t = $request->input('student_type');
+            if (in_array($t, ['Regular', 'Transfer', 'Foreign'], true)) {
+                $query->where('students.student_type', $t);
+            }
+        }
+
+        if ($request->filled('admission_date_from')) {
+            $query->whereDate('students.admission_date', '>=', $request->input('admission_date_from'));
+        }
+
+        if ($request->filled('admission_date_to')) {
+            $query->whereDate('students.admission_date', '<=', $request->input('admission_date_to'));
+        }
+
+        $paginator = $query
+            ->orderBy($sort, $dir)
+            ->paginate($perPage)
+            ->appends($request->except('page'));
+
+        $data = collect($paginator->items())->map(function (Student $s) {
+            return [
+                'id' => $s->id,
+                'student_code' => $s->student_code,
+                'student_name' => $s->student_name,
+                'picture_url' => $s->picture ? Storage::disk('public')->url($s->picture) : null,
+                'email' => $s->email,
+                'phone' => $s->phone,
+                'status' => $s->status->status_name,
+                'shift' => $s->shift,
+                'student_type' => $s->student_type,
+                'program' => $s->program,
+                'batch' => $s->batch,
+                'academic_session' => $s->academicSession,
+                'gender' => $s->gender,
+                'religion' => $s->religion,
+                'admission_date' => $s->admission_date?->format('Y-m-d'),
+            ];
+        })->values();
+
+        return response()->json([
+            'data' => $data,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'from' => $paginator->firstItem(),
+                'to' => $paginator->lastItem(),
+            ],
+            'links' => [
+                'prev' => $paginator->previousPageUrl(),
+                'next' => $paginator->nextPageUrl(),
+            ],
+        ]);
+    }
 
     public function create()
     {
@@ -84,8 +245,17 @@ class StudentController extends Controller
             'program_id' => 'required|exists:programs,id',
         ]);
 
-        // batches.status_id → statuses.id → statuses.related_to_id → related_tos.id (name Batch);
-        // status_name matched case-insensitively (covers "Active", common typo "Actve", and "Running").
+        if ($request->boolean('all_for_program')) {
+            $batches = Batch::query()
+                ->where('program_id', $request->program_id)
+                ->with(['academicSession:id,session_name'])
+                ->orderBy('batch_name')
+                ->get(['id', 'program_id', 'batch_name', 'batch_code', 'academic_session_id']);
+
+            return response()->json(['data' => $batches]);
+        }
+
+        // Admission / create form: batches linked to Batch-related status (active / running)
         $placeholders = implode(',', array_fill(0, count(self::BATCH_ELIGIBLE_STATUS_NAMES), '?'));
 
         $batches = Batch::query()

@@ -9,105 +9,105 @@ let fv, offCanvasEl, dt_basic;
 
 // Utility functions for spinner and loading states
 const SpinnerUtils = {
-    show: function(element, text = 'Loading...') {
-        if (typeof element === 'string') {
-            element = $(element);
-        }
-        element.prop('disabled', true);
-        element.data('original-text', element.html());
-        element.html(`<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>${text}`);
-    },
-    
-    hide: function(element, originalText = null) {
-        if (typeof element === 'string') {
-            element = $(element);
-        }
-        element.prop('disabled', false);
-        // Restore original text if stored, otherwise use provided text
-        const text = originalText || element.data('original-text');
-        if (text) {
-            element.html(text);
-        }
-    },
-    
-    showTable: function() {
-        if (dt_basic && typeof dt_basic.processing === 'function') {
-            dt_basic.processing(true);
-        }
-    },
-    
-    hideTable: function() {
-        if (dt_basic && typeof dt_basic.processing === 'function') {
-            dt_basic.processing(false);
-        }
+  show: function (element, text = 'Loading...') {
+    if (typeof element === 'string') {
+      element = $(element);
     }
+    element.prop('disabled', true);
+    element.data('original-text', element.html());
+    element.html(`<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>${text}`);
+  },
+
+  hide: function (element, originalText = null) {
+    if (typeof element === 'string') {
+      element = $(element);
+    }
+    element.prop('disabled', false);
+    // Restore original text if stored, otherwise use provided text
+    const text = originalText || element.data('original-text');
+    if (text) {
+      element.html(text);
+    }
+  },
+
+  showTable: function () {
+    if (dt_basic && typeof dt_basic.processing === 'function') {
+      dt_basic.processing(true);
+    }
+  },
+
+  hideTable: function () {
+    if (dt_basic && typeof dt_basic.processing === 'function') {
+      dt_basic.processing(false);
+    }
+  }
 };
 
 // Enhanced AJAX utility with error handling
 const AjaxUtils = {
-    request: function(options) {
-        const defaults = {
-            type: 'GET',
-            dataType: 'json',
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
-            beforeSend: function() {
-                if (options.showSpinner && options.spinnerElement) {
-                    SpinnerUtils.show(options.spinnerElement, options.spinnerText);
-                }
-                if (options.showTableSpinner) {
-                    SpinnerUtils.showTable();
-                }
-            },
-            complete: function() {
-                if (options.showSpinner && options.spinnerElement) {
-                    SpinnerUtils.hide(options.spinnerElement);
-                }
-                if (options.showTableSpinner) {
-                    SpinnerUtils.hideTable();
-                }
-            },
-            success: function(response) {
-                if (options.onSuccess) {
-                    options.onSuccess(response);
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('AJAX Error:', {xhr, status, error});
-                AjaxUtils.handleError(xhr, options);
-            }
-        };
-        
-        return $.ajax($.extend(defaults, options));
-    },
-    
-    handleError: function(xhr, options = {}) {
-        let message = 'An error occurred. Please try again.';
-        
-        if (xhr.status === 422) {
-            const errors = xhr.responseJSON?.errors;
-            if (errors) {
-                message = Object.values(errors).flat().join('<br>');
-            }
-        } else if (xhr.status === 500) {
-            message = 'Server error. Please contact support.';
-        } else if (xhr.status === 404) {
-            message = 'Resource not found.';
-        } else if (xhr.responseJSON && xhr.responseJSON.message) {
-            message = xhr.responseJSON.message;
+  request: function (options) {
+    const defaults = {
+      type: 'GET',
+      dataType: 'json',
+      headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+      },
+      beforeSend: function () {
+        if (options.showSpinner && options.spinnerElement) {
+          SpinnerUtils.show(options.spinnerElement, options.spinnerText);
         }
-        
-        if (typeof toastr !== 'undefined') {
-            toastr.error(message);
-        } else {
-            alert('Error: ' + message);
+        if (options.showTableSpinner) {
+          SpinnerUtils.showTable();
         }
-        
-        if (options.onError) {
-            options.onError(xhr, message);
+      },
+      complete: function () {
+        if (options.showSpinner && options.spinnerElement) {
+          SpinnerUtils.hide(options.spinnerElement);
         }
+        if (options.showTableSpinner) {
+          SpinnerUtils.hideTable();
+        }
+      },
+      success: function (response) {
+        if (options.onSuccess) {
+          options.onSuccess(response);
+        }
+      },
+      error: function (xhr, status, error) {
+        console.error('AJAX Error:', { xhr, status, error });
+        AjaxUtils.handleError(xhr, options);
+      }
+    };
+
+    return $.ajax($.extend(defaults, options));
+  },
+
+  handleError: function (xhr, options = {}) {
+    let message = 'An error occurred. Please try again.';
+
+    if (xhr.status === 422) {
+      const errors = xhr.responseJSON?.errors;
+      if (errors) {
+        message = Object.values(errors).flat().join('<br>');
+      }
+    } else if (xhr.status === 500) {
+      message = 'Server error. Please contact support.';
+    } else if (xhr.status === 404) {
+      message = 'Resource not found.';
+    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+      message = xhr.responseJSON.message;
     }
+
+    if (typeof toastr !== 'undefined') {
+      toastr.error(message);
+    } else {
+      alert('Error: ' + message);
+    }
+
+    if (options.onError) {
+      options.onError(xhr, message);
+    }
+  }
 };
 
 function refillStatusRelatedToSelect(preserveVal) {
@@ -236,8 +236,8 @@ $(function () {
         url: window.statusUrls.getData,
         type: 'GET',
         dataSrc: 'data',
-        error: function(xhr, error, thrown) {
-          console.error('DataTable AJAX Error:', {xhr, error, thrown});
+        error: function (xhr, error, thrown) {
+          console.error('DataTable AJAX Error:', { xhr, error, thrown });
           if (typeof toastr !== 'undefined') {
             toastr.error('Failed to load statuses. Please try again.');
           }
@@ -374,7 +374,7 @@ $(function () {
 
       // Get submit button
       var $submitBtn = $('#form-add-new-record button[type="submit"]');
-      
+
       // Use AjaxUtils with spinner
       AjaxUtils.request({
         url: url,
@@ -395,12 +395,12 @@ $(function () {
           $('.add-new-record .dt-full-name').val(''); // clear input
           $('.add-new-record .dt-related-to').val(''); // clear select
           refillStatusRelatedToSelect('');
-          
+
           if (typeof toastr !== 'undefined') {
             toastr.success(message);
           }
         },
-        onError: function(xhr, errorMessage) {
+        onError: function (xhr, errorMessage) {
           // Error already handled by AjaxUtils.handleError
         }
       });
@@ -413,7 +413,7 @@ $(function () {
     var row = dt_basic.row($(this).parents('tr'));
     var data = row.data();
     var $deleteBtn = $(this);
-    
+
     Swal.fire({
       title: 'Are you sure?',
       text: "You won't be able to revert this!",
@@ -429,7 +429,7 @@ $(function () {
       if (result.value) {
         // Show spinner on delete button
         SpinnerUtils.show($deleteBtn, 'Deleting...');
-        
+
         AjaxUtils.request({
           url: window.statusUrls.destroy + '/' + data.id,
           type: 'DELETE',
@@ -448,7 +448,7 @@ $(function () {
             // Hide spinner on success
             SpinnerUtils.hide($deleteBtn);
           },
-          onError: function(xhr, errorMessage) {
+          onError: function (xhr, errorMessage) {
             // Error already handled by AjaxUtils.handleError
             // Hide spinner on error
             SpinnerUtils.hide($deleteBtn);

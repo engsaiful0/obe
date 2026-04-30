@@ -25,7 +25,7 @@ class Student extends Model
         'religion_id',
         'academic_session_id',
         'user_id',
-        'status',
+        'status_id',
         'date_of_birth',
         'nationality_id',
         'nid_or_birth_cert_no',
@@ -91,5 +91,9 @@ class Student extends Model
     public function maritalStatus()
     {
         return $this->belongsTo(MaritalStatus::class);
+    }
+    public function status()
+    {
+        return $this->belongsTo(Status::class, 'status_id');
     }
 }

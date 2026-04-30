@@ -168,6 +168,8 @@ Route::get('/app/student-out-report/pdf', [StudentOutReportController::class, 'p
 Route::get('/app/student-out-report/excel', [StudentOutReportController::class, 'excel'])->name('student-out-report.excel');
 
 // Student registration (create student)
+Route::get('/app/student/view-student', [StudentController::class, 'index'])->name('student.view-student');
+Route::get('/app/student/list', [StudentController::class, 'listPaginated'])->name('student.list');
 Route::get('/app/student/add-student', [StudentController::class, 'create'])->name('student.add-student');
 Route::get('/app/student/create-meta', [StudentController::class, 'createMeta'])->name('student.create-meta');
 Route::get('/app/student/batches-by-program', [StudentController::class, 'batchesByProgram'])->name('student.batches-by-program');

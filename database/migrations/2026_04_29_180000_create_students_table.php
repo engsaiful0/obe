@@ -97,8 +97,10 @@ return new class extends Migration
                 ->nullOnDelete();
 
             // Status
-            $table->enum('status', ['Active', 'Inactive'])
-                ->default('Active');
+            $table->foreignId('status_id')
+            ->nullable()
+            ->constrained('statuses')
+            ->nullOnDelete();
 
             // System Columns
             $table->timestamps();
@@ -113,7 +115,7 @@ return new class extends Migration
             $table->index('nationality_id');
             $table->index('blood_group_id');
             $table->index('marital_status_id');
-            $table->index('status');
+            $table->index('status_id');
         });
     }
 
