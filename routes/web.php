@@ -62,6 +62,8 @@ use App\Http\Controllers\settings\Faculty;
 use App\Http\Controllers\settings\Program;
 use App\Http\Controllers\settings\AcademicSession;
 use App\Http\Controllers\settings\Semester;
+use App\Http\Controllers\settings\Batch;
+use App\Http\Controllers\settings\Course;
 use App\Http\Controllers\settings\PaymentMethod;
 use App\Http\Controllers\settings\Nationality;
 use App\Http\Controllers\settings\Month;
@@ -372,6 +374,20 @@ Route::get('/app/settings/get-semester', [Semester::class, 'getSemester'])->name
 Route::post('/app/settings/semester', [Semester::class, 'store'])->name('app-settings-semester.store');
 Route::put('/app/settings/semester/{id}', [Semester::class, 'update'])->name('app-settings-semester.update');
 Route::delete('/app/settings/semester/{id}', [Semester::class, 'destroy'])->name('app-settings-semester.destroy');
+
+// Batch Routes
+Route::get('/app/settings/batch', [Batch::class, 'index'])->name('batch');
+Route::get('/app/settings/get-batch', [Batch::class, 'getBatch'])->name('app-settings-get-batch');
+Route::post('/app/settings/batch', [Batch::class, 'store'])->name('app-settings-batch.store');
+Route::put('/app/settings/batch/{id}', [Batch::class, 'update'])->name('app-settings-batch.update');
+Route::delete('/app/settings/batch/{id}', [Batch::class, 'destroy'])->name('app-settings-batch.destroy');
+
+// Course Routes
+Route::get('/app/settings/course', [Course::class, 'index'])->name('course');
+Route::get('/app/settings/get-course', [Course::class, 'getCourse'])->name('app-settings-get-course');
+Route::post('/app/settings/course', [Course::class, 'store'])->name('app-settings-course.store');
+Route::put('/app/settings/course/{id}', [Course::class, 'update'])->name('app-settings-course.update');
+Route::delete('/app/settings/course/{id}', [Course::class, 'destroy'])->name('app-settings-course.destroy');
 
 Route::get('/app/settings/item', [Item::class, 'index'])->name('app-settings-item');
 Route::get('/app/settings/get-item', [Item::class, 'getItem'])->name('app-settings-get-item');

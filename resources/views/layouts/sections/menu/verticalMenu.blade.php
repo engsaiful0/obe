@@ -651,6 +651,16 @@ return '';
                         <div>{{ __('Semester') }}</div>
                     </a>
                 </li>
+                <li class="menu-item {{ $currentRouteName === 'batch' ? 'active' : '' }}">
+                    <a href="{{ url('app/settings/batch') }}" class="menu-link">
+                        <div>{{ __('Batch') }}</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ $currentRouteName === 'course' ? 'active' : '' }}">
+                    <a href="{{ url('app/settings/course') }}" class="menu-link">
+                        <div>{{ __('Course') }}</div>
+                    </a>
+                </li>
                 <li class="menu-item {{ $currentRouteName === 'blood-group' ? 'active' : '' }}">
                     <a href="{{ url('app/settings/blood-group') }}" class="menu-link">
                         <div>{{ __('Blood Group') }}</div>

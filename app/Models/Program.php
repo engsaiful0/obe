@@ -46,4 +46,14 @@ class Program extends Model
     {
         return $this->hasMany(Semester::class);
     }
+
+    public function batches()
+    {
+        return $this->hasMany(Batch::class);
+    }
+
+    public function courses()
+    {
+        return $this->hasMany(Course::class);
+    }
 }
