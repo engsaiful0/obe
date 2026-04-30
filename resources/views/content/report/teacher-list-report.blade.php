@@ -65,8 +65,8 @@
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <label for="teacher_unique_id" class="form-label">Teacher ID</label>
-                    <input type="text" id="teacher_unique_id" name="teacher_unique_id" class="form-control" value="{{ request('teacher_unique_id') }}">
+                    <label for="employee_id" class="form-label">Employee ID</label>
+                    <input type="text" id="employee_id" name="employee_id" class="form-control" value="{{ request('employee_id') }}">
                 </div>
                 <div class="col-md-4">
                   <label for="per_page" class="form-label">Per Page</label>
@@ -106,34 +106,28 @@
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>Teacher ID</th>
+                    <th>Employee ID</th>
                     <th>Teacher Name</th>
+                    <th>Department</th>
                     <th>Designation</th>
                     <th>Email</th>
                     <th>Phone</th>
-                    <th>Gender</th>
-                    <th>Joining Date</th>
-                    <th>Basic Salary</th>
-                    <th>Gross Salary</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse ($teachers as $teacher)
                     <tr>
                         <td>{{ ($teachers->currentPage() - 1) * $teachers->perPage() + $loop->iteration }}</td>
-                        <td>{{ $teacher->teacher_unique_id }}</td>
+                        <td>{{ $teacher->employee_id }}</td>
                         <td>{{ $teacher->teacher_name }}</td>
+                        <td>{{ $teacher->department->name ?? '' }}</td>
                         <td>{{ $teacher->designation->designation_name ?? '' }}</td>
                         <td>{{ $teacher->email }}</td>
-                        <td>{{ $teacher->mobile }}</td>
-                        <td>{{ ucfirst($teacher->gender) }}</td>
-                        <td>{{ $teacher->joining_date ? \Carbon\Carbon::parse($teacher->joining_date)->format('d-m-Y') : '' }}</td>
-                        <td>{{ $teacher->basic_salary ? '৳' . number_format($teacher->basic_salary) : '' }}</td>
-                        <td>{{ $teacher->gross_salary ? '৳' . number_format($teacher->gross_salary) : '' }}</td>
+                        <td>{{ $teacher->phone }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="text-center">No teachers found.</td>
+                        <td colspan="7" class="text-center">No teachers found.</td>
                     </tr>
                 @endforelse
             </tbody>

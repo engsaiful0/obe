@@ -59,6 +59,7 @@ use App\Http\Controllers\settings\Religion;
 use App\Http\Controllers\settings\Year;
 use App\Http\Controllers\settings\AppSettings;
 use App\Http\Controllers\settings\Faculty;
+use App\Http\Controllers\settings\Teacher as TeacherSettingsController;
 use App\Http\Controllers\settings\Program;
 use App\Http\Controllers\settings\AcademicSession;
 use App\Http\Controllers\settings\Semester;
@@ -353,6 +354,14 @@ Route::get('/app/settings/get-faculty', [Faculty::class, 'getFaculty'])->name('a
 Route::post('/app/settings/faculty', [Faculty::class, 'store'])->name('app-settings-faculty.store');
 Route::put('/app/settings/faculty/{id}', [Faculty::class, 'update'])->name('app-settings-faculty.update');
 Route::delete('/app/settings/faculty/{id}', [Faculty::class, 'destroy'])->name('app-settings-faculty.destroy');
+
+// Teacher (Settings) Routes
+Route::get('/app/settings/teacher', [TeacherSettingsController::class, 'index'])->name('app-settings-teacher');
+Route::get('/app/settings/get-teacher', [TeacherSettingsController::class, 'getTeacher'])->name('app-settings-get-teacher');
+Route::get('/app/settings/get-teacher-designations', [TeacherSettingsController::class, 'getTeacherDesignations'])->name('app-settings-get-teacher-designations');
+Route::post('/app/settings/teacher', [TeacherSettingsController::class, 'store'])->name('app-settings-teacher.store');
+Route::put('/app/settings/teacher/{id}', [TeacherSettingsController::class, 'update'])->name('app-settings-teacher.update');
+Route::delete('/app/settings/teacher/{id}', [TeacherSettingsController::class, 'destroy'])->name('app-settings-teacher.destroy');
 
 // Program Routes
 Route::get('/app/settings/program', [Program::class, 'index'])->name('program');

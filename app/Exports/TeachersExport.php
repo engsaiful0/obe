@@ -28,16 +28,11 @@ class TeachersExport implements FromCollection, WithHeadings, WithMapping, WithS
         return [
             'ID',
             'Teacher Name',
-            'Teacher ID',
+            'Employee ID',
+            'Department',
             'Designation',
             'Email',
-            'Mobile',
-            'Gender',
-            'Joining Date',
-            'Basic Salary',
-            'Gross Salary',
-            'Present Address',
-            'Permanent Address'
+            'Phone',
         ];
     }
 
@@ -46,16 +41,11 @@ class TeachersExport implements FromCollection, WithHeadings, WithMapping, WithS
         return [
             $teacher->id,
             $teacher->teacher_name,
-            $teacher->teacher_unique_id ?? 'N/A',
+            $teacher->employee_id ?? 'N/A',
+            $teacher->department->name ?? 'N/A',
             $teacher->designation->designation_name ?? 'N/A',
             $teacher->email ?? 'N/A',
-            $teacher->mobile ?? 'N/A',
-            $teacher->gender ?? 'N/A',
-            $teacher->joining_date ? \Carbon\Carbon::parse($teacher->joining_date)->format('Y-m-d') : 'N/A',
-            $teacher->basic_salary ?? 'N/A',
-            $teacher->gross_salary ?? 'N/A',
-            $teacher->present_address ?? 'N/A',
-            $teacher->permanent_address ?? 'N/A'
+            $teacher->phone ?? 'N/A',
         ];
     }
 

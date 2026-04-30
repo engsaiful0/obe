@@ -661,6 +661,11 @@ return '';
                         <div>{{ __('Course') }}</div>
                     </a>
                 </li>
+                <li class="menu-item {{ $currentRouteName === 'teacher' ? 'active' : '' }}">
+                    <a href="{{ url('app/settings/teacher') }}" class="menu-link">
+                        <div>{{ __('Teacher') }}</div>
+                    </a>
+                </li>
                 <li class="menu-item {{ $currentRouteName === 'blood-group' ? 'active' : '' }}">
                     <a href="{{ url('app/settings/blood-group') }}" class="menu-link">
                         <div>{{ __('Blood Group') }}</div>
@@ -689,6 +694,11 @@ return '';
                 <li class="menu-item {{ $currentRouteName === 'app-settings-department' ? 'active' : '' }}">
                     <a href="{{ url('app/settings/department') }}" class="menu-link">
                         <div>{{ __('Department') }}</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ $currentRouteName === 'app-settings-teacher' ? 'active' : '' }}">
+                    <a href="{{ url('app/settings/teacher') }}" class="menu-link">
+                        <div>{{ __('Teacher') }}</div>
                     </a>
                 </li>
                 <li class="menu-item {{ $currentRouteName === 'driver-type' ? 'active' : '' }}">

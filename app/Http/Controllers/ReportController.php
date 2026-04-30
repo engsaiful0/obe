@@ -860,14 +860,14 @@ $query->whereDate('expense_date', '<=', $toDate);
     public function teacherListReport(Request $request)
     {
         $designations = Designation::all();
-        $query = TeacherModel::with(['designation']);
+        $query = TeacherModel::with(['designation', 'department']);
 
         if ($request->filled('designation_id')) {
             $query->where('designation_id', $request->designation_id);
         }
 
-        if ($request->filled('teacher_unique_id')) {
-            $query->where('teacher_unique_id', 'like', '%' . $request->teacher_unique_id . '%');
+        if ($request->filled('employee_id')) {
+            $query->where('employee_id', 'like', '%' . $request->employee_id . '%');
         }
 
         if ($request->has('excel')) {
@@ -897,7 +897,7 @@ $query->whereDate('expense_date', '<=', $toDate);
             "Expires"             => "0"
         );
 
-        $columns = array('#', 'Teacher ID', 'Teacher Name', 'Designation', 'Email', 'Phone', 'Gender', 'Joining Date', 'Basic Salary', 'Gross Salary');
+        $columns = array('#', 'Employee ID', 'Teacher Name', 'Department', 'Designation', 'Email', 'Phone');
 
         $callback = function() use($teachers, $columns) {
             $file = fopen('php://output', 'w');
@@ -905,17 +905,14 @@ $query->whereDate('expense_date', '<=', $toDate);
 
             foreach ($teachers as $key => $teacher) {
                 $row['#']            = $key + 1;
-                $row['Teacher ID']   = $teacher->teacher_unique_id;
+                $row['Employee ID']   = $teacher->employee_id;
                 $row['Teacher Name'] = $teacher->teacher_name;
+                $row['Department'] = $teacher->department->name ?? '';
                 $row['Designation'] = $teacher->designation->designation_name ?? '';
                 $row['Email']        = $teacher->email;
-                $row['Phone']        = $teacher->mobile;
-                $row['Gender']       = ucfirst($teacher->gender);
-                $row['Joining Date'] = $teacher->joining_date ? \Carbon\Carbon::parse($teacher->joining_date)->format('d-m-Y') : '';
-                $row['Basic Salary'] = $teacher->basic_salary ? '৳' . number_format($teacher->basic_salary) : '';
-                $row['Gross Salary'] = $teacher->gross_salary ? '৳' . number_format($teacher->gross_salary) : '';
+                $row['Phone']        = $teacher->phone;
 
-                fputcsv($file, array($row['#'], $row['Teacher ID'], $row['Teacher Name'], $row['Designation'], $row['Email'], $row['Phone'], $row['Gender'], $row['Joining Date'], $row['Basic Salary'], $row['Gross Salary']));
+                fputcsv($file, array($row['#'], $row['Employee ID'], $row['Teacher Name'], $row['Department'], $row['Designation'], $row['Email'], $row['Phone']));
             }
 
             fclose($file);
@@ -929,7 +926,7 @@ $query->whereDate('expense_date', '<=', $toDate);
         $teachers = $query->get();
         
         // Get filter information
-        $filters = request()->only(['designation_id', 'teacher_unique_id']);
+        $filters = request()->only(['designation_id', 'employee_id']);
         $designations = Designation::all();
         
         $pdf = \PDF::loadView('content.report.teacher-list-pdf', compact('teachers', 'filters', 'designations'));
