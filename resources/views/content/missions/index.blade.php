@@ -90,7 +90,11 @@
                                 <a href="{{ route('missions.show', $row) }}" class="btn btn-sm btn-outline-info">{{ __('View') }}</a>
                                 <a href="{{ route('missions.edit', $row) }}" class="btn btn-sm btn-outline-warning">{{ __('Edit') }}</a>
                                 <form class="d-inline" method="POST" action="{{ route('missions.destroy', $row) }}"
-                                    data-ajax-delete data-confirm="{{ __('Delete this mission?') }}">
+                                    data-ajax-delete
+                                    data-swal-title="{{ __('Delete mission') }}"
+                                    data-confirm="{{ __('Are you sure you want to delete this mission?') }}"
+                                    data-confirm-yes="{{ __('Yes, delete') }}"
+                                    data-confirm-no="{{ __('Cancel') }}">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 obe-ajax-delete-btn">
                                         <span class="obe-btn-label">{{ __('Delete') }}</span>

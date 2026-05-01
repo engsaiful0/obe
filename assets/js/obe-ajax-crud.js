@@ -246,12 +246,22 @@
     if (form.hasAttribute('data-ajax-delete')) {
       e.preventDefault();
       var confirmMsg = form.getAttribute('data-confirm') || 'Are you sure?';
-      if (!window.confirm(confirmMsg)) return false;
+      var swalTitleForm = form.getAttribute('data-swal-title') || '';
+      var yesForm = form.getAttribute('data-confirm-yes') || '';
+      var noForm = form.getAttribute('data-confirm-no') || '';
 
-      var delBtn =
-        form.querySelector('button[type="submit"].obe-ajax-delete-btn') ||
-        form.querySelector('button[type="submit"]');
-      runAsyncDestroy(delBtn, form.getAttribute('action'), form);
+      confirmDeleteDialog(confirmMsg, {
+        title: swalTitleForm,
+        confirmText: yesForm || undefined,
+        cancelText: noForm || undefined
+      }).then(function (confirmed) {
+        if (!confirmed) return;
+        var delBtn =
+          form.querySelector('button[type="submit"].obe-ajax-delete-btn') ||
+          form.querySelector('button[type="submit"]');
+        runAsyncDestroy(delBtn, form.getAttribute('action'), form);
+      });
+
       return false;
     }
 
