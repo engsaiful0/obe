@@ -18,30 +18,21 @@ class UpdateQuestionCloMappingRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        if ($this->has('has_multiple_questions')) {
+            $this->merge(['has_multiple_questions' => $this->boolean('has_multiple_questions')]);
+        }
+
+        if ($this->has('question_part') && is_string($this->input('question_part'))) {
+            $t = strtolower(trim($this->input('question_part')));
+            $this->merge(['question_part' => $t === '' ? null : $t]);
+        }
+
         if ($this->input('bloom_id') === '' || $this->input('bloom_id') === null) {
             $this->merge(['bloom_id' => null]);
         }
 
-        foreach (['main_question_no', 'question_part'] as $key) {
-            if ($this->has($key) && $this->input($key) !== null && is_string($this->input($key))) {
-                $t = trim((string) $this->input($key));
-                $this->merge([$key => $t === '' ? null : $t]);
-            }
-        }
-
-        if ($this->has('question_label') && $this->input('question_label') !== null && is_string($this->input('question_label'))) {
-            $this->merge(['question_label' => trim((string) $this->input('question_label'))]);
-        }
-
-        foreach (['question_title', 'question_description', 'remarks'] as $key) {
-            if (! $this->has($key)) {
-                continue;
-            }
-            $v = $this->input($key);
-            if ($v !== null && is_string($v)) {
-                $t = trim($v);
-                $this->merge([$key => $t === '' ? null : $t]);
-            }
+        if ($this->has('question_label') && is_string($this->input('question_label'))) {
+            $this->merge(['question_label' => trim($this->input('question_label'))]);
         }
     }
 
@@ -54,40 +45,28 @@ class UpdateQuestionCloMappingRequest extends FormRequest
         $row = $this->route('question_clo_mapping');
 
         return [
-            'program_id' => ['required', 'exists:programs,id'],
-            'course_id' => [
-                'required',
-                Rule::exists('courses', 'id')->where(function ($q) {
-                    return $q->where('program_id', (int) $this->input('program_id'));
-                }),
-            ],
-            'assessment_component_id' => [
-                'required',
-                Rule::exists('assessment_components', 'id')->where(function ($q) {
-                    return $q->where('course_id', (int) $this->input('course_id'));
-                }),
-            ],
-            'clo_id' => [
-                'required',
-                Rule::exists('clos', 'id')->where(function ($q) {
-                    return $q->where('course_id', (int) $this->input('course_id'));
-                }),
-            ],
-            'bloom_id' => ['nullable', 'exists:blooms,id'],
-            'main_question_no' => ['nullable', 'string', 'max:20'],
-            'question_part' => ['nullable', 'string', 'max:20'],
+            'main_question_marks' => ['required', 'numeric', 'min:0.01', 'max:100'],
+            'has_multiple_questions' => ['required', 'boolean'],
+            'question_part' => ['nullable', Rule::in(QuestionCloMapping::ALLOWED_QUESTION_PARTS)],
             'question_label' => [
                 'required',
                 'string',
                 'max:50',
                 Rule::unique('question_clo_mappings', 'question_label')
-                    ->where('assessment_component_id', (int) $this->input('assessment_component_id'))
+                    ->where('assessment_component_id', (int) $row->assessment_component_id)
                     ->whereNull('deleted_at')
                     ->ignore($row->id),
             ],
             'question_title' => ['nullable', 'string', 'max:255'],
             'question_description' => ['nullable', 'string'],
             'marks' => ['required', 'numeric', 'min:0.01', 'max:100'],
+            'clo_id' => [
+                'required',
+                Rule::exists('clos', 'id')->where(function ($q) use ($row) {
+                    $q->where('course_id', (int) $row->course_id);
+                }),
+            ],
+            'bloom_id' => ['nullable', 'exists:blooms,id'],
             'status_id' => ['required', 'exists:statuses,id'],
             'remarks' => ['nullable', 'string'],
         ];
@@ -103,46 +82,97 @@ class UpdateQuestionCloMappingRequest extends FormRequest
             /** @var QuestionCloMapping $row */
             $row = $this->route('question_clo_mapping');
 
+            $acid = (int) $row->assessment_component_id;
+            $main = (string) $row->main_question_no;
+            $multi = $this->boolean('has_multiple_questions');
+            $part = $this->input('question_part');
+            $mainCap = round((float) $this->input('main_question_marks'), 2);
+            $incomingMarks = round((float) $this->input('marks'), 2);
+
+            $othersCount = QuestionCloMapping::countForMainQuestion($acid, $main, $row->id);
+
+            if (! $multi && $othersCount > 0) {
+                $validator->errors()->add(
+                    'has_multiple_questions',
+                    __('Turn off “multiple questions” only when this is the only row for this main question (remove other parts first).')
+                );
+
+                return;
+            }
+
+            if ($multi && ($othersCount + 1) > 4) {
+                $validator->errors()->add(
+                    'has_multiple_questions',
+                    __('A maximum of four parts per main question is allowed.')
+                );
+
+                return;
+            }
+
+            if ($multi) {
+                if ($part === null || $part === '' || ! in_array($part, QuestionCloMapping::ALLOWED_QUESTION_PARTS, true)) {
+                    $validator->errors()->add(
+                        'question_part',
+                        __('Question part must be one of :parts.', ['parts' => 'a, b, c, d'])
+                    );
+
+                    return;
+                }
+
+                $dupPart = QuestionCloMapping::query()
+                    ->where('assessment_component_id', $acid)
+                    ->where('main_question_no', $main)
+                    ->where('question_part', $part)
+                    ->whereKeyNot($row->id)
+                    ->exists();
+                if ($dupPart) {
+                    $validator->errors()->add('question_part', __('This part letter is already used for the same main question.'));
+                }
+            } elseif ($part !== null && $part !== '') {
+                $validator->errors()->add(
+                    'question_part',
+                    __('Question part must be empty when this main question is not split into parts.')
+                );
+            }
+
+            $sumOthers = QuestionCloMapping::sumPartMarksUnderMain($acid, $main, $row->id);
+            if (round($sumOthers + $incomingMarks, 2) > $mainCap + 0.0001) {
+                $validator->errors()->add(
+                    'marks',
+                    __('Parts under this main question total :sum; with this row (:incoming) they exceed the main cap (:cap).', [
+                        'sum' => rtrim(rtrim(number_format($sumOthers, 2, '.', ''), '0'), '.'),
+                        'incoming' => rtrim(rtrim(number_format($incomingMarks, 2, '.', ''), '0'), '.'),
+                        'cap' => rtrim(rtrim(number_format($mainCap, 2, '.', ''), '0'), '.'),
+                    ])
+                );
+            }
+
+            if ($incomingMarks > $mainCap + 0.0001) {
+                $validator->errors()->add(
+                    'marks',
+                    __('This row\'s marks cannot exceed the main question cap (:cap).', [
+                        'cap' => rtrim(rtrim(number_format($mainCap, 2, '.', ''), '0'), '.'),
+                    ])
+                );
+            }
+
+            $component = AssessmentComponent::query()->find($acid);
+            if ($component) {
+                $existing = QuestionCloMapping::sumMarksForComponent($acid, $row->id);
+                if (round($existing + $incomingMarks, 2) > round((float) $component->marks, 2) + 0.0001) {
+                    $validator->errors()->add(
+                        'marks',
+                        __('Total mapped marks for this component would exceed the component cap.')
+                    );
+                }
+            }
+
             $clo = Clo::query()->find((int) $this->input('clo_id'));
             $bloomId = $this->input('bloom_id');
             if ($bloomId !== null && $bloomId !== '' && $clo && (int) $bloomId !== (int) $clo->bloom_id) {
                 $validator->errors()->add(
                     'bloom_id',
                     __('Bloom level must match the selected CLO taxonomy level.')
-                );
-
-                return;
-            }
-
-            $componentId = (int) $this->input('assessment_component_id');
-            $component = AssessmentComponent::query()->find($componentId);
-            if (! $component) {
-                return;
-            }
-
-            $main = $this->input('main_question_no');
-            if ($main !== null && $main !== ''
-                && QuestionCloMapping::countForMainQuestion($componentId, (string) $main, $row->id) >= 4) {
-                $validator->errors()->add(
-                    'main_question_no',
-                    __('A maximum of four question parts is allowed per main question for this assessment component.')
-                );
-
-                return;
-            }
-
-            $existing = QuestionCloMapping::sumMarksForComponent($componentId, $row->id);
-            $incoming = (float) $this->input('marks');
-            $cap = (float) $component->marks;
-
-            if (round($existing + $incoming, 2) > round($cap, 2)) {
-                $validator->errors()->add(
-                    'marks',
-                    __('Total mapped question marks for this component (:sum) plus this row (:incoming) exceed the component cap (:cap).', [
-                        'sum' => rtrim(rtrim(number_format($existing, 2, '.', ''), '0'), '.'),
-                        'incoming' => rtrim(rtrim(number_format($incoming, 2, '.', ''), '0'), '.'),
-                        'cap' => rtrim(rtrim(number_format($cap, 2, '.', ''), '0'), '.'),
-                    ])
                 );
             }
         });

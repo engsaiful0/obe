@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\RespondsWithJsonForAjax;
-use App\Http\Requests\StoreQuestionCloMappingRequest;
+use App\Http\Requests\StoreBulkQuestionCloMappingRequest;
 use App\Http\Requests\UpdateQuestionCloMappingRequest;
 use App\Models\AssessmentComponent;
 use App\Models\Bloom;
@@ -13,6 +13,7 @@ use App\Models\Program;
 use App\Models\QuestionCloMapping;
 use App\Models\RelatedTo;
 use App\Models\Status;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -141,19 +142,20 @@ class QuestionCloMappingController extends Controller
             ->where('course_id', $course->getKey())
             ->whereHas('status', fn ($s) => $s->where('status_name', 'Active'))
             ->orderBy('component_name')
-            ->get(['id', 'component_name', 'marks']);
+            ->get(['id', 'component_name', 'marks', 'has_multiple_questions']);
 
         if ($items->isEmpty()) {
             $items = AssessmentComponent::query()
                 ->where('course_id', $course->getKey())
                 ->orderBy('component_name')
-                ->get(['id', 'component_name', 'marks']);
+                ->get(['id', 'component_name', 'marks', 'has_multiple_questions']);
         }
 
         return response()->json($items->map(fn (AssessmentComponent $ac) => [
             'id' => $ac->id,
             'component_name' => $ac->component_name,
             'marks' => (float) $ac->marks,
+            'has_multiple_questions' => (bool) ($ac->has_multiple_questions ?? false),
         ]));
     }
 
@@ -246,14 +248,47 @@ class QuestionCloMappingController extends Controller
 
     public function create(): View
     {
-        return view('content.question-clo-mappings.create', $this->formLookups(null));
+        return view('content.question-clo-mappings.create', array_merge($this->formLookups(null), [
+            'wizardBlooms' => $this->bloomsForLookup()->map(fn (Bloom $b) => [
+                'id' => $b->id,
+                'label' => $b->level_order.'. '.$b->name,
+            ])->values()->all(),
+            'wizardStatuses' => $this->obeStatuses()->map(fn (Status $s) => [
+                'id' => $s->id,
+                'status_name' => $s->status_name,
+            ])->values()->all(),
+        ]));
     }
 
-    public function store(StoreQuestionCloMappingRequest $request): JsonResponse|RedirectResponse
+    public function store(StoreBulkQuestionCloMappingRequest $request): JsonResponse|RedirectResponse
     {
-        QuestionCloMapping::create($request->validated());
+        $validated = $request->validated();
 
-        return $this->respondSaved($request, __('Question-CLO mapping saved successfully.'), 'question-clo-mappings.index');
+        DB::transaction(function () use ($validated) {
+            foreach ($validated['mains'] as $main) {
+                foreach ($main['parts'] as $part) {
+                    QuestionCloMapping::query()->create([
+                        'program_id' => $validated['program_id'],
+                        'course_id' => $validated['course_id'],
+                        'assessment_component_id' => $validated['assessment_component_id'],
+                        'main_question_no' => $main['main_question_no'],
+                        'main_question_marks' => $main['main_question_marks'],
+                        'has_multiple_questions' => $main['has_multiple_questions'],
+                        'question_part' => $part['question_part'] ?? null,
+                        'question_label' => $part['question_label'],
+                        'marks' => $part['marks'],
+                        'clo_id' => $part['clo_id'],
+                        'bloom_id' => $part['bloom_id'] ?? null,
+                        'status_id' => $part['status_id'],
+                        'remarks' => $part['remarks'] ?? null,
+                        'question_title' => null,
+                        'question_description' => null,
+                    ]);
+                }
+            }
+        });
+
+        return $this->respondSaved($request, __('Question-CLO mappings saved successfully.'), 'question-clo-mappings.index');
     }
 
     public function show(QuestionCloMapping $question_clo_mapping): View
@@ -270,7 +305,19 @@ class QuestionCloMappingController extends Controller
 
     public function update(UpdateQuestionCloMappingRequest $request, QuestionCloMapping $question_clo_mapping): JsonResponse|RedirectResponse
     {
-        $question_clo_mapping->update($request->validated());
+        $data = $request->validated();
+
+        DB::transaction(function () use ($data, $question_clo_mapping) {
+            $question_clo_mapping->update($data);
+
+            QuestionCloMapping::query()
+                ->where('assessment_component_id', $question_clo_mapping->assessment_component_id)
+                ->where('main_question_no', $question_clo_mapping->main_question_no)
+                ->update([
+                    'main_question_marks' => $data['main_question_marks'],
+                    'has_multiple_questions' => $data['has_multiple_questions'],
+                ]);
+        });
 
         return $this->respondSaved($request, __('Question-CLO mapping updated successfully.'), 'question-clo-mappings.index');
     }

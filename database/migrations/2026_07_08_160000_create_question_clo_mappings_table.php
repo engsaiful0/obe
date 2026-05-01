@@ -15,7 +15,9 @@ return new class extends Migration
             $table->foreignId('assessment_component_id')->constrained('assessment_components')->restrictOnDelete();
             $table->foreignId('clo_id')->constrained('clos')->restrictOnDelete();
             $table->foreignId('bloom_id')->nullable()->constrained('blooms')->restrictOnDelete();
-            $table->string('main_question_no', 20)->nullable();
+            $table->string('main_question_no', 20);
+            $table->decimal('main_question_marks', 8, 2);
+            $table->boolean('has_multiple_questions')->default(false);
             $table->string('question_part', 20)->nullable();
             $table->string('question_label', 50);
             $table->string('question_title')->nullable();

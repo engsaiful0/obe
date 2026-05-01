@@ -53,23 +53,25 @@ class QuestionCloMappingSeeder extends Seeder
 
         if ($midterm && $cloByCode->has('CLO1') && $cloByCode->has('CLO2') && $cloByCode->has('CLO3')) {
             $defs = array_merge($defs, [
-                [$midterm, 'Q1', 'a', 'Q1a', 5, 'CLO1'],
-                [$midterm, 'Q1', 'b', 'Q1b', 2, 'CLO1'],
-                [$midterm, 'Q1', 'c', 'Q1c', 3, 'CLO2'],
-                [$midterm, 'Q2', 'a', 'Q2a', 5, 'CLO2'],
-                [$midterm, 'Q2', 'b', 'Q2b', 5, 'CLO3'],
+                [$midterm, 'Q1', 10.0, true, 'a', 'Q1a', 2.5, 'CLO1'],
+                [$midterm, 'Q1', 10.0, true, 'b', 'Q1b', 2.5, 'CLO2'],
+                [$midterm, 'Q1', 10.0, true, 'c', 'Q1c', 2.5, 'CLO2'],
+                [$midterm, 'Q1', 10.0, true, 'd', 'Q1d', 2.5, 'CLO3'],
+                [$midterm, 'Q2', 10.0, true, 'a', 'Q2a', 5.0, 'CLO1'],
+                [$midterm, 'Q2', 10.0, true, 'b', 'Q2b', 5.0, 'CLO2'],
+                [$midterm, 'Q3', 10.0, true, 'a', 'Q3a', 10.0, 'CLO3'],
             ]);
         }
 
         if ($final && $cloByCode->has('CLO1') && $cloByCode->has('CLO2') && $cloByCode->has('CLO3')) {
             $defs = array_merge($defs, [
-                [$final, null, null, 'Q1', 15, 'CLO1'],
-                [$final, null, null, 'Q2', 15, 'CLO2'],
-                [$final, null, null, 'Q3', 10, 'CLO3'],
+                [$final, 'Q1', 15.0, false, null, 'Q1', 15.0, 'CLO1'],
+                [$final, 'Q2', 15.0, false, null, 'Q2', 15.0, 'CLO2'],
+                [$final, 'Q3', 10.0, false, null, 'Q3', 10.0, 'CLO3'],
             ]);
         }
 
-        foreach ($defs as [$component, $mainNo, $part, $label, $marks, $cloCode]) {
+        foreach ($defs as [$component, $mainNo, $mainMarks, $hasMulti, $part, $label, $marks, $cloCode]) {
             $clo = $cloByCode[$cloCode];
             QuestionCloMapping::query()->updateOrCreate(
                 [
@@ -82,6 +84,8 @@ class QuestionCloMappingSeeder extends Seeder
                     'clo_id' => $clo->id,
                     'bloom_id' => $clo->bloom_id,
                     'main_question_no' => $mainNo,
+                    'main_question_marks' => $mainMarks,
+                    'has_multiple_questions' => $hasMulti,
                     'question_part' => $part,
                     'question_title' => null,
                     'question_description' => null,

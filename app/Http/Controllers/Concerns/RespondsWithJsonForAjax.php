@@ -10,7 +10,7 @@ trait RespondsWithJsonForAjax
 {
     protected function respondSaved(Request $request, string $message, string $routeName, array $routeParameters = []): JsonResponse|RedirectResponse
     {
-        if ($request->expectsJson()) {
+        if ($request->expectsJson() || $request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => $message,

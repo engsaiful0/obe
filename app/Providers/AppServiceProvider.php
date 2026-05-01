@@ -2,71 +2,81 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Vite;
-use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\URL;
-use Illuminate\Pagination\Paginator;
-use Illuminate\Support\Facades\Route;
 use App\Models\DeploymentPlan;
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Vite;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-  /**
-   * Register any application services.
-   */
-  public function register(): void
-  {
-    //
-  }
-
-  /**
-   * Bootstrap any application services.
-   */
-  public function boot(): void
-  {
-    // Force root URL to include subdirectory if APP_URL is set
-    // This ensures route() and url() helpers include the subdirectory path
-    $appUrl = config('app.url');
-    if ($appUrl) {
-      URL::forceRootUrl($appUrl);
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+        //
     }
-    
-    Vite::useStyleTagAttributes(function (?string $src, string $url, ?array $chunk, ?array $manifest) {
-      if ($src !== null) {
-        return [
-          'class' => preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?core)-?.*/i", $src) ? 'template-customizer-core-css' :
-                    (preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?theme)-?.*/i", $src) ? 'template-customizer-theme-css' : '')
-        ];
-      }
-      return [];
-    });
 
-    Blade::if('permission', function ($permission) {
-        return Auth::check() && Auth::user()->hasPermissionTo($permission);
-    });
-    
-    // Configure pagination to use Bootstrap 5
-    Paginator::defaultView('vendor.pagination.custom-bootstrap-5');
-    Paginator::defaultSimpleView('vendor.pagination.simple-bootstrap-5');
-    
-    // Add route model binding constraint for DeploymentPlan to only match numeric IDs
-    Route::bind('deploymentPlan', function ($value) {
-        // Only match if the value is numeric (to prevent filter parameters from matching)
-        if (!is_numeric($value)) {
-            abort(404);
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        /*
+         | Use the incoming request’s scheme + host + base path (e.g. /obe/public) so
+         | url() / route() resolve correctly when APP_URL lacks the subdirectory
+         | (XHR cascades otherwise hit http://localhost/ajax/... → 404, empty selects).
+         */
+        if ($this->app->runningInConsole()) {
+            if (($appUrl = config('app.url'))) {
+                URL::forceRootUrl(rtrim($appUrl, '/'));
+            }
+        } elseif (($r = request()) && method_exists($r, 'getBasePath')) {
+            $dynamicRoot = rtrim($r->getSchemeAndHttpHost().rtrim($r->getBasePath(), '/'), '/');
+            URL::forceRootUrl($dynamicRoot !== '' ? $dynamicRoot : rtrim((string) config('app.url'), '/'));
         }
-        return DeploymentPlan::findOrFail($value);
-    });
-    
-    // Also bind for snake_case route parameter
-    Route::bind('deployment_plan', function ($value) {
-        // Only match if the value is numeric (to prevent filter parameters from matching)
-        if (!is_numeric($value)) {
-            abort(404);
-        }
-        return DeploymentPlan::findOrFail($value);
-    });
-  }
+
+        Vite::useStyleTagAttributes(function (?string $src, string $url, ?array $chunk, ?array $manifest) {
+            if ($src !== null) {
+                return [
+                    'class' => preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?core)-?.*/i", $src) ? 'template-customizer-core-css' :
+                              (preg_match("/(resources\/assets\/vendor\/scss\/(rtl\/)?theme)-?.*/i", $src) ? 'template-customizer-theme-css' : ''),
+                ];
+            }
+
+            return [];
+        });
+
+        Blade::if('permission', function ($permission) {
+            return Auth::check() && Auth::user()->hasPermissionTo($permission);
+        });
+
+        // Configure pagination to use Bootstrap 5
+        Paginator::defaultView('vendor.pagination.custom-bootstrap-5');
+        Paginator::defaultSimpleView('vendor.pagination.simple-bootstrap-5');
+
+        // Add route model binding constraint for DeploymentPlan to only match numeric IDs
+        Route::bind('deploymentPlan', function ($value) {
+            // Only match if the value is numeric (to prevent filter parameters from matching)
+            if (! is_numeric($value)) {
+                abort(404);
+            }
+
+            return DeploymentPlan::findOrFail($value);
+        });
+
+        // Also bind for snake_case route parameter
+        Route::bind('deployment_plan', function ($value) {
+            // Only match if the value is numeric (to prevent filter parameters from matching)
+            if (! is_numeric($value)) {
+                abort(404);
+            }
+
+            return DeploymentPlan::findOrFail($value);
+        });
+    }
 }

@@ -22,6 +22,12 @@
             <dt class="col-sm-3">{{ __('Main question no') }}</dt>
             <dd class="col-sm-9">{{ $mapping->main_question_no ?: '—' }}</dd>
 
+            <dt class="col-sm-3">{{ __('Main question marks (cap)') }}</dt>
+            <dd class="col-sm-9">{{ $mapping->main_question_marks }}</dd>
+
+            <dt class="col-sm-3">{{ __('Multiple parts') }}</dt>
+            <dd class="col-sm-9">{{ $mapping->has_multiple_questions ? __('Yes') : __('No') }}</dd>
+
             <dt class="col-sm-3">{{ __('Question part') }}</dt>
             <dd class="col-sm-9">{{ $mapping->question_part ?: '—' }}</dd>
 

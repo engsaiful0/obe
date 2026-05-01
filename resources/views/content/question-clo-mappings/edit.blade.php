@@ -17,7 +17,7 @@
             @csrf
             @method('PUT')
             <div class="alert alert-danger d-none mb-3" role="alert" data-ajax-errors></div>
-            @include('content.question-clo-mappings._form')
+            @include('content.question-clo-mappings._form_edit')
             <div class="mt-3 d-flex gap-2">
                 <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2 obe-ajax-primary obe-async-save">
                     <span class="obe-btn-label">{{ __('Update') }}</span>
@@ -32,5 +32,5 @@
 
 @section('page-script')
 <script src="{{ asset('assets/js/obe-ajax-crud.js') }}"></script>
-<script src="{{ asset('assets/js/question-clo-mapping-form.js') }}"></script>
+<script src="{{ asset('assets/js/question-clo-mapping-edit-form.js') }}"></script>
 @endsection

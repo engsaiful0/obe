@@ -75,10 +75,7 @@
                 <table class="table table-sm table-bordered">
                     <thead class="table-light">
                         <tr>
-                            <th>{{ __('Main Q no') }}</th>
-                            <th>{{ __('Part') }}</th>
                             <th>{{ __('Question label') }}</th>
-                            <th>{{ __('Component') }}</th>
                             <th>{{ __('Marks') }}</th>
                             <th>{{ __('CLO') }}</th>
                             <th>{{ __("Bloom") }}</th>
@@ -87,10 +84,7 @@
                     <tbody>
                         @foreach ($rows as $r)
                             <tr>
-                                <td>{{ $r->main_question_no ?? '—' }}</td>
-                                <td>{{ $r->question_part ?? '—' }}</td>
                                 <td class="fw-medium">{{ $r->question_label }}</td>
-                                <td>{{ $r->assessmentComponent->component_name ?? '—' }}</td>
                                 <td>{{ $r->marks }}</td>
                                 <td>
                                     {{ $r->clo->clo_code ?? '—' }}

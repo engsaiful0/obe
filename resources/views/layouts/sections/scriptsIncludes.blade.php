@@ -10,10 +10,8 @@ $menuCollapsed = ($configData['menuCollapsed'] === 'layout-menu-collapsed') ? js
 @if ($configData['hasCustomizer'])
   <!--! Template customizer & Theme config files MUST be included after core stylesheets and helpers.js in the <head> section -->
   <!--? Template customizer: To hide customizer set displayCustomizer value false in config.js.  -->
- @section('page-script')
+  {{-- Do not use @section('page-script') here — it would replace/defer actual page scripts (e.g. Question–CLO wizard) and breaks @yield('page-script'). --}}
   <script src="{{ asset('assets/vendor/js/template-customizer.js') }}"></script>
-@endsection
-
 @endif
 
   <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
