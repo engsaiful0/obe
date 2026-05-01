@@ -32,7 +32,19 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-6 col-lg-4">
+                    <label class="form-label small mb-0" for="mx_session">{{ __('Academic session') }}</label>
+                    <select name="academic_session_id" id="mx_session" class="form-select">
+                        <option value="">{{ __('All sessions') }}</option>
+                        @foreach ($academicSessions as $sess)
+                            <option value="{{ $sess->id }}" @selected((int) ($academicSessionId ?? 0) === (int) $sess->id)>
+                                {{ $sess->session_name }} ({{ $sess->academic_year }})
+                            </option>
+                        @endforeach
+                    </select>
+                    <div class="form-text small">{{ __('Filter rows by session; pick a session with a component to see cap vs mapped total.') }}</div>
+                </div>
+                <div class="col-md-6 col-lg-4">
                     <label class="form-label small mb-0" for="mx_course">{{ __('Course') }}</label>
                     <select name="course_id" id="mx_course" class="form-select" required data-mx-course
                         data-ph-need-program="{{ __('Select program first') }}"
@@ -45,7 +57,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-6 col-lg-4">
                     <label class="form-label small mb-0" for="mx_component">{{ __('Assessment component') }}</label>
                     <select name="assessment_component_id" id="mx_component" class="form-select" data-mx-component
                         data-ph-need-course="{{ __('Select course first') }}"
@@ -64,12 +76,14 @@
         </form>
 
         @if ($programId && $courseId && $rows->isNotEmpty())
-            @if ($selectedComponent && $componentCap !== null)
+            @if ($selectedComponent && $componentCap !== null && $academicSessionId && $mappedTotal !== null && $remaining !== null)
                 <div class="alert alert-info small py-2">
-                    {{ __('Component cap') }}: <strong>{{ $componentCap }}</strong> |
+                    {{ __('Component cap') }} ({{ __('session') }}: {{ $rows->first()->academicSession->session_name ?? '—' }} · {{ $rows->first()->academicSession->academic_year ?? '' }}): <strong>{{ $componentCap }}</strong> |
                     {{ __('Mapped total') }}: <strong>{{ rtrim(rtrim(number_format((float) $mappedTotal, 2, '.', ''), '0'), '.') }}</strong> |
                     {{ __('Remaining') }}: <strong>{{ rtrim(rtrim(number_format((float) $remaining, 2, '.', ''), '0'), '.') }}</strong>
                 </div>
+            @elseif ($selectedComponent && $componentCap !== null && ! $academicSessionId)
+                <div class="alert alert-secondary small py-2 mb-0">{{ __('Choose an academic session to compare mapped marks with this component\'s cap.') }}</div>
             @endif
             <div class="table-responsive">
                 <table class="table table-sm table-bordered">

@@ -38,4 +38,9 @@ class AcademicSession extends Model
     {
         return $this->hasMany(CourseAssignment::class);
     }
+
+    public function questionCloMappings()
+    {
+        return $this->hasMany(QuestionCloMapping::class);
+    }
 }

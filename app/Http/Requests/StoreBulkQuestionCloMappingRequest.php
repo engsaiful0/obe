@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\AcademicSession;
 use App\Models\AssessmentComponent;
 use App\Models\Clo;
 use App\Models\QuestionCloMapping;
@@ -77,6 +78,7 @@ class StoreBulkQuestionCloMappingRequest extends FormRequest
                     return $q->where('course_id', (int) $this->input('course_id'));
                 }),
             ],
+            'academic_session_id' => ['required', 'exists:academic_sessions,id'],
             'mains' => ['required', 'array', 'min:1'],
             'mains.*.main_question_no' => ['required', 'string', 'max:20'],
             'mains.*.main_question_marks' => ['required', 'numeric', 'min:0.01', 'max:100'],
@@ -106,6 +108,7 @@ class StoreBulkQuestionCloMappingRequest extends FormRequest
             }
 
             $componentId = (int) $this->input('assessment_component_id');
+            $sessionId = (int) $this->input('academic_session_id');
             $component = AssessmentComponent::query()->find($componentId);
             if (! $component) {
                 return;
@@ -245,13 +248,14 @@ class StoreBulkQuestionCloMappingRequest extends FormRequest
 
                     $exists = QuestionCloMapping::query()
                         ->where('assessment_component_id', $componentId)
+                        ->where('academic_session_id', $sessionId)
                         ->whereRaw('LOWER(question_label) = ?', [$lk])
                         ->whereNull('deleted_at')
                         ->exists();
                     if ($exists) {
                         $validator->errors()->add(
                             'mains.'.$mainIndex.'.parts.'.$pi.'.question_label',
-                            __('The label ":label" is already used for this assessment component.', ['label' => $label])
+                            __('The label ":label" is already used for this assessment component and academic session.', ['label' => $label])
                         );
                     }
                 }
@@ -264,16 +268,31 @@ class StoreBulkQuestionCloMappingRequest extends FormRequest
                 }
             }
 
-            $existing = QuestionCloMapping::sumMarksForComponent($componentId, null);
+            $existing = QuestionCloMapping::sumMarksForComponent($componentId, $sessionId, null);
             $cap = (float) $component->marks;
 
             if (round($existing + $payloadTotal, 2) > round($cap, 2) + 0.0001) {
+                $combined = round($existing + $payloadTotal, 2);
+                $componentName = (string) ($component->component_name ?? __('this component'));
+
+                $sessionRow = AcademicSession::query()->find($sessionId);
+                $sessionLabel = $sessionRow
+                    ? $sessionRow->session_name.' ('.$sessionRow->academic_year.')'
+                    : (string) $sessionId;
+
+                $fmt = static function ($n): string {
+                    return rtrim(rtrim(number_format((float) $n, 2, '.', ''), '0'), '.');
+                };
+
                 $validator->errors()->add(
                     'assessment_component_id',
-                    __('Total mapped marks (:sum plus :new) would exceed this component\'s marks cap (:cap).', [
-                        'sum' => rtrim(rtrim(number_format($existing, 2, '.', ''), '0'), '.'),
-                        'new' => rtrim(rtrim(number_format($payloadTotal, 2, '.', ''), '0'), '.'),
-                        'cap' => rtrim(rtrim(number_format($cap, 2, '.', ''), '0'), '.'),
+                    __('The assessment component ":component" allows at most :cap marks overall for academic session ":session". Mapped marks already saved in the database for this component and session total :existing. The marks on this screen (every part row summed) total :new. Together that is :total, which exceeds the cap. Reduce part marks below, delete or change existing mappings for this component and session, or fix the assessment component marks if the limit is wrong.', [
+                        'component' => $componentName,
+                        'session' => $sessionLabel,
+                        'cap' => $fmt($cap),
+                        'existing' => $fmt($existing),
+                        'new' => $fmt($payloadTotal),
+                        'total' => $fmt($combined),
                     ])
                 );
             }

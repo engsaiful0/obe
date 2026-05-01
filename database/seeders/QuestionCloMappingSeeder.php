@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\AcademicSession;
 use App\Models\AssessmentComponent;
 use App\Models\Clo;
 use App\Models\Course;
@@ -42,6 +43,13 @@ class QuestionCloMappingSeeder extends Seeder
             return;
         }
 
+        $session = AcademicSession::query()->orderBy('id')->first();
+        if (! $session) {
+            $this->command?->warn('QuestionCloMappingSeeder skipped: add at least one academic_sessions row first.');
+
+            return;
+        }
+
         $programId = (int) $course->program_id;
 
         $midterm = AssessmentComponent::query()->where('course_id', $course->id)->where('component_name', 'Midterm')->first();
@@ -76,11 +84,13 @@ class QuestionCloMappingSeeder extends Seeder
             QuestionCloMapping::query()->updateOrCreate(
                 [
                     'assessment_component_id' => $component->id,
+                    'academic_session_id' => $session->id,
                     'question_label' => $label,
                 ],
                 [
                     'program_id' => $programId,
                     'course_id' => $course->id,
+                    'academic_session_id' => $session->id,
                     'clo_id' => $clo->id,
                     'bloom_id' => $clo->bloom_id,
                     'main_question_no' => $mainNo,

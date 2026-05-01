@@ -17,6 +17,7 @@ class QuestionCloMapping extends Model
     protected $fillable = [
         'program_id',
         'course_id',
+        'academic_session_id',
         'assessment_component_id',
         'clo_id',
         'bloom_id',
@@ -35,6 +36,7 @@ class QuestionCloMapping extends Model
     protected $casts = [
         'program_id' => 'integer',
         'course_id' => 'integer',
+        'academic_session_id' => 'integer',
         'assessment_component_id' => 'integer',
         'clo_id' => 'integer',
         'bloom_id' => 'integer',
@@ -44,10 +46,12 @@ class QuestionCloMapping extends Model
         'main_question_marks' => 'decimal:2',
     ];
 
-    /** Sum mapped question marks for a component excluding soft-deleted rows. */
-    public static function sumMarksForComponent(int $assessmentComponentId, ?int $excludeId = null): float
+    /** Sum mapped question marks for a component within an academic session (excluding soft deletes). */
+    public static function sumMarksForComponent(int $assessmentComponentId, int $academicSessionId, ?int $excludeId = null): float
     {
-        $query = static::query()->where('assessment_component_id', $assessmentComponentId);
+        $query = static::query()
+            ->where('assessment_component_id', $assessmentComponentId)
+            ->where('academic_session_id', $academicSessionId);
         if ($excludeId) {
             $query->whereKeyNot($excludeId);
         }
@@ -55,11 +59,12 @@ class QuestionCloMapping extends Model
         return (float) $query->sum('marks');
     }
 
-    /** Sum part marks under the same main question (same component). */
-    public static function sumPartMarksUnderMain(int $assessmentComponentId, string $mainQuestionNo, ?int $excludeId = null): float
+    /** Sum part marks under the same main question (same component and session). */
+    public static function sumPartMarksUnderMain(int $assessmentComponentId, int $academicSessionId, string $mainQuestionNo, ?int $excludeId = null): float
     {
         $query = static::query()
             ->where('assessment_component_id', $assessmentComponentId)
+            ->where('academic_session_id', $academicSessionId)
             ->where('main_question_no', $mainQuestionNo);
 
         if ($excludeId) {
@@ -70,10 +75,11 @@ class QuestionCloMapping extends Model
     }
 
     /** Count rows under same main question (excluding soft deletes). */
-    public static function countForMainQuestion(int $assessmentComponentId, string $mainQuestionNo, ?int $excludeId = null): int
+    public static function countForMainQuestion(int $assessmentComponentId, int $academicSessionId, string $mainQuestionNo, ?int $excludeId = null): int
     {
         return static::query()
             ->where('assessment_component_id', $assessmentComponentId)
+            ->where('academic_session_id', $academicSessionId)
             ->where('main_question_no', $mainQuestionNo)
             ->when($excludeId, fn ($q) => $q->whereKeyNot($excludeId))
             ->count();
@@ -87,6 +93,11 @@ class QuestionCloMapping extends Model
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
+    }
+
+    public function academicSession(): BelongsTo
+    {
+        return $this->belongsTo(AcademicSession::class);
     }
 
     public function assessmentComponent(): BelongsTo

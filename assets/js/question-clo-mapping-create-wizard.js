@@ -280,7 +280,7 @@
     syncUi();
   }
 
-  function buildPayload(progVal, coursVal, acVal) {
+  function buildPayload(progVal, coursVal, acVal, sessionVal) {
     var list = document.getElementById('qcm-main-list');
     var mains = [];
     list.querySelectorAll('[data-main-card]').forEach(function (card) {
@@ -313,6 +313,7 @@
       program_id: parseInt(progVal, 10),
       course_id: parseInt(coursVal, 10),
       assessment_component_id: parseInt(acVal, 10),
+      academic_session_id: parseInt(sessionVal, 10),
       mains: mains
     };
   }
@@ -342,6 +343,7 @@
     var progSel = document.getElementById('wiz_program_id');
     var coursSel = document.getElementById('wiz_course_id');
     var acSel = document.getElementById('wiz_ac_id');
+    var sessSel = document.getElementById('wiz_academic_session_id');
     var capHint = root.querySelector('[data-wiz-component-cap]');
 
     progSel.addEventListener('change', function () {
@@ -411,7 +413,7 @@
 
     root.querySelector('[data-qcm-add-main]').addEventListener('click', function () {
       var msgStep1 = root.getAttribute('data-err-fill-step1');
-      if (!progSel.value || !coursSel.value || !acSel.value) {
+      if (!sessSel || !sessSel.value || !progSel.value || !coursSel.value || !acSel.value) {
         window.alert(msgStep1 || 'Complete step 1.');
         return;
       }
@@ -428,11 +430,11 @@
     saveBtn.addEventListener('click', function () {
       clearWizardErrors(errBox);
       var msgStep1 = root.getAttribute('data-err-fill-step1');
-      if (!progSel.value || !coursSel.value || !acSel.value) {
+      if (!sessSel || !sessSel.value || !progSel.value || !coursSel.value || !acSel.value) {
         showWizardErrors(errBox, { message: msgStep1 });
         return;
       }
-      var body = buildPayload(progSel.value, coursSel.value, acSel.value);
+      var body = buildPayload(progSel.value, coursSel.value, acSel.value, sessSel.value);
       if (!body.mains.length) {
         showWizardErrors(errBox, { message: 'Add at least one main question.' });
         return;

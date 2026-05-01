@@ -54,6 +54,7 @@ class UpdateQuestionCloMappingRequest extends FormRequest
                 'max:50',
                 Rule::unique('question_clo_mappings', 'question_label')
                     ->where('assessment_component_id', (int) $row->assessment_component_id)
+                    ->where('academic_session_id', (int) $row->academic_session_id)
                     ->whereNull('deleted_at')
                     ->ignore($row->id),
             ],
@@ -83,13 +84,14 @@ class UpdateQuestionCloMappingRequest extends FormRequest
             $row = $this->route('question_clo_mapping');
 
             $acid = (int) $row->assessment_component_id;
+            $asid = (int) $row->academic_session_id;
             $main = (string) $row->main_question_no;
             $multi = $this->boolean('has_multiple_questions');
             $part = $this->input('question_part');
             $mainCap = round((float) $this->input('main_question_marks'), 2);
             $incomingMarks = round((float) $this->input('marks'), 2);
 
-            $othersCount = QuestionCloMapping::countForMainQuestion($acid, $main, $row->id);
+            $othersCount = QuestionCloMapping::countForMainQuestion($acid, $asid, $main, $row->id);
 
             if (! $multi && $othersCount > 0) {
                 $validator->errors()->add(
@@ -121,6 +123,7 @@ class UpdateQuestionCloMappingRequest extends FormRequest
 
                 $dupPart = QuestionCloMapping::query()
                     ->where('assessment_component_id', $acid)
+                    ->where('academic_session_id', $asid)
                     ->where('main_question_no', $main)
                     ->where('question_part', $part)
                     ->whereKeyNot($row->id)
@@ -135,7 +138,7 @@ class UpdateQuestionCloMappingRequest extends FormRequest
                 );
             }
 
-            $sumOthers = QuestionCloMapping::sumPartMarksUnderMain($acid, $main, $row->id);
+            $sumOthers = QuestionCloMapping::sumPartMarksUnderMain($acid, $asid, $main, $row->id);
             if (round($sumOthers + $incomingMarks, 2) > $mainCap + 0.0001) {
                 $validator->errors()->add(
                     'marks',
@@ -158,11 +161,34 @@ class UpdateQuestionCloMappingRequest extends FormRequest
 
             $component = AssessmentComponent::query()->find($acid);
             if ($component) {
-                $existing = QuestionCloMapping::sumMarksForComponent($acid, $row->id);
-                if (round($existing + $incomingMarks, 2) > round((float) $component->marks, 2) + 0.0001) {
+                $existing = QuestionCloMapping::sumMarksForComponent($acid, $asid, $row->id);
+                $cap = (float) $component->marks;
+                $componentName = (string) ($component->component_name ?? __('this component'));
+
+                $sessionRow = $row->relationLoaded('academicSession')
+                    ? $row->academicSession
+                    : $row->academicSession()->first(['id', 'session_name', 'academic_year']);
+                $sessionLabel = $sessionRow
+                    ? $sessionRow->session_name.' ('.$sessionRow->academic_year.')'
+                    : '';
+
+                $combined = round($existing + $incomingMarks, 2);
+
+                $fmt = static function ($n): string {
+                    return rtrim(rtrim(number_format((float) $n, 2, '.', ''), '0'), '.');
+                };
+
+                if ($combined > round($cap, 2) + 0.0001) {
                     $validator->errors()->add(
                         'marks',
-                        __('Total mapped marks for this component would exceed the component cap.')
+                        __('The assessment component ":component" allows at most :cap marks for academic session ":session". Other mapped rows for this component and session (excluding this edit) sum to :existing. This row assigns :incoming. Combined that is :total, which exceeds the cap. Reduce this row\'s marks, adjust other mappings, or raise the component marks if appropriate.', [
+                            'component' => $componentName,
+                            'session' => $sessionLabel ?: (string) $asid,
+                            'cap' => $fmt($cap),
+                            'existing' => $fmt($existing),
+                            'incoming' => $fmt($incomingMarks),
+                            'total' => $fmt($combined),
+                        ])
                     );
                 }
             }
@@ -184,7 +210,7 @@ class UpdateQuestionCloMappingRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'question_label.unique' => __('This question label is already used for the selected assessment component.'),
+            'question_label.unique' => __('This question label is already used for this assessment component and academic session.'),
         ];
     }
 }

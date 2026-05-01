@@ -8,12 +8,21 @@ $wiz = [
 ];
 @endphp
 
-<div id="qcm-wizard-root" class="qcm-wizard" data-ph-select-status="{{ __('Select status') }}" data-ph-part="{{ __('Part') }}" data-ph-add-part="{{ __('Add part') }}" data-ph-remaining="{{ __('Remaining for main question') }}" data-err-fill-step1="{{ __('Select program, course, and assessment component first.') }}" data-err-save="{{ __('Unable to save. Check highlighted fields.') }}">
+<div id="qcm-wizard-root" class="qcm-wizard" data-ph-select-status="{{ __('Select status') }}" data-ph-part="{{ __('Part') }}" data-ph-add-part="{{ __('Add part') }}" data-ph-remaining="{{ __('Remaining for main question') }}" data-err-fill-step1="{{ __('Select academic session, program, course, and assessment component first.') }}" data-err-save="{{ __('Unable to save. Check highlighted fields.') }}">
     <script type="application/json" id="qcm-wizard-json">@json($wiz)</script>
     <div class="alert alert-danger d-none mb-3" role="alert" data-qcm-wizard-errors></div>
 
     <h6 class="text-muted mb-2">{{ __('Step 1: Context') }}</h6>
     <div class="row g-3 mb-4 qcm-step1-grid pb-3 border-bottom">
+        <div class="col-md-6 col-lg-4">
+            <label class="form-label" for="wiz_academic_session_id">{{ __('Academic session') }} <span class="text-danger">*</span></label>
+            <select id="wiz_academic_session_id" class="form-select" data-wiz-session required>
+                <option value="">{{ __('Select session') }}</option>
+                @foreach ($academicSessions as $sess)
+                    <option value="{{ $sess->id }}">{{ $sess->session_name }} ({{ $sess->academic_year }})</option>
+                @endforeach
+            </select>
+        </div>
         <div class="col-md-6 col-lg-4">
             <label class="form-label" for="wiz_program_id">{{ __('Program') }} <span class="text-danger">*</span></label>
             <select id="wiz_program_id" class="form-select" data-wiz-program required>

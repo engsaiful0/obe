@@ -13,6 +13,15 @@
     </div>
     <div class="card-body">
         <dl class="row mb-0">
+            <dt class="col-sm-3">{{ __('Academic session') }}</dt>
+            <dd class="col-sm-9">
+                @if ($mapping->academicSession)
+                    {{ $mapping->academicSession->session_name }} ({{ $mapping->academicSession->academic_year }})
+                @else
+                    —
+                @endif
+            </dd>
+
             <dt class="col-sm-3">{{ __('Course') }}</dt>
             <dd class="col-sm-9">{{ $mapping->course->course_code ?? '—' }} — {{ $mapping->course->course_title ?? '' }}</dd>
 

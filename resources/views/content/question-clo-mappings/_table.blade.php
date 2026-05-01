@@ -3,6 +3,7 @@
         <table class="table table-sm table-bordered align-middle mb-0">
             <thead class="table-light">
                 <tr>
+                    <th>{{ __('Session') }}</th>
                     <th>{{ __('Main Q') }}</th>
                     <th>{{ __('Part') }}</th>
                     <th>{{ __('Label') }}</th>
@@ -16,6 +17,13 @@
             <tbody>
                 @forelse ($mappings as $row)
                     <tr>
+                        <td class="small">
+                            @if ($row->academicSession)
+                                {{ \Illuminate\Support\Str::limit($row->academicSession->session_name, 16) }} · {{ $row->academicSession->academic_year }}
+                            @else
+                                —
+                            @endif
+                        </td>
                         <td class="small">{{ $row->main_question_no ?? '—' }}</td>
                         <td class="small">{{ $row->question_part ?? '—' }}</td>
                         <td class="fw-medium">{{ $row->question_label }}</td>
@@ -52,7 +60,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-4">{{ __('No records.') }}</td>
+                        <td colspan="9" class="text-center text-muted py-4">{{ __('No records.') }}</td>
                     </tr>
                 @endforelse
             </tbody>

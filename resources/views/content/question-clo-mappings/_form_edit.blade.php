@@ -16,6 +16,21 @@
 
 <div class="row g-2 mb-3 small text-muted">
     <div class="col-md-6">
+        {{ __('Academic session') }}:
+        @if ($academicSessions->isEmpty())
+            <div class="text-dark mt-1">{{ $m->academicSession?->session_name ?? '—' }} @if ($m->academicSession) ({{ $m->academicSession->academic_year }}) @endif</div>
+        @else
+            <select class="form-select form-select-sm mt-1 text-dark" disabled aria-readonly="true">
+                @foreach ($academicSessions as $sess)
+                    <option value="{{ $sess->id }}" @selected((int) $m->academic_session_id === (int) $sess->id)>
+                        {{ $sess->session_name }} ({{ $sess->academic_year }})
+                    </option>
+                @endforeach
+            </select>
+        @endif
+        <div class="text-muted small mt-1">{{ __('Create new mappings from Add mapping to use another session.') }}</div>
+    </div>
+    <div class="col-md-6">
         {{ __('Program') }}: <span class="text-dark">{{ $m->program->program_code ?? '—' }} — {{ $m->program->program_name ?? '' }}</span>
     </div>
     <div class="col-md-6">

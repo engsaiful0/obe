@@ -18,6 +18,15 @@
         <form method="GET" action="{{ route('question-clo-mappings.index') }}" id="question-clo-filter-form" autocomplete="off">
             <div class="row g-2 mb-3 align-items-end">
                 <div class="col-md-2">
+                    <label class="form-label small mb-0">{{ __('Academic session') }}</label>
+                    <select name="academic_session_id" class="form-select form-select-sm question-clo-filter">
+                        <option value="">{{ __('All') }}</option>
+                        @foreach ($academicSessions as $sess)
+                            <option value="{{ $sess->id }}" @selected(request('academic_session_id') == $sess->id)>{{ $sess->session_name }} · {{ $sess->academic_year }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <label class="form-label small mb-0">{{ __('Program') }}</label>
                     <select name="program_id" class="form-select form-select-sm question-clo-filter">
                         <option value="">{{ __('All') }}</option>
