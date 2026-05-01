@@ -61,4 +61,9 @@ class Program extends Model
     {
         return $this->hasMany(CourseAssignment::class);
     }
+
+    public function peos()
+    {
+        return $this->hasMany(Peo::class);
+    }
 }

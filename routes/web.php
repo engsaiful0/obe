@@ -108,6 +108,9 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\CourseAssignmentController;
 use App\Http\Controllers\CourseAssignmentCascadeController;
+use App\Http\Controllers\VisionController;
+use App\Http\Controllers\MissionController;
+use App\Http\Controllers\PeoController;
 use App\Http\Controllers\DriverHelperAssignmentReportController;
 use App\Http\Controllers\DriverTripReportController;
 use App\Http\Controllers\FuelController;
@@ -205,6 +208,10 @@ Route::resource('course-assignments', CourseAssignmentController::class)->names(
     'update' => 'course-assignment.update',
     'destroy' => 'course-assignment.destroy',
 ]);
+
+Route::resource('visions', VisionController::class);
+Route::resource('missions', MissionController::class);
+Route::resource('peos', PeoController::class);
 
 // Driver Helper Assignment Report Routes
 Route::get('/app/driver-helper-assignment-report', [DriverHelperAssignmentReportController::class, 'index'])->name('driver-helper-assignment-report');

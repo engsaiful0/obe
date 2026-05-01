@@ -164,6 +164,34 @@ return '';
         </li>
 
         <!-- Settings -->
+        @permission('obe-settings-view')
+        <li class="menu-item {{ isMenuActive('basic-settings', $currentRouteName) }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons ti ti-settings"></i>
+                <div>{{ __('OBE Settings') }}</div>
+            </a>
+            <ul class="menu-sub">
+                <li class="menu-item {{ request()->routeIs('visions.*') ? 'active' : '' }}">
+                    <a href="{{ route('visions.index') }}" class="menu-link">
+                        <div>{{ __('Visions') }}</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ request()->routeIs('missions.*') ? 'active' : '' }}">
+                    <a href="{{ route('missions.index') }}" class="menu-link">
+                        <div>{{ __('Missions') }}</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ request()->routeIs('peos.*') ? 'active' : '' }}">
+                    <a href="{{ route('peos.index') }}" class="menu-link">
+                        <div>{{ __('PEOs') }}</div>
+                    </a>
+                </li>
+            </ul>
+        </li>
+        @endpermission
+        <!-- OBE Settings -->
+
+        <!-- Settings -->
         @permission('settings-view')
         <li class="menu-item {{ isMenuActive('basic-settings', $currentRouteName) }}">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
