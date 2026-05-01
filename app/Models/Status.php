@@ -53,5 +53,10 @@ class Status extends Model
     {
         return $this->hasMany(Clo::class, 'status_id');
     }
+
+    public function cloPoMappings()
+    {
+        return $this->hasMany(CloPoMapping::class, 'status_id');
+    }
 }
 

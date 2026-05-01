@@ -201,6 +201,11 @@ return '';
                         <div>{{ __('Course learning outcomes (CLO)') }}</div>
                     </a>
                 </li>
+                <li class="menu-item {{ request()->routeIs('clo-po-mappings.*') ? 'active' : '' }}">
+                    <a href="{{ route('clo-po-mappings.index') }}" class="menu-link">
+                        <div>{{ __('CLO–PO mapping') }}</div>
+                    </a>
+                </li>
             </ul>
         </li>
         @endpermission

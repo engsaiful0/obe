@@ -64,5 +64,6 @@ class DatabaseSeeder extends Seeder
     $this->call(ProgramOutcomeSeeder::class);
     $this->call(BloomSeeder::class);
     $this->call(CloSeeder::class);
+    $this->call(CloPoMappingSeeder::class);
   }
 }

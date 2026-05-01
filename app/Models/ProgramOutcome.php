@@ -30,4 +30,9 @@ class ProgramOutcome extends Model
     {
         return $this->belongsTo(Program::class);
     }
+
+    public function cloPoMappings()
+    {
+        return $this->hasMany(CloPoMapping::class);
+    }
 }

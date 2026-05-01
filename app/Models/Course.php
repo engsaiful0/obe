@@ -52,4 +52,9 @@ class Course extends Model
     {
         return $this->hasMany(Clo::class);
     }
+
+    public function cloPoMappings()
+    {
+        return $this->hasMany(CloPoMapping::class);
+    }
 }
