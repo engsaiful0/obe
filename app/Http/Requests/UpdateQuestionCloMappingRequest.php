@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Models\AssessmentComponent;
 use App\Models\Clo;
 use App\Models\QuestionCloMapping;
+use App\Models\Section;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -34,6 +35,17 @@ class UpdateQuestionCloMappingRequest extends FormRequest
         if ($this->has('question_label') && is_string($this->input('question_label'))) {
             $this->merge(['question_label' => trim($this->input('question_label'))]);
         }
+
+        /** @var QuestionCloMapping|null $routeRow */
+        $routeRow = $this->route('question_clo_mapping');
+
+        if ($this->filled('section_id')) {
+            $this->merge(['section_id' => (int) $this->input('section_id')]);
+        } elseif ($this->has('section_id')) {
+            $this->merge(['section_id' => null]);
+        } elseif ($routeRow instanceof QuestionCloMapping) {
+            $this->merge(['section_id' => $routeRow->section_id]);
+        }
     }
 
     /**
@@ -43,10 +55,19 @@ class UpdateQuestionCloMappingRequest extends FormRequest
     {
         /** @var QuestionCloMapping $row */
         $row = $this->route('question_clo_mapping');
+        $sidForKey = $this->input('section_id');
+        $newSk = QuestionCloMapping::sectionKey(
+            $sidForKey === '' || $sidForKey === null ? null : (int) $sidForKey
+        );
 
         return [
             'main_question_marks' => ['required', 'numeric', 'min:0.01', 'max:100'],
             'has_multiple_questions' => ['required', 'boolean'],
+            'section_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('sections', 'id')->where(fn ($q) => $q->where('program_id', (int) $row->program_id)),
+            ],
             'question_part' => ['nullable', Rule::in(QuestionCloMapping::ALLOWED_QUESTION_PARTS)],
             'question_label' => [
                 'required',
@@ -55,6 +76,7 @@ class UpdateQuestionCloMappingRequest extends FormRequest
                 Rule::unique('question_clo_mappings', 'question_label')
                     ->where('assessment_component_id', (int) $row->assessment_component_id)
                     ->where('academic_session_id', (int) $row->academic_session_id)
+                    ->where('section_key', $newSk)
                     ->whereNull('deleted_at')
                     ->ignore($row->id),
             ],
@@ -91,7 +113,20 @@ class UpdateQuestionCloMappingRequest extends FormRequest
             $mainCap = round((float) $this->input('main_question_marks'), 2);
             $incomingMarks = round((float) $this->input('marks'), 2);
 
-            $othersCount = QuestionCloMapping::countForMainQuestion($acid, $asid, $main, $row->id);
+            $sidForKey = $this->input('section_id');
+            $newSk = QuestionCloMapping::sectionKey(
+                $sidForKey === '' || $sidForKey === null ? null : (int) $sidForKey
+            );
+
+            $sid = $this->input('section_id');
+            if ($sid !== null && $sid !== '') {
+                $sec = Section::query()->find((int) $sid);
+                if ($sec instanceof Section && (int) $sec->program_id !== (int) $row->program_id) {
+                    $validator->errors()->add('section_id', __('Section must belong to the mapping program.'));
+                }
+            }
+
+            $othersCount = QuestionCloMapping::countForMainQuestion($acid, $asid, $main, $row->id, $newSk);
 
             if (! $multi && $othersCount > 0) {
                 $validator->errors()->add(
@@ -124,6 +159,7 @@ class UpdateQuestionCloMappingRequest extends FormRequest
                 $dupPart = QuestionCloMapping::query()
                     ->where('assessment_component_id', $acid)
                     ->where('academic_session_id', $asid)
+                    ->where('section_key', $newSk)
                     ->where('main_question_no', $main)
                     ->where('question_part', $part)
                     ->whereKeyNot($row->id)
@@ -138,7 +174,7 @@ class UpdateQuestionCloMappingRequest extends FormRequest
                 );
             }
 
-            $sumOthers = QuestionCloMapping::sumPartMarksUnderMain($acid, $asid, $main, $row->id);
+            $sumOthers = QuestionCloMapping::sumPartMarksUnderMain($acid, $asid, $main, $row->id, $newSk);
             if (round($sumOthers + $incomingMarks, 2) > $mainCap + 0.0001) {
                 $validator->errors()->add(
                     'marks',
@@ -161,7 +197,7 @@ class UpdateQuestionCloMappingRequest extends FormRequest
 
             $component = AssessmentComponent::query()->find($acid);
             if ($component) {
-                $existing = QuestionCloMapping::sumMarksForComponent($acid, $asid, $row->id);
+                $existing = QuestionCloMapping::sumMarksForComponent($acid, $asid, $row->id, null);
                 $cap = (float) $component->marks;
                 $componentName = (string) ($component->component_name ?? __('this component'));
 

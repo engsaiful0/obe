@@ -216,6 +216,11 @@ return '';
                         <div>{{ __('Question–CLO mapping') }}</div>
                     </a>
                 </li>
+                <li class="menu-item {{ request()->routeIs('student-marks.*') ? 'active' : '' }}">
+                    <a href="{{ route('student-marks.index') }}" class="menu-link">
+                        <div>{{ __('Student marks') }}</div>
+                    </a>
+                </li>
             </ul>
         </li>
         @endpermission

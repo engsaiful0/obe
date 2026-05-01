@@ -1,129 +1,114 @@
 <?php
-use Illuminate\Support\Facades\Route;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\dashboard\Analytics;
 
-use App\Http\Controllers\layouts\Vertical;
-
-
+use App\Http\Controllers\AssessmentComponentController;
+use App\Http\Controllers\authentications\ForgotPasswordBasic;
+use App\Http\Controllers\authentications\ForgotPasswordCover;
 use App\Http\Controllers\authentications\LoginBasic;
-
 use App\Http\Controllers\authentications\RegisterBasic;
 use App\Http\Controllers\authentications\RegisterCover;
 use App\Http\Controllers\authentications\RegisterMultiSteps;
-use App\Http\Controllers\authentications\VerifyEmailBasic;
-use App\Http\Controllers\authentications\VerifyEmailCover;
 use App\Http\Controllers\authentications\ResetPasswordBasic;
 use App\Http\Controllers\authentications\ResetPasswordCover;
-use App\Http\Controllers\authentications\ForgotPasswordBasic;
-use App\Http\Controllers\authentications\ForgotPasswordCover;
 use App\Http\Controllers\authentications\TwoStepsBasic;
 use App\Http\Controllers\authentications\TwoStepsCover;
-
-
-use App\Http\Controllers\settings\Item;
-use App\Http\Controllers\BusScheduleKeywordController;
-use App\Http\Controllers\settings\PunishmentType;
-use App\Http\Controllers\settings\RewardType;
-use App\Http\Controllers\settings\ViolationType;
-use App\Http\Controllers\settings\RelatedTo as RelatedToSettingController;
-use App\Http\Controllers\settings\Status;
-use App\Http\Controllers\settings\DeploymentType;
-use App\Http\Controllers\settings\EducationalQualification;
-use App\Http\Controllers\settings\ExperienceYear;
-use App\Http\Controllers\settings\Gender;
-use App\Http\Controllers\settings\MaritalStatus;
-use App\Http\Controllers\settings\BusType;
-use App\Http\Controllers\settings\BusSubType;
-use App\Http\Controllers\settings\TripTimeController;
-use App\Http\Controllers\settings\Brand;
-use App\Http\Controllers\settings\Unit;
-use App\Http\Controllers\settings\Stoppage;
-
-use App\Http\Controllers\settings\Supplier as SettingsSupplier;
-use App\Http\Controllers\settings\EmployeeType;
-use App\Http\Controllers\settings\LicenseType;
-use App\Http\Controllers\settings\BloodGroup;
-use App\Http\Controllers\settings\DriverType;
-use App\Http\Controllers\Supplier;
-use App\Http\Controllers\PurchaseController;
-use App\Http\Controllers\IssueController;
-use App\Http\Controllers\IncomeController;
-use App\Http\Controllers\settings\Designation;
-use App\Http\Controllers\settings\PermissionSetting;
-use App\Http\Controllers\settings\IncomeHead;
-use App\Http\Controllers\settings\ExpenseHead;
-use App\Http\Controllers\settings\FeeHead;
-use App\Http\Controllers\settings\Board;
-use App\Http\Controllers\settings\Religion;
-
-use App\Http\Controllers\settings\Year;
-use App\Http\Controllers\settings\AppSettings;
-use App\Http\Controllers\settings\Faculty;
-use App\Http\Controllers\settings\Teacher as TeacherSettingsController;
-use App\Http\Controllers\settings\Program;
-use App\Http\Controllers\settings\AcademicSession;
-use App\Http\Controllers\settings\Semester;
-use App\Http\Controllers\settings\Batch;
-use App\Http\Controllers\settings\Course;
-use App\Http\Controllers\settings\Section as SectionSettingsController;
-use App\Http\Controllers\settings\PaymentMethod;
-use App\Http\Controllers\settings\Nationality;
-use App\Http\Controllers\settings\Month;
-
-use App\Http\Controllers\settings\User;
-use App\Http\Controllers\settings\FeeSettings;
-use App\Http\Controllers\settings\BusRoute;
-use App\Http\Controllers\settings\BusUser;
-use App\Http\Controllers\settings\IssuingAuthority;
-use App\Http\Controllers\CacheController;
-use App\Http\Controllers\DailyBusListController;
-use App\Http\Controllers\DeploymentPlanController;
-use App\Http\Controllers\MonthlyBillController;
-use App\Http\Controllers\settings\Warehouse as SettingsWarehouse;
-use App\Http\Controllers\DamageController;
-use App\Http\Controllers\DriverHelperAssignmentController;
-use App\Http\Controllers\BusRequisitionController;
-
-
-
-use App\Http\Controllers\EmployeeController;
-use App\Http\Controllers\settings\Color;
-
-
-use App\Http\Controllers\ReportController;
-use App\Http\Controllers\RewardReportController;
-use App\Http\Controllers\PunishmentReportController;
-use App\Http\Controllers\PurchaseReportController;
-use App\Http\Controllers\IssueReportController;
-use App\Http\Controllers\StockReportController;
-use App\Http\Controllers\MonthlySalarySettingController;
-use App\Http\Controllers\BusHelperReportController;
-use App\Http\Controllers\BRTCBusMonthlyBillController;
-use App\Http\Controllers\DaywiseTripReportController;
-use App\Http\Controllers\StudentInReportController;
-use App\Http\Controllers\StudentOutReportController;
-use App\Http\Controllers\StudentController;
-use App\Http\Controllers\TeacherController;
-use App\Http\Controllers\CourseAssignmentController;
-use App\Http\Controllers\CourseAssignmentCascadeController;
-use App\Http\Controllers\VisionController;
-use App\Http\Controllers\MissionController;
-use App\Http\Controllers\PeoController;
-use App\Http\Controllers\ProgramOutcomeController;
+use App\Http\Controllers\authentications\VerifyEmailBasic;
+use App\Http\Controllers\authentications\VerifyEmailCover;
 use App\Http\Controllers\BloomController;
+use App\Http\Controllers\BRTCBusMonthlyBillController;
+use App\Http\Controllers\BusHelperReportController;
+use App\Http\Controllers\BusRequisitionController;
+use App\Http\Controllers\BusScheduleKeywordController;
+use App\Http\Controllers\CacheController;
 use App\Http\Controllers\CloController;
 use App\Http\Controllers\CloPoMappingController;
-use App\Http\Controllers\AssessmentComponentController;
-use App\Http\Controllers\QuestionCloMappingController;
+use App\Http\Controllers\CourseAssignmentCascadeController;
+use App\Http\Controllers\CourseAssignmentController;
+use App\Http\Controllers\DailyBusListController;
+use App\Http\Controllers\DamageController;
+use App\Http\Controllers\dashboard\Analytics;
+use App\Http\Controllers\DaywiseTripReportController;
+use App\Http\Controllers\DeploymentPlanController;
+use App\Http\Controllers\DriverHelperAssignmentController;
 use App\Http\Controllers\DriverHelperAssignmentReportController;
 use App\Http\Controllers\DriverTripReportController;
+use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\FuelController;
+use App\Http\Controllers\IncomeController;
+use App\Http\Controllers\IssueController;
+use App\Http\Controllers\IssueReportController;
+use App\Http\Controllers\layouts\Vertical;
 use App\Http\Controllers\LubricantController;
-
-
-
+use App\Http\Controllers\MissionController;
+use App\Http\Controllers\MonthlyBillController;
+use App\Http\Controllers\MonthlySalarySettingController;
+use App\Http\Controllers\PeoController;
+use App\Http\Controllers\ProgramOutcomeController;
+use App\Http\Controllers\PunishmentReportController;
+use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\PurchaseReportController;
+use App\Http\Controllers\QuestionCloMappingController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\RewardReportController;
+use App\Http\Controllers\settings\AcademicSession;
+use App\Http\Controllers\settings\AppSettings;
+use App\Http\Controllers\settings\Batch;
+use App\Http\Controllers\settings\BloodGroup;
+use App\Http\Controllers\settings\Board;
+use App\Http\Controllers\settings\Brand;
+use App\Http\Controllers\settings\BusRoute;
+use App\Http\Controllers\settings\BusSubType;
+use App\Http\Controllers\settings\BusType;
+use App\Http\Controllers\settings\BusUser;
+use App\Http\Controllers\settings\Color;
+use App\Http\Controllers\settings\Course;
+use App\Http\Controllers\settings\DeploymentType;
+use App\Http\Controllers\settings\Designation;
+use App\Http\Controllers\settings\DriverType;
+use App\Http\Controllers\settings\EducationalQualification;
+use App\Http\Controllers\settings\EmployeeType;
+use App\Http\Controllers\settings\ExpenseHead;
+use App\Http\Controllers\settings\ExperienceYear;
+use App\Http\Controllers\settings\Faculty;
+use App\Http\Controllers\settings\FeeHead;
+use App\Http\Controllers\settings\FeeSettings;
+use App\Http\Controllers\settings\Gender;
+use App\Http\Controllers\settings\IncomeHead;
+use App\Http\Controllers\settings\IssuingAuthority;
+use App\Http\Controllers\settings\Item;
+use App\Http\Controllers\settings\LicenseType;
+use App\Http\Controllers\settings\MaritalStatus;
+use App\Http\Controllers\settings\Month;
+use App\Http\Controllers\settings\Nationality;
+use App\Http\Controllers\settings\PaymentMethod;
+use App\Http\Controllers\settings\PermissionSetting;
+use App\Http\Controllers\settings\Program;
+use App\Http\Controllers\settings\PunishmentType;
+use App\Http\Controllers\settings\RelatedTo as RelatedToSettingController;
+use App\Http\Controllers\settings\Religion;
+use App\Http\Controllers\settings\RewardType;
+use App\Http\Controllers\settings\Section as SectionSettingsController;
+use App\Http\Controllers\settings\Semester;
+use App\Http\Controllers\settings\Status;
+use App\Http\Controllers\settings\Stoppage;
+use App\Http\Controllers\settings\Supplier as SettingsSupplier;
+use App\Http\Controllers\settings\Teacher as TeacherSettingsController;
+use App\Http\Controllers\settings\TripTimeController;
+use App\Http\Controllers\settings\Unit;
+use App\Http\Controllers\settings\User;
+use App\Http\Controllers\settings\ViolationType;
+use App\Http\Controllers\settings\Warehouse as SettingsWarehouse;
+use App\Http\Controllers\settings\Year;
+use App\Http\Controllers\StockReportController;
+use App\Http\Controllers\StudentController;
+use App\Http\Controllers\StudentInReportController;
+use App\Http\Controllers\StudentMarkController;
+use App\Http\Controllers\StudentOutReportController;
+use App\Http\Controllers\Supplier;
+use App\Http\Controllers\TeacherController;
+use App\Http\Controllers\VisionController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/app/expense-report', [ReportController::class, 'expenseReport'])->name('expense-report');
 Route::post('/app/expense-report/ajax', [ReportController::class, 'expenseReportAjax'])->name('expense-report.ajax');
@@ -133,6 +118,7 @@ Route::get('/app/expense-report/excel', [ReportController::class, 'expenseReport
 
 // Helper List Routes
 use App\Http\Controllers\HelperListController;
+
 Route::get('/app/helper-list', [HelperListController::class, 'index'])->name('helper-list');
 Route::post('/app/helper-list/ajax', [HelperListController::class, 'ajax'])->name('helper-list.ajax');
 Route::get('/app/helper-list/pdf', [HelperListController::class, 'pdf'])->name('helper-list.pdf');
@@ -141,6 +127,7 @@ Route::get('/app/helper-list/print', [HelperListController::class, 'print'])->na
 
 // Driver List Routes
 use App\Http\Controllers\DriverListController;
+
 Route::get('/app/driver-list', [DriverListController::class, 'index'])->name('driver-list');
 Route::post('/app/driver-list/ajax', [DriverListController::class, 'ajax'])->name('driver-list.ajax');
 Route::get('/app/driver-list/pdf', [DriverListController::class, 'pdf'])->name('driver-list.pdf');
@@ -254,6 +241,15 @@ Route::resource('assessment-components', AssessmentComponentController::class);
 Route::get('question-clo-mappings/matrix', [QuestionCloMappingController::class, 'matrix'])->name('question-clo-mappings.matrix');
 Route::resource('question-clo-mappings', QuestionCloMappingController::class);
 
+Route::get('student-marks/bulk', [StudentMarkController::class, 'bulkEntry'])->name('student-marks.bulk');
+Route::post('student-marks/bulk-save', [StudentMarkController::class, 'saveBulkMarks'])->name('student-marks.bulk-save');
+Route::get('student-marks/template', [StudentMarkController::class, 'downloadTemplate'])->name('student-marks.template');
+Route::post('student-marks/import', [StudentMarkController::class, 'importExcel'])->name('student-marks.import');
+Route::post('student-marks/reset', [StudentMarkController::class, 'resetMarks'])->name('student-marks.reset');
+Route::get('student-marks/api/students', [StudentMarkController::class, 'getStudentsByFilter'])->name('student-marks.api.students');
+Route::get('student-marks/api/questions', [StudentMarkController::class, 'getQuestionsByComponent'])->name('student-marks.api.questions');
+Route::resource('student-marks', StudentMarkController::class);
+
 Route::resource('program-outcomes', ProgramOutcomeController::class)->names([
     'index' => 'program-outcomes.index',
     'create' => 'program-outcomes.create',
@@ -347,8 +343,6 @@ Route::get('/app/reports/salary-sheet/excel', [\App\Http\Controllers\SalarySheet
 Route::get('/app/employee-list-report', [ReportController::class, 'employeeListReport'])->name('employee-list-report');
 Route::get('/app/employee-list-report/print-list', [ReportController::class, 'printEmployeeListReport'])->name('employee-list-report.print-list');
 
-
-
 // Employee specific routes (MUST be before resource routes)
 Route::get('/app/employees/add-employee', [EmployeeController::class, 'create'])->name('employees.add-employee')->middleware('permission:employee-add');
 Route::get('/app/employees/view-employee', [EmployeeController::class, 'index'])->name('employees.view-employee');
@@ -388,15 +382,11 @@ Route::post('/app/settings/fuel-type', [App\Http\Controllers\settings\FuelType::
 Route::put('/app/settings/fuel-type/{id}', [App\Http\Controllers\settings\FuelType::class, 'update'])->name('fuel-type.update');
 Route::delete('/app/settings/fuel-type/{id}', [App\Http\Controllers\settings\FuelType::class, 'destroy'])->name('fuel-type.destroy');
 
-
-
-
 Route::get('/app/settings/users', [User::class, 'index'])->name('app-settings-users');
 Route::get('/app/settings/get-users', [User::class, 'getUsers'])->name('app-settings-get-users');
 Route::post('/app/settings/users', [User::class, 'store'])->name('app-settings-users.store');
 Route::put('/app/settings/users/{id}', [User::class, 'update'])->name('app-settings-users.update');
 Route::delete('/app/settings/users/{id}', [User::class, 'destroy'])->name('app-settings-users.destroy');
-
 
 Route::get('/app/settings/nationality', [Nationality::class, 'index'])->name('app-settings-nationality');
 Route::get('/app/settings/get-nationality', [Nationality::class, 'getNationalities'])->name('app-settings-get-nationality');
@@ -404,13 +394,11 @@ Route::post('/app/settings/nationality', [Nationality::class, 'store'])->name('a
 Route::put('/app/settings/nationality/{id}', [Nationality::class, 'update'])->name('app-settings-nationality.update');
 Route::delete('/app/settings/nationality/{id}', [Nationality::class, 'destroy'])->name('app-settings-nationality.destroy');
 
-
 Route::get('/app/settings/payment-method', [PaymentMethod::class, 'index'])->name('app-settings-payment-method');
 Route::get('/app/settings/get-payment-method', [PaymentMethod::class, 'getPaymentMethods'])->name('app-settings-get-payment-method');
 Route::post('/app/settings/payment-method', [PaymentMethod::class, 'store'])->name('app-settings-payment-method.store');
 Route::put('/app/settings/payment-method/{id}', [PaymentMethod::class, 'update'])->name('app-settings-payment-method.update');
 Route::delete('/app/settings/payment-method/{id}', [PaymentMethod::class, 'destroy'])->name('app-settings-payment-method.destroy');
-
 
 Route::get('/app/settings/year', [Year::class, 'index'])->name('app-settings-year');
 Route::get('/app/settings/get-year', [Year::class, 'getYear'])->name('app-settings-get-year');
@@ -421,14 +409,11 @@ Route::delete('/app/settings/year/{id}', [Year::class, 'destroy'])->name('app-se
 Route::get('/app/settings/app-settings', [AppSettings::class, 'index'])->name('app-settings.index');
 Route::put('/app/settings/app-settings/{id}', [AppSettings::class, 'update'])->name('app-settings.update');
 
-
 Route::get('/app/settings/religion', [Religion::class, 'index'])->name('settings-religion');
 Route::get('/app/settings/get-religion', [Religion::class, 'getReligions'])->name('settings-religion.get-religion');
 Route::post('/app/settings/religion', [Religion::class, 'store'])->name('settings-religion.store');
 Route::put('/app/settings/religion/{id}', [Religion::class, 'update'])->name('settings-religion.update');
 Route::delete('/app/settings/religion/{id}', [Religion::class, 'destroy'])->name('settings-religion.destroy');
-
-
 
 Route::get('/app/settings/board', [Board::class, 'index'])->name('app-settings-board');
 Route::get('/app/settings/get-board', [Board::class, 'getBoard'])->name('app-settings-get-board');
@@ -523,7 +508,6 @@ Route::post('/app/settings/item', [Item::class, 'store'])->name('app-settings-it
 Route::put('/app/settings/item/{id}', [Item::class, 'update'])->name('app-settings-item.update');
 Route::delete('/app/settings/item/{id}', [Item::class, 'destroy'])->name('app-settings-item.destroy');
 
-
 Route::get('/app/settings/warehouse', [SettingsWarehouse::class, 'index'])->name('app-settings-warehouse');
 Route::get('/app/settings/get-warehouse', [SettingsWarehouse::class, 'getData'])->name('app-settings-get-warehouse');
 Route::post('/app/settings/warehouse', [SettingsWarehouse::class, 'store'])->name('app-settings-warehouse.store');
@@ -580,7 +564,6 @@ Route::get('/app/settings/get-trip-time', [TripTimeController::class, 'getTripTi
 Route::post('/app/settings/trip-time', [TripTimeController::class, 'store'])->name('app-settings-trip-time.store');
 Route::put('/app/settings/trip-time/{id}', [TripTimeController::class, 'update'])->name('app-settings-trip-time.update');
 Route::delete('/app/settings/trip-time/{id}', [TripTimeController::class, 'destroy'])->name('app-settings-trip-time.destroy');
-
 
 Route::get('/app/settings/issuing-authority', [IssuingAuthority::class, 'index'])->name('app-settings-issuing-authority');
 Route::get('/app/settings/get-issuing-authority', [IssuingAuthority::class, 'getIssuingAuthority'])->name('app-settings-get-issuing-authority');
@@ -803,7 +786,6 @@ Route::delete('/app/settings/fee-settings/{id}', [FeeSettings::class, 'destroy']
 Route::get('/app/settings/cache-clear', [CacheController::class, 'index'])->name('app-settings-cache-clear');
 Route::get('/app/settings/clear-cache', [CacheController::class, 'clearCache'])->name('clear-cache');
 
-
 // Main Page Route
 Route::get('/', [LoginBasic::class, 'index'])->name('auth-login-basic');
 Route::post('/auth/login-basic', [LoginBasic::class, 'login'])->name('auth-login-basic.post');
@@ -814,14 +796,13 @@ Route::post('/logout', function (Request $request) {
     Auth::logout();
     $request->session()->invalidate();
     $request->session()->regenerateToken();
+
     return redirect('/');
 })->name('logout');
 
 Route::get('/dashboard/analytics', [Analytics::class, 'index'])->name('dashboard-analytics');
 
-
 Route::get('/layouts/vertical', [Vertical::class, 'index'])->name('dashboard-analytics');
-
 
 // authentication
 
@@ -837,20 +818,17 @@ Route::get('/auth/forgot-password-cover', [ForgotPasswordCover::class, 'index'])
 Route::get('/auth/two-steps-basic', [TwoStepsBasic::class, 'index'])->name('auth-two-steps-basic');
 Route::get('/auth/two-steps-cover', [TwoStepsCover::class, 'index'])->name('auth-two-steps-cover');
 
-
-
-use App\Http\Controllers\RuleController;
-use App\Http\Controllers\PermissionController;
-use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\BusController;
-use App\Http\Controllers\DistanceController;
-use App\Http\Controllers\PunishmentController;
-use App\Http\Controllers\RewardController;
-use App\Http\Controllers\DriverController;
 use App\Http\Controllers\BusHelperController;
 use App\Http\Controllers\BusScheduleController;
-
 use App\Http\Controllers\BusTripController;
+use App\Http\Controllers\DistanceController;
+use App\Http\Controllers\DriverController;
+use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\PunishmentController;
+use App\Http\Controllers\RewardController;
+use App\Http\Controllers\RuleController;
 
 // Bus Schedule Management Routes
 Route::get('/app/bus-schedules', [BusScheduleController::class, 'index'])->name('bus-schedules.index');
@@ -960,9 +938,6 @@ Route::get('/app/buses/{bus}', [BusController::class, 'show'])->name('buses.show
 Route::get('/app/buses/{bus}/edit', [BusController::class, 'edit'])->name('buses.edit');
 Route::put('/app/buses/{bus}', [BusController::class, 'update'])->name('buses.update');
 Route::delete('/app/buses/{bus}', [BusController::class, 'destroy'])->name('buses.destroy');
-
-
-
 
 // Distance Management Routes
 Route::get('/app/distances', [DistanceController::class, 'index'])->name('distances.index');
@@ -1075,17 +1050,17 @@ Route::get('/app/daily-bus-lists/get-filtered-data', [DailyBusListController::cl
 
 Route::get('/app/daily-bus-lists/get-buses-by-subtype', [DailyBusListController::class, 'getBusesBySubType'])
     ->name('daily-bus-lists.get-buses-by-subtype');
-    
+
 Route::get('/app/daily-bus-lists/get-buses-names-by-subtype', [DailyBusListController::class, 'getBusesNamesBySubType'])
     ->name('daily-bus-lists.get-buses-names-by-subtype');
 
 // Test route to check if AJAX is working
-Route::get('/app/daily-bus-lists/test-ajax', function() {
+Route::get('/app/daily-bus-lists/test-ajax', function () {
     return response()->json(['message' => 'AJAX is working']);
 })->name('daily-bus-lists.test-ajax');
 
 // Test route for getBusesBySubType
-Route::get('/app/daily-bus-lists/test-buses', function() {
+Route::get('/app/daily-bus-lists/test-buses', function () {
     return response()->json(['message' => 'Buses endpoint is accessible']);
 })->name('daily-bus-lists.test-buses');
 
@@ -1112,8 +1087,6 @@ Route::get('/app/deployment-plans/get-last-plan', [DeploymentPlanController::cla
 Route::post('/app/deployment-plans/{deploymentPlan}/clone', [DeploymentPlanController::class, 'clonePlan'])->name('deployment-plans.clone');
 Route::get('/app/deployment-plans/{deploymentPlan}/pdf', [DeploymentPlanController::class, 'pdf'])->name('deployment-plans.pdf');
 Route::resource('app/deployment-plans', DeploymentPlanController::class)->except(['create', 'index']);
-
-
 
 // Driver Helper Assignment Routes
 Route::resource('app/driver-helper-assignments', DriverHelperAssignmentController::class);

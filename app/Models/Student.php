@@ -92,8 +92,14 @@ class Student extends Model
     {
         return $this->belongsTo(MaritalStatus::class);
     }
+
     public function status()
     {
         return $this->belongsTo(Status::class, 'status_id');
+    }
+
+    public function studentMarks()
+    {
+        return $this->hasMany(StudentMark::class);
     }
 }
