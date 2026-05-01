@@ -2,6 +2,12 @@
     $c = $component ?? null;
     $progId = old('program_id', $c->program_id ?? '');
     $courseId = old('course_id', $c->course_id ?? '');
+    $multiOld = old('has_multiple_questions');
+    if ($multiOld !== null) {
+        $multipleYes = filter_var($multiOld, FILTER_VALIDATE_BOOLEAN);
+    } else {
+        $multipleYes = (bool) (($c ?? null)?->has_multiple_questions ?? false);
+    }
 @endphp
 
 @if ($errors->any())
@@ -63,6 +69,20 @@
         <input type="number" name="marks" id="ac_marks" class="form-control" required min="0" max="100" step="0.01"
             value="{{ old('marks', $c->marks ?? '') }}">
         <div class="form-text">{{ __('Maximum 100 total marks for active components per course.') }}</div>
+    </div>
+    <div class="col-12">
+        <label class="form-label d-block">{{ __('Multiple questions?') }} <span class="text-danger">*</span></label>
+        <div class="d-flex flex-wrap gap-3">
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="has_multiple_questions" id="ac_multi_yes" value="1" @checked($multipleYes) required>
+                <label class="form-check-label" for="ac_multi_yes">{{ __('Yes') }}</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="has_multiple_questions" id="ac_multi_no" value="0" @checked(! $multipleYes) required>
+                <label class="form-check-label" for="ac_multi_no">{{ __('No') }}</label>
+            </div>
+        </div>
+        <div class="form-text">{{ __('Choose Yes when this component is split into several markable questions (e.g. midterm / final).') }}</div>
     </div>
     <div class="col-md-4 col-lg-3">
         <label class="form-label" for="ac_weight">{{ __('Weight (%)') }}</label>

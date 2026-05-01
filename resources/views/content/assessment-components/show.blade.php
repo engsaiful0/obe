@@ -22,6 +22,9 @@
             <dt class="col-sm-3">{{ __('Type') }}</dt>
             <dd class="col-sm-9">{{ $component->component_type }}</dd>
 
+            <dt class="col-sm-3">{{ __('Multiple questions?') }}</dt>
+            <dd class="col-sm-9">{{ $component->has_multiple_questions ? __('Yes') : __('No') }}</dd>
+
             <dt class="col-sm-3">{{ __('Marks') }}</dt>
             <dd class="col-sm-9">{{ $component->marks }}</dd>
 

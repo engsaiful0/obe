@@ -15,6 +15,13 @@ class UpdateAssessmentComponentRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('has_multiple_questions')) {
+            $this->merge(['has_multiple_questions' => $this->boolean('has_multiple_questions')]);
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -42,6 +49,7 @@ class UpdateAssessmentComponentRequest extends FormRequest
             ],
             'component_type' => ['required', Rule::in(AssessmentComponent::COMPONENT_TYPES)],
             'marks' => ['required', 'numeric', 'min:0', 'max:100'],
+            'has_multiple_questions' => ['required', 'boolean'],
             'weight_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'status_id' => ['required', 'exists:statuses,id'],
             'remarks' => ['nullable', 'string'],

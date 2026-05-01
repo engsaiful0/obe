@@ -43,14 +43,14 @@ class AssessmentComponentSeeder extends Seeder
         $programId = (int) $course->program_id;
 
         $rows = [
-            ['Attendance', 'Attendance', 10],
-            ['Quiz', 'Quiz', 10],
-            ['Assignment', 'Assignment', 10],
-            ['Midterm', 'Midterm', 30],
-            ['Final', 'Final', 40],
+            ['Attendance', 'Attendance', 10, false],
+            ['Quiz', 'Quiz', 10, false],
+            ['Assignment', 'Assignment', 10, false],
+            ['Midterm', 'Midterm', 30, true],
+            ['Final', 'Final', 40, true],
         ];
 
-        foreach ($rows as [$name, $type, $marks]) {
+        foreach ($rows as [$name, $type, $marks, $multiple]) {
             AssessmentComponent::query()->updateOrCreate(
                 [
                     'course_id' => $course->id,
@@ -60,6 +60,7 @@ class AssessmentComponentSeeder extends Seeder
                     'program_id' => $programId,
                     'component_type' => $type,
                     'marks' => $marks,
+                    'has_multiple_questions' => $multiple,
                     'weight_percentage' => null,
                     'status_id' => $statusId,
                     'remarks' => null,

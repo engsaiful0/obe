@@ -77,6 +77,7 @@
                         <th>{{ __('Course') }}</th>
                         <th>{{ __('Component') }}</th>
                         <th>{{ __('Type') }}</th>
+                        <th>{{ __('Multiple Q') }}</th>
                         <th>{{ __('Marks') }}</th>
                         <th>{{ __('Weight %') }}</th>
                         <th>{{ __('Status') }}</th>
@@ -93,6 +94,7 @@
                             </td>
                             <td class="fw-medium">{{ $row->component_name }}</td>
                             <td><span class="badge bg-secondary">{{ $row->component_type }}</span></td>
+                            <td>{{ $row->has_multiple_questions == 1 ? 'Yes' : 'No' }}</td>
                             <td>{{ $row->marks }}</td>
                             <td>{{ $row->weight_percentage ?? '—' }}</td>
                             <td>
@@ -119,7 +121,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">{{ __('No records.') }}</td>
+                            <td colspan="9" class="text-center text-muted py-4">{{ __('No records.') }}</td>
                         </tr>
                     @endforelse
                 </tbody>

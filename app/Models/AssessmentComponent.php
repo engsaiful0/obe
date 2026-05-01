@@ -31,6 +31,7 @@ class AssessmentComponent extends Model
         'component_name',
         'component_type',
         'marks',
+        'has_multiple_questions',
         'weight_percentage',
         'status_id',
         'remarks',
@@ -41,6 +42,7 @@ class AssessmentComponent extends Model
         'course_id' => 'integer',
         'status_id' => 'integer',
         'marks' => 'decimal:2',
+        'has_multiple_questions' => 'boolean',
         'weight_percentage' => 'decimal:2',
     ];
 
