@@ -206,6 +206,16 @@ return '';
                         <div>{{ __('CLO–PO mapping') }}</div>
                     </a>
                 </li>
+                <li class="menu-item {{ request()->routeIs('assessment-components.*') ? 'active' : '' }}">
+                    <a href="{{ route('assessment-components.index') }}" class="menu-link">
+                        <div>{{ __('Assessment setup') }}</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ request()->routeIs('question-clo-mappings.*') ? 'active' : '' }}">
+                    <a href="{{ route('question-clo-mappings.index') }}" class="menu-link">
+                        <div>{{ __('Question–CLO mapping') }}</div>
+                    </a>
+                </li>
             </ul>
         </li>
         @endpermission

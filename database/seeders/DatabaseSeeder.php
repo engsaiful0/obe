@@ -65,5 +65,7 @@ class DatabaseSeeder extends Seeder
     $this->call(BloomSeeder::class);
     $this->call(CloSeeder::class);
     $this->call(CloPoMappingSeeder::class);
+    $this->call(AssessmentComponentSeeder::class);
+    $this->call(QuestionCloMappingSeeder::class);
   }
 }

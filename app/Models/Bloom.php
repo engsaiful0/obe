@@ -33,4 +33,9 @@ class Bloom extends Model
     {
         return $this->hasMany(Clo::class);
     }
+
+    public function questionCloMappings()
+    {
+        return $this->hasMany(QuestionCloMapping::class);
+    }
 }

@@ -58,5 +58,15 @@ class Status extends Model
     {
         return $this->hasMany(CloPoMapping::class, 'status_id');
     }
+
+    public function assessmentComponents()
+    {
+        return $this->hasMany(AssessmentComponent::class, 'status_id');
+    }
+
+    public function questionCloMappings()
+    {
+        return $this->hasMany(QuestionCloMapping::class, 'status_id');
+    }
 }
 

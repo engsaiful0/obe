@@ -115,6 +115,8 @@ use App\Http\Controllers\ProgramOutcomeController;
 use App\Http\Controllers\BloomController;
 use App\Http\Controllers\CloController;
 use App\Http\Controllers\CloPoMappingController;
+use App\Http\Controllers\AssessmentComponentController;
+use App\Http\Controllers\QuestionCloMappingController;
 use App\Http\Controllers\DriverHelperAssignmentReportController;
 use App\Http\Controllers\DriverTripReportController;
 use App\Http\Controllers\FuelController;
@@ -207,6 +209,20 @@ Route::prefix('ajax')->group(function () {
         Route::get('course/{course}/clos', [CloPoMappingController::class, 'closByCourse'])
             ->name('ajax.clo_po.course.clos');
     });
+    Route::prefix('question-clo')->group(function () {
+        Route::get('program/{program}/courses', [QuestionCloMappingController::class, 'coursesByProgram'])
+            ->name('ajax.question_clo.program.courses');
+        Route::get('course/{course}/assessment-components', [QuestionCloMappingController::class, 'assessmentComponentsByCourse'])
+            ->name('ajax.question_clo.course.assessment_components');
+        Route::get('course/{course}/clos', [QuestionCloMappingController::class, 'closByCourse'])
+            ->name('ajax.question_clo.course.clos');
+        Route::get('clo/{clo}/bloom', [QuestionCloMappingController::class, 'bloomByClo'])
+            ->name('ajax.question_clo.clo.bloom');
+    });
+    Route::prefix('assessment-components')->group(function () {
+        Route::get('program/{program}/courses', [AssessmentComponentController::class, 'coursesByProgram'])
+            ->name('ajax.assessment_components.program.courses');
+    });
     Route::get('batch/{batch}/sections', [CourseAssignmentCascadeController::class, 'batchSections'])
         ->name('ajax.batch.sections');
     Route::get('semester/{semester}/courses', [CourseAssignmentCascadeController::class, 'semesterCourses'])
@@ -232,6 +248,11 @@ Route::resource('clos', CloController::class);
 
 Route::get('clo-po-mappings/matrix', [CloPoMappingController::class, 'matrix'])->name('clo-po-mappings.matrix');
 Route::resource('clo-po-mappings', CloPoMappingController::class);
+
+Route::resource('assessment-components', AssessmentComponentController::class);
+
+Route::get('question-clo-mappings/matrix', [QuestionCloMappingController::class, 'matrix'])->name('question-clo-mappings.matrix');
+Route::resource('question-clo-mappings', QuestionCloMappingController::class);
 
 Route::resource('program-outcomes', ProgramOutcomeController::class)->names([
     'index' => 'program-outcomes.index',

@@ -81,4 +81,14 @@ class Program extends Model
     {
         return $this->hasMany(CloPoMapping::class);
     }
+
+    public function assessmentComponents()
+    {
+        return $this->hasMany(AssessmentComponent::class);
+    }
+
+    public function questionCloMappings()
+    {
+        return $this->hasMany(QuestionCloMapping::class);
+    }
 }

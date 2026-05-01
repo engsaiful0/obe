@@ -55,4 +55,9 @@ class Clo extends Model
     {
         return $this->hasMany(CloPoMapping::class);
     }
+
+    public function questionCloMappings()
+    {
+        return $this->hasMany(QuestionCloMapping::class);
+    }
 }
