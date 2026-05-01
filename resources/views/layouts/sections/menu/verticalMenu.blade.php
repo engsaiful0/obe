@@ -186,6 +186,11 @@ return '';
                         <div>{{ __('PEOs') }}</div>
                     </a>
                 </li>
+                <li class="menu-item {{ request()->routeIs('program-outcomes.*') ? 'active' : '' }}">
+                    <a href="{{ route('program-outcomes.index') }}" class="menu-link">
+                        <div>{{ __('PO / PLO') }}</div>
+                    </a>
+                </li>
             </ul>
         </li>
         @endpermission

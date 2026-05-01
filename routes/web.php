@@ -111,6 +111,7 @@ use App\Http\Controllers\CourseAssignmentCascadeController;
 use App\Http\Controllers\VisionController;
 use App\Http\Controllers\MissionController;
 use App\Http\Controllers\PeoController;
+use App\Http\Controllers\ProgramOutcomeController;
 use App\Http\Controllers\DriverHelperAssignmentReportController;
 use App\Http\Controllers\DriverTripReportController;
 use App\Http\Controllers\FuelController;
@@ -212,6 +213,16 @@ Route::resource('course-assignments', CourseAssignmentController::class)->names(
 Route::resource('visions', VisionController::class);
 Route::resource('missions', MissionController::class);
 Route::resource('peos', PeoController::class);
+
+Route::resource('program-outcomes', ProgramOutcomeController::class)->names([
+    'index' => 'program-outcomes.index',
+    'create' => 'program-outcomes.create',
+    'store' => 'program-outcomes.store',
+    'show' => 'program-outcomes.show',
+    'edit' => 'program-outcomes.edit',
+    'update' => 'program-outcomes.update',
+    'destroy' => 'program-outcomes.destroy',
+]);
 
 // Driver Helper Assignment Report Routes
 Route::get('/app/driver-helper-assignment-report', [DriverHelperAssignmentReportController::class, 'index'])->name('driver-helper-assignment-report');
