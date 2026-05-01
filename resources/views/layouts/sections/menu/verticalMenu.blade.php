@@ -191,6 +191,11 @@ return '';
                         <div>{{ __('PO / PLO') }}</div>
                     </a>
                 </li>
+                <li class="menu-item {{ request()->routeIs('blooms.*') ? 'active' : '' }}">
+                    <a href="{{ route('blooms.index') }}" class="menu-link">
+                        <div>{{ __("Bloom taxonomy") }}</div>
+                    </a>
+                </li>
             </ul>
         </li>
         @endpermission

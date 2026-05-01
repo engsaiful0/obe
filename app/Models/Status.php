@@ -43,4 +43,10 @@ class Status extends Model
     {
         return $this->belongsTo(RelatedTo::class, 'related_to_id');
     }
+
+    public function blooms()
+    {
+        return $this->hasMany(Bloom::class, 'status_id');
+    }
 }
+

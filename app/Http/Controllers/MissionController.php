@@ -9,6 +9,7 @@ use App\Models\Department;
 use App\Models\Mission;
 use App\Models\University;
 use App\Support\ObeStatus;
+use App\Models\RelatedTo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -65,7 +66,14 @@ class MissionController extends Controller
 
     public function create(): View
     {
-        return view('content.missions.create', $this->formLookups());
+        $obeStatuses = Status::query()
+        ->where('related_to_id', RelatedTo::where('name', 'OBE')->value('id'))
+        ->orderBy('status_name')
+        ->get(['id', 'status_name']);
+
+        return view('content.missions.create', [
+            'obeStatuses' => $obeStatuses,
+        ]);
     }
 
     protected function formLookups(): array
@@ -93,7 +101,14 @@ class MissionController extends Controller
 
     public function edit(Mission $mission): View
     {
-        return view('content.missions.edit', array_merge($this->formLookups(), compact('mission')));
+        $obeStatuses = Status::query()
+        ->where('related_to_id', RelatedTo::where('name', 'OBE')->value('id'))
+        ->orderBy('status_name')
+        ->get(['id', 'status_name']);
+        return view('content.missions.edit', [
+            'obeStatuses' => $obeStatuses,
+            'mission' => $mission,
+        ]);
     }
 
     public function update(UpdateMissionRequest $request, Mission $mission): JsonResponse|RedirectResponse

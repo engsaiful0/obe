@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateVisionRequest;
 use App\Models\Department;
 use App\Models\University;
 use App\Models\Vision;
+use App\Models\RelatedTo;
 use App\Support\ObeStatus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
