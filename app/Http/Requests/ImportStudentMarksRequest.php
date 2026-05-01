@@ -17,6 +17,7 @@ class ImportStudentMarksRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->coerceSectionId();
+        $this->mergeDefaultObeStatusIfMissing();
     }
 
     /**
@@ -24,8 +25,11 @@ class ImportStudentMarksRequest extends FormRequest
      */
     public function rules(): array
     {
+        $bulk = $this->boolean('bulk_all');
+
         return array_merge(
-            $this->studentMarkContextRules(),
+            $bulk ? $this->studentMarkContextWithoutComponentRules() : $this->studentMarkContextRules(),
+            ['bulk_all' => ['sometimes', 'boolean']],
             $this->obeMarkStatusRules(),
             [
                 'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:8192'],

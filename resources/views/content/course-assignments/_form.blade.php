@@ -6,7 +6,6 @@
     $semesters = $semesters ?? collect();
     $courses = $courses ?? collect();
     $sections = $sections ?? collect();
-    $assignmentStatuses = ['Active' => 'Active', 'Inactive' => 'Inactive'];
 @endphp
 
 @if ($errors->any())
@@ -121,9 +120,9 @@
 
     <div class="col-md-6">
         <label class="form-label">Status <span class="text-danger">*</span></label>
-        <select name="status" class="form-select" id="course_assignment_status" required>
+        <select name="status_id" class="form-select" id="course_assignment_status_id" required>
             @foreach ($courseAssignmentStatuses as $courseAssignmentStatus)
-                <option value="{{ $courseAssignmentStatus->id }}" @selected(old('status_id', $courseAssignment->status_id ?? '') == $courseAssignmentStatus->id)>{{ $courseAssignmentStatus->status_name }}</option>
+                <option value="{{ $courseAssignmentStatus->id }}" @selected(old('status_id', $ca->status_id ?? '') == $courseAssignmentStatus->id)>{{ $courseAssignmentStatus->status_name }}</option>
             @endforeach
         </select>
     </div>

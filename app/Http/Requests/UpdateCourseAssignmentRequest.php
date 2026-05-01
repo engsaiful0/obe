@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\EnsuresUniqueCourseAssignment;
+use App\Models\RelatedTo;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -19,6 +20,13 @@ class UpdateCourseAssignmentRequest extends FormRequest
     {
         $programId = (int) $this->input('program_id');
         $semesterId = (int) $this->input('semester_id');
+        $obeRelatedId = RelatedTo::query()->where('name', 'OBE')->value('id');
+        $statusIdRule = Rule::exists('statuses', 'id');
+        if ($obeRelatedId !== null) {
+            $statusIdRule = Rule::exists('statuses', 'id')->where(
+                fn ($q) => $q->where('related_to_id', (int) $obeRelatedId)
+            );
+        }
 
         return [
             'academic_session_id' => ['required', 'exists:academic_sessions,id'],
@@ -46,7 +54,7 @@ class UpdateCourseAssignmentRequest extends FormRequest
                         ->where('semester_id', (int) $this->input('semester_id'));
                 }),
             ],
-            'status' => ['required', Rule::in(['Active', 'Inactive'])],
+            'status_id' => ['required', $statusIdRule],
         ];
     }
 }

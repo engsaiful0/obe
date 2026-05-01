@@ -116,8 +116,8 @@
                             <td>{{ $row->section->section_name ?? '—' }}</td>
                             <td>{{ $row->teacher->teacher_name ?? '—' }}</td>
                             <td>
-                                <span class="badge {{ $row->status === 'Active' ? 'bg-success' : 'bg-secondary' }}">
-                                    {{ $row->status }}
+                                <span class="badge {{ $row->status->status_name === 'Active' ? 'bg-success' : 'bg-secondary' }}">
+                                    {{ $row->status->status_name }}
                                 </span>
                             </td>
                             <td class="text-end d-flex gap-1 justify-content-end flex-wrap">

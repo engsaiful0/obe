@@ -45,10 +45,6 @@
                             <option value="">{{ __('Optional') }}</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label small mb-0">{{ __('Component') }}</label>
-                        <select name="assessment_component_id" id="sm_comp" class="form-select form-select-sm" required disabled></select>
-                    </div>
                 </div>
                 <button type="button" class="btn btn-sm btn-outline-secondary obe-async-load-single" disabled id="sm-load-context">
                     {{ __('Load student list & parts') }}</button>
@@ -65,7 +61,6 @@
                 <input type="hidden" name="course_id" id="hf_course">
                 <input type="hidden" name="batch_id" id="hf_batch">
                 <input type="hidden" name="section_id" id="hf_section">
-                <input type="hidden" name="assessment_component_id" id="hf_comp">
                 <div class="mb-3">
                     <label class="form-label">{{ __('Student') }}</label>
                     <select name="student_id" id="sm_student" class="form-select form-select-sm" required></select>
@@ -81,7 +76,7 @@
                 <div id="sm-single-questions" class="row g-2 mb-3"></div>
                 <div class="row g-2 mb-3">
                     <div class="col-md-4">
-                        <label class="form-label">{{ __('Total marks') }}</label>
+                        <label class="form-label">{{ __('Grand total (all components)') }}</label>
                         <input type="text" inputmode="decimal" name="total_marks" id="sm_single_total"
                             class="form-control form-control-sm" readonly>
                     </div>

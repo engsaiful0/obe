@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('course_id')->constrained('courses')->cascadeOnDelete();
             $table->foreignId('teacher_id')->constrained('teachers')->cascadeOnDelete();
             $table->foreignId('section_id')->constrained('sections')->cascadeOnDelete();
-            $table->enum('status', ['Active', 'Inactive'])->default('Active');
+            $table->foreignId('status_id')->constrained('statuses')->cascadeOnDelete();
             $table->timestamps();
             $table->softDeletes();
 

@@ -87,7 +87,7 @@ class CourseAssignmentController extends Controller
     public function create(): View
     {
         $courseAssignmentStatuses = Status::query()
-            ->where('related_to_id', RelatedTo::where('name', 'Course Assignment')->value('id'))
+            ->where('related_to_id', RelatedTo::where('name', 'OBE')->value('id'))
             ->orderBy('status_name')
             ->get(['id', 'status_name']);
 
@@ -132,7 +132,16 @@ class CourseAssignmentController extends Controller
 
     public function store(StoreCourseAssignmentRequest $request): RedirectResponse|JsonResponse
     {
-        $assignment = CourseAssignment::create($request->validated());
+        $assignment = CourseAssignment::create([
+            'academic_session_id' => $request->academic_session_id,
+            'program_id' => $request->program_id,
+            'batch_id' => $request->batch_id,
+            'semester_id' => $request->semester_id,
+            'course_id' => $request->course_id,
+            'teacher_id' => $request->teacher_id,
+            'section_id' => $request->section_id,
+            'status_id' => $request->status_id,
+        ]);
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -161,10 +170,14 @@ class CourseAssignmentController extends Controller
 
     public function edit(CourseAssignment $course_assignment): View
     {
+        $courseAssignmentStatuses = Status::query()
+            ->where('related_to_id', RelatedTo::where('name', 'OBE')->value('id'))
+            ->orderBy('status_name')
+            ->get(['id', 'status_name']);
         return view('content.course-assignments.edit', array_merge(
             $this->formLookups(),
             $this->dependentsForAssignment($course_assignment),
-            ['assignment' => $course_assignment]
+            ['assignment' => $course_assignment, 'courseAssignmentStatuses' => $courseAssignmentStatuses ?? null]
         ));
     }
 

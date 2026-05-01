@@ -22,7 +22,7 @@
             <div class="col-md-6"><strong>{{ __('Teacher') }}:</strong> {{ $assignment->teacher->teacher_name ?? '—' }}</div>
             <div class="col-md-6">
                 <strong>{{ __('Status') }}:</strong>
-                <span class="badge {{ $assignment->status === 'Active' ? 'bg-success' : 'bg-secondary' }}">{{ $assignment->status }}</span>
+                <span class="badge {{ str_contains($assignment->status->status_name, 'Active') ? 'bg-success' : 'bg-secondary' }}">{{ $assignment->status->status_name }}</span>
             </div>
         </div>
     </div>

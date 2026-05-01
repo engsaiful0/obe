@@ -27,7 +27,7 @@
                         <td>
                             <span class="fw-medium">{{ $row->student?->student_code }}</span>
                             <br>
-                            <span class="text-muted small">{{ Str::limit($row->student?->student_name, 42) }}</span>
+                            <span class="text-muted small">{{ \Illuminate\Support\Str::limit($row->student?->student_name, 42) }}</span>
                         </td>
                         <td>{{ $row->total_marks }}</td>
                         <td>

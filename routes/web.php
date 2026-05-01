@@ -248,6 +248,7 @@ Route::post('student-marks/import', [StudentMarkController::class, 'importExcel'
 Route::post('student-marks/reset', [StudentMarkController::class, 'resetMarks'])->name('student-marks.reset');
 Route::get('student-marks/api/students', [StudentMarkController::class, 'getStudentsByFilter'])->name('student-marks.api.students');
 Route::get('student-marks/api/questions', [StudentMarkController::class, 'getQuestionsByComponent'])->name('student-marks.api.questions');
+Route::get('student-marks/api/questions-by-course', [StudentMarkController::class, 'getQuestionsForCourse'])->name('student-marks.api.questions-course');
 Route::resource('student-marks', StudentMarkController::class);
 
 Route::resource('program-outcomes', ProgramOutcomeController::class)->names([

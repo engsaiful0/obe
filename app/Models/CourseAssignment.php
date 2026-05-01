@@ -20,7 +20,7 @@ class CourseAssignment extends Model
         'course_id',
         'teacher_id',
         'section_id',
-        'status',
+        'status_id',
     ];
 
     public function academicSession(): BelongsTo
@@ -56,5 +56,10 @@ class CourseAssignment extends Model
     public function section(): BelongsTo
     {
         return $this->belongsTo(Section::class);
+    }
+
+    public function status(): BelongsTo
+    {
+        return $this->belongsTo(Status::class);
     }
 }

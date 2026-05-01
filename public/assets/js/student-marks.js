@@ -190,7 +190,9 @@
   }
 
   /** --- SHARED CASCADE --- */
-  function wireCascade(scope, cascade) {
+  function wireCascade(scope, cascade, opts) {
+    opts = opts || {};
+    var skipAssessmentComponents = !!opts.skipAssessmentComponents;
     if (!scope || !cascade) return {};
 
     var elProg = scope.querySelector('#sm_prog');
@@ -201,16 +203,28 @@
 
     function onProgramChange() {
       var pid = elProg ? elProg.value : '';
+      var sectionPlaceholder =
+        elSection && elSection.id === 'sm_section' ? 'All / not specified' : 'Optional';
       if (!pid) {
         clearSelect(elCourse, 'Select');
         clearSelect(elBatch, 'Select');
-        clearSelect(elSection, elSection && elSection.id === 'sm_section' ? 'All / not specified' : 'Optional');
+        clearSelect(elSection, sectionPlaceholder);
         clearSelect(elComp, 'Select');
         [elCourse, elBatch, elSection, elComp].forEach(function (x) {
           if (x) x.disabled = true;
         });
         return Promise.resolve(null);
       }
+      /* Reset dependents immediately so FormData/stale selections cannot mismatch the program. */
+      clearSelect(elCourse, 'Select');
+      clearSelect(elBatch, 'Select');
+      clearSelect(elSection, sectionPlaceholder);
+      if (elCourse) elCourse.disabled = true;
+      if (elBatch) elBatch.disabled = true;
+      if (elSection) elSection.disabled = true;
+      clearSelect(elComp, 'Select');
+      if (elComp) elComp.disabled = true;
+
       var promises = [];
       promises.push(
         fetchJson(
@@ -239,12 +253,14 @@
         })
       );
 
-      clearSelect(elSection, elSection && elSection.options && elSection.options.length ? '' : '');
-      clearSelect(elComp, 'Select');
-      if (elComp) elComp.disabled = true;
-      elSection.disabled = true;
-
-      return Promise.all(promises);
+      return Promise.all(promises).then(function () {
+        if (typeof window.__studentMarksSyncCreateLoadBtn === 'function') {
+          window.__studentMarksSyncCreateLoadBtn();
+        }
+        if (typeof window.__studentMarksSyncBulkLoadBtn === 'function') {
+          window.__studentMarksSyncBulkLoadBtn();
+        }
+      });
     }
 
     function onBatchChange() {
@@ -274,14 +290,26 @@
             elSection.appendChild(o);
           });
         }
+        if (typeof window.__studentMarksSyncBulkLoadBtn === 'function') {
+          window.__studentMarksSyncBulkLoadBtn();
+        }
       });
     }
 
     function onCourseChange() {
+      if (skipAssessmentComponents) {
+        if (typeof window.__studentMarksSyncBulkLoadBtn === 'function') {
+          window.__studentMarksSyncBulkLoadBtn();
+        }
+        return Promise.resolve();
+      }
       var cid = elCourse ? elCourse.value : '';
       if (!cid) {
         clearSelect(elComp, 'Select');
         if (elComp) elComp.disabled = true;
+        if (typeof window.__studentMarksSyncBulkLoadBtn === 'function') {
+          window.__studentMarksSyncBulkLoadBtn();
+        }
         return Promise.resolve();
       }
       return fetchJson(
@@ -290,11 +318,15 @@
         false
       ).then(function (pack) {
         if (!pack || !pack.ok || !pack.data) return;
+        if (!elComp) return;
         fillSelect(elComp, pack.data, function (ac) {
           var m = typeof ac.marks !== 'undefined' ? ' (max ' + ac.marks + ')' : '';
           return (ac.component_name || ac.label || '') + m;
         });
         elComp.disabled = false;
+        if (typeof window.__studentMarksSyncBulkLoadBtn === 'function') {
+          window.__studentMarksSyncBulkLoadBtn();
+        }
       });
     }
 
@@ -335,7 +367,9 @@
     var form = document.getElementById('sm-bulk-filters');
     if (!form || !routes.bulkSave) return;
 
-    var c = wireCascade(form, cascade);
+    wireCascade(form, cascade, { skipAssessmentComponents: true });
+
+    var qCourseUrl = routes.questionsByCourseApi || routes.questionsApi;
 
     var btnLoad = document.getElementById('sm-load-grid');
     var btnSave = document.getElementById('sm-bulk-save');
@@ -343,17 +377,15 @@
     var btnReset = document.getElementById('sm-reset');
     var wrap = document.getElementById('sm-matrix-wrap');
     var tbl = document.getElementById('sm-matrix-table');
-    var capDisplay = document.getElementById('sm-comp-cap-display');
     var feedback = document.getElementById('sm-bulk-feedback');
     var btnImport = document.getElementById('sm-import-submit');
     var importErrors = document.getElementById('sm-import-errors');
     var formImport = document.getElementById('sm-import-form');
 
-    /** @type {Array<{questions: Array} & Record<string, mixed>>} */
+    /** @type {Array<Record<string, mixed>>} */
     var lastStudents = [];
-    /** @type {Array<{id:number, question_label:string, marks:number}>} */
+    /** @type {Array<{ id: number, question_label: string, marks: number, assessment_component_id: number }>} */
     var lastQuestions = [];
-    var componentCap = null;
 
     function readFilters() {
       var fd = new FormData(form);
@@ -366,20 +398,57 @@
         program_id: pick('program_id'),
         course_id: pick('course_id'),
         batch_id: pick('batch_id'),
-        section_id: pick('section_id'),
-        assessment_component_id: pick('assessment_component_id'),
-        status_id: pick('status_id')
+        section_id: pick('section_id')
       };
     }
 
-    function buildParams(f) {
-      var p = new URLSearchParams();
-      Object.keys(f).forEach(function (k) {
-        if (!f[k]) return;
-        p.set(k, f[k]);
-      });
-      return p;
+    /** @param {Record<string, string>} f */
+    function setContextSearchParams(params, f) {
+      params.set('academic_session_id', f.academic_session_id);
+      params.set('program_id', f.program_id);
+      params.set('course_id', f.course_id);
+      params.set('batch_id', f.batch_id);
+      if (f.section_id) {
+        params.set('section_id', f.section_id);
+      }
     }
+
+    function flattenQuestionsFromComponents(components) {
+      /** @type {Array<{ id: number, question_label: string, marks: number, assessment_component_id: number }>} */
+      var out = [];
+      (components || []).forEach(function (c) {
+        (c.questions || []).forEach(function (q) {
+          var cname = String(c.component_name || '');
+          out.push({
+            id: q.id,
+            question_label: cname ? cname + ' · ' + q.question_label : q.question_label,
+            marks: q.marks,
+            assessment_component_id: c.id
+          });
+        });
+      });
+      return out;
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function syncBulkLoadButton() {
+      if (!btnLoad) return;
+      var f = readFilters();
+      btnLoad.disabled = !(f.academic_session_id && f.program_id && f.course_id && f.batch_id);
+    }
+
+    window.__studentMarksSyncBulkLoadBtn = syncBulkLoadButton;
+    form.querySelectorAll('select').forEach(function (sel) {
+      sel.addEventListener('change', syncBulkLoadButton);
+    });
+    syncBulkLoadButton();
 
     function showFeedback(msgOrNull) {
       if (!feedback) return;
@@ -394,13 +463,11 @@
     }
 
     function recalcRow(tr) {
-      var capTotal = typeof componentCap === 'number' && isFinite(componentCap) ? componentCap : Infinity;
       var sum = 0;
       tr.querySelectorAll('input.sm-qpart').forEach(function (inp) {
         var max = parseFloat(inp.getAttribute('data-max'));
         var v = parseFloat(String(inp.value).replace(',', '.'));
         if (!isFinite(v)) v = 0;
-        var cl = inp.classList;
         v = clampNum(v, isFinite(max) ? max : Infinity);
         if (isFinite(max) && v >= max - 1e-6) inp.classList.add('border-danger');
         else inp.classList.remove('border-danger');
@@ -410,8 +477,7 @@
       var tot = tr.querySelector('input.sm-total');
       if (tot) {
         tot.value = String(sum);
-        if (sum > capTotal + 1e-4) tot.classList.add('is-invalid');
-        else tot.classList.remove('is-invalid');
+        tot.classList.remove('is-invalid');
       }
     }
 
@@ -429,19 +495,45 @@
       });
     }
 
-    function buildMatrix(students, questions, compMarks) {
+    function existingQuestionMark(st, q) {
+      var byComp = st.existing_by_component;
+      if (byComp) {
+        var block = byComp[String(q.assessment_component_id)];
+        if (block && block.question_marks) {
+          var v = block.question_marks[String(q.id)];
+          if (typeof v !== 'undefined' && v !== null) return v;
+        }
+      }
+      if (st.existing && st.existing.question_marks) {
+        var v2 = st.existing.question_marks[String(q.id)];
+        if (typeof v2 !== 'undefined' && v2 !== null) return v2;
+      }
+      return undefined;
+    }
+
+    function existingGrandTotal(st) {
+      var byComp = st.existing_by_component;
+      if (byComp) {
+        var sum = 0;
+        var any = false;
+        Object.keys(byComp).forEach(function (k) {
+          var eb = byComp[k];
+          if (eb && typeof eb.total_marks !== 'undefined' && eb.total_marks !== null) {
+            sum += eb.total_marks;
+            any = true;
+          }
+        });
+        if (any) return sum;
+      }
+      if (st.existing && typeof st.existing.total_marks !== 'undefined' && st.existing.total_marks !== null) {
+        return st.existing.total_marks;
+      }
+      return null;
+    }
+
+    function buildMatrix(students, questions) {
       lastStudents = students;
       lastQuestions = questions;
-      componentCap =
-        typeof compMarks === 'number' && isFinite(compMarks)
-          ? compMarks
-          : compMarks !== null && compMarks !== undefined
-            ? parseFloat(compMarks)
-            : null;
-      if (capDisplay) {
-        capDisplay.textContent =
-          componentCap !== null && isFinite(componentCap) ? String(componentCap) : '—';
-      }
 
       var thead = tbl.querySelector('thead');
       var tbody = tbl.querySelector('tbody');
@@ -453,6 +545,7 @@
       questions.forEach(function (q) {
         var th = document.createElement('th');
         th.textContent = q.question_label + ' (' + q.marks + ')';
+        th.setAttribute('data-component-id', String(q.assessment_component_id));
         trh.appendChild(th);
       });
       trh.appendChild(document.createElement('th')).textContent = 'Total';
@@ -477,8 +570,9 @@
           inp.className = 'form-control form-control-sm sm-qpart';
           inp.dataset.studentId = String(st.id);
           inp.dataset.mapId = String(q.id);
+          inp.dataset.componentId = String(q.assessment_component_id);
           inp.setAttribute('data-max', String(q.marks));
-          var ex = st.existing && st.existing.question_marks ? st.existing.question_marks[String(q.id)] : undefined;
+          var ex = existingQuestionMark(st, q);
           if (typeof ex !== 'undefined' && ex !== null) inp.value = String(ex);
           else inp.value = '0';
           td.appendChild(inp);
@@ -491,7 +585,7 @@
         inpT.readOnly = true;
         inpT.className = 'form-control form-control-sm sm-total';
         inpT.dataset.studentId = String(st.id);
-        var exTot = st.existing ? st.existing.total_marks : null;
+        var exTot = existingGrandTotal(st);
         if (exTot !== null && typeof exTot !== 'undefined') inpT.value = String(exTot);
         tdT.appendChild(inpT);
         tr.appendChild(tdT);
@@ -504,67 +598,45 @@
       btnSave.disabled = !students.length || !questions.length;
     }
 
-    function escapeHtml(s) {
-      return String(s)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    }
-
-    if (btnLoad) {
+    if (btnLoad && qCourseUrl) {
       btnLoad.addEventListener('click', function () {
         var f = readFilters();
-        if (!f.academic_session_id || !f.program_id || !f.course_id || !f.batch_id || !f.assessment_component_id) {
-          showFeedback('Fill session, program, course, batch, and component.');
+        if (!f.academic_session_id || !f.program_id || !f.course_id || !f.batch_id) {
+          showFeedback('Fill session, program, course, and batch.');
           return;
         }
         showFeedback(null);
         setBtnLoading(btnLoad, true);
 
-        var p1 = routes.questionsApi + '?' + buildParams(f).toString();
-        var p2 =
-          routes.studentsApi + '?' + buildParams(Object.assign({}, f, { with_marks: '1' })).toString();
+        var pQs = new URLSearchParams();
+        setContextSearchParams(pQs, f);
+        var stQs = new URLSearchParams(pQs.toString());
+        stQs.set('with_marks', '1');
+        stQs.set('all_components', '1');
 
         Promise.all([
-          fetchJson(
-            p1,
-            {
-              credentials: 'same-origin',
-              headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() }
-            },
-            false
-          ),
-          fetchJson(
-            p2,
-            {
-              credentials: 'same-origin',
-              headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() }
-            },
-            false
-          )
+          fetchJson(qCourseUrl + '?' + pQs.toString(), {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() }
+          }, false),
+          fetchJson(routes.studentsApi + '?' + stQs.toString(), {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() }
+          }, false)
         ])
           .then(function (pairs) {
             var qPack = pairs[0];
             var stPack = pairs[1];
             if (!qPack.ok || !stPack.ok) return;
-            var questions = qPack.data.questions || [];
-            var compatCap =
-              qPack.data.component && typeof qPack.data.component.marks !== 'undefined'
-                ? qPack.data.component.marks
-                : null;
+            var components = qPack.data.components || [];
+            var questions = flattenQuestionsFromComponents(components);
             if (!questions.length) {
-              showFeedback('No question parts mapped for this session and component.');
+              showFeedback('No question parts mapped for any component in this session and section.');
               wrap.classList.add('d-none');
               btnSave.disabled = true;
               return;
             }
-            var students = stPack.data.students || [];
-            buildMatrix(
-              students,
-              questions,
-              compatCap !== null ? compatCap : (stPack.data.component ? stPack.data.component.marks : null)
-            );
+            buildMatrix(stPack.data.students || [], questions);
           })
           .finally(function () {
             setBtnLoading(btnLoad, false);
@@ -575,10 +647,6 @@
     if (btnSave) {
       btnSave.addEventListener('click', function () {
         var f = readFilters();
-        if (!f.status_id) {
-          if (typeof toastr !== 'undefined') toastr.error('Choose OBE status.');
-          return;
-        }
         if (!lastQuestions.length || !lastStudents.length) {
           return;
         }
@@ -588,16 +656,36 @@
           var firstCell = tr.querySelector('input.sm-qpart');
           if (!firstCell) return;
           var sid = parseInt(firstCell.getAttribute('data-student-id'), 10);
-          var questions = [];
+
+          /** @type {Record<number, { assessment_component_id: number, questions: Array<{ question_clo_mapping_id: number, obtained_marks: number }> }>} */
+          var byComp = {};
           tr.querySelectorAll('input.sm-qpart').forEach(function (inp) {
-            questions.push({
-              question_clo_mapping_id: parseInt(inp.getAttribute('data-map-id'), 10),
-              obtained_marks: parseFloat(String(inp.value).replace(',', '.')) || 0
+            var cid = parseInt(inp.getAttribute('data-component-id'), 10);
+            var mapId = parseInt(inp.getAttribute('data-map-id'), 10);
+            var obt = parseFloat(String(inp.value).replace(',', '.'));
+            if (!isFinite(obt)) obt = 0;
+            if (!byComp[cid]) {
+              byComp[cid] = { assessment_component_id: cid, questions: [] };
+            }
+            byComp[cid].questions.push({
+              question_clo_mapping_id: mapId,
+              obtained_marks: obt
             });
           });
-          var totEl = tr.querySelector('input.sm-total');
-          var total = parseFloat(String(totEl.value).replace(',', '.')) || 0;
-          rowsPayload.push({ student_id: sid, total_marks: total, questions: questions });
+
+          var blocks = Object.keys(byComp).map(function (k) {
+            var qsArr = byComp[k].questions;
+            var tm = qsArr.reduce(function (a, q) {
+              return a + q.obtained_marks;
+            }, 0);
+            tm = Math.round(tm * 100) / 100;
+            return {
+              assessment_component_id: parseInt(k, 10),
+              total_marks: tm,
+              questions: qsArr
+            };
+          });
+          rowsPayload.push({ student_id: sid, component_marks: blocks });
         });
 
         showFeedback(null);
@@ -619,8 +707,6 @@
             course_id: f.course_id,
             batch_id: f.batch_id,
             section_id: f.section_id || null,
-            assessment_component_id: f.assessment_component_id,
-            status_id: f.status_id,
             rows: rowsPayload
           })
         })
@@ -667,20 +753,21 @@
     if (btnTemplate) {
       btnTemplate.addEventListener('click', function () {
         var f = readFilters();
-        if (!f.academic_session_id || !f.program_id || !f.course_id || !f.batch_id || !f.assessment_component_id) {
-          if (typeof toastr !== 'undefined') toastr.error('Select filters first.');
+        if (!f.academic_session_id || !f.program_id || !f.course_id || !f.batch_id) {
+          if (typeof toastr !== 'undefined') toastr.error('Select session, program, course, and batch first.');
           return;
         }
         try {
           var u = new URL(routes.template, window.location.origin);
-          Object.keys(f).forEach(function (k) {
-            if (f[k]) u.searchParams.set(k, f[k]);
-          });
+          setContextSearchParams(u.searchParams, f);
+          u.searchParams.set('bulk_all', '1');
           window.location.href = u.pathname + u.search;
         } catch (eURL) {
-          var qs = buildParams(f).toString();
-          window.location.href =
-            routes.template + (String(routes.template).indexOf('?') === -1 ? '?' : '&') + qs;
+          var p = new URLSearchParams();
+          setContextSearchParams(p, f);
+          p.set('bulk_all', '1');
+          var sep = String(routes.template).indexOf('?') === -1 ? '?' : '&';
+          window.location.href = routes.template + sep + p.toString();
         }
       });
     }
@@ -688,14 +775,14 @@
     if (btnReset && routes.reset) {
       btnReset.addEventListener('click', function () {
         var f = readFilters();
-        if (!f.academic_session_id || !f.program_id || !f.course_id || !f.batch_id || !f.assessment_component_id) {
+        if (!f.academic_session_id || !f.program_id || !f.course_id || !f.batch_id) {
           if (typeof toastr !== 'undefined') toastr.error('Select filters first.');
           return;
         }
 
         confirmSwal(
-          'Delete all marks for this session/program/course/batch/component' +
-            (f.section_id ? ' and section?' : '?'),
+          'Delete all marks for every assessment component under this session, program, course, and batch' +
+            (f.section_id ? ' and selected section?' : '?'),
           { confirmText: 'Yes, reset', cancelText: 'Cancel', icon: 'warning' }
         ).then(function (ok) {
           if (!ok) return;
@@ -710,7 +797,19 @@
               'X-CSRF-TOKEN': csrfToken(),
               'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify(Object.assign({ _token: csrfToken() }, f))
+            body: JSON.stringify(
+              Object.assign(
+                {
+                  _token: csrfToken(),
+                  bulk_all: true,
+                  academic_session_id: f.academic_session_id,
+                  program_id: f.program_id,
+                  course_id: f.course_id,
+                  batch_id: f.batch_id
+                },
+                f.section_id ? { section_id: f.section_id } : {}
+              )
+            )
           })
             .then(function (res) {
               return res.json().then(function (data) {
@@ -741,21 +840,20 @@
         var filt = readFilters();
 
         fd.set('_token', csrfToken());
-
-        ['academic_session_id', 'program_id', 'course_id', 'batch_id', 'assessment_component_id', 'status_id'].forEach(
-          function (k) {
-            if (filt[k]) fd.append(k, filt[k]);
-          }
-        );
-        if (!filt.section_id) {
-          /* omit */
-        } else {
-          fd.append('section_id', filt.section_id);
-        }
+        fd.set('bulk_all', '1');
+        fd.append('academic_session_id', filt.academic_session_id);
+        fd.append('program_id', filt.program_id);
+        fd.append('course_id', filt.course_id);
+        fd.append('batch_id', filt.batch_id);
+        if (filt.section_id) fd.append('section_id', filt.section_id);
 
         var fileInp = document.getElementById('sm-import-file');
         if (!fileInp || !fileInp.files || !fileInp.files.length) {
           if (typeof toastr !== 'undefined') toastr.error('Choose a file.');
+          return;
+        }
+        if (!filt.academic_session_id || !filt.program_id || !filt.course_id || !filt.batch_id) {
+          if (typeof toastr !== 'undefined') toastr.error('Select session, program, course, and batch first.');
           return;
         }
 
@@ -831,15 +929,17 @@
     routes = routes || {};
     var root = document.getElementById('sm-single-setup');
     var saveBox = document.getElementById('sm-single-save');
-    if (!root || !saveBox || !routes.studentsApi || !routes.questionsApi) return;
+    var qCourseUrl = routes.questionsByCourseApi || routes.questionsApi;
+    if (!root || !saveBox || !routes.studentsApi || !qCourseUrl) return;
 
     var btnLoad = document.getElementById('sm-load-context');
-    wireCascade(root, cascade);
+    wireCascade(root, cascade, { skipAssessmentComponents: true });
 
-    btnLoad.disabled = false;
-
-    /** @type {Array<{id: number, existing?: Record<string, unknown>}>} */
+    /** @type {Array<Record<string, unknown>>} */
     var loadedStudentsSnapshot = [];
+
+    /** @type {Array<{ id: number, component_name: string, marks: number, questions: Array<{id:number,question_label:string,marks:number}> }>} */
+    var lastComponentsSnapshot = [];
 
     function escapeBare(txt) {
       return String(txt)
@@ -848,41 +948,66 @@
         .replace(/"/g, '&quot;');
     }
 
-    btnLoad.addEventListener('click', function () {
-      var form = root;
-      var fd = new FormData(form);
-      function pick(name) {
-        var v = fd.get(name);
+    /** Disabled <select>s are omitted from FormData — read .value explicitly. */
+    function readSetupFilterVals() {
+      function pick(sel) {
+        if (!sel || sel.disabled) return '';
+        var v = sel.value;
         return v !== null && String(v).trim() !== '' ? String(v).trim() : '';
       }
-      var f = {
-        academic_session_id: pick('academic_session_id'),
-        program_id: pick('program_id'),
-        course_id: pick('course_id'),
-        batch_id: pick('batch_id'),
-        section_id: pick('section_id'),
-        assessment_component_id: pick('assessment_component_id')
+      return {
+        academic_session_id: pick(root.querySelector('#sm_sess')),
+        program_id: pick(root.querySelector('#sm_prog')),
+        course_id: pick(root.querySelector('#sm_course')),
+        batch_id: pick(root.querySelector('#sm_batch')),
+        section_id: pick(root.querySelector('#sm_section'))
       };
+    }
 
-      if (!f.academic_session_id || !f.program_id || !f.course_id || !f.batch_id || !f.assessment_component_id) {
+    function syncCreateLoadButton() {
+      if (!btnLoad) return;
+      var f = readSetupFilterVals();
+      btnLoad.disabled = !(
+        f.academic_session_id &&
+        f.program_id &&
+        f.course_id &&
+        f.batch_id
+      );
+    }
+
+    syncCreateLoadButton();
+    window.__studentMarksSyncCreateLoadBtn = syncCreateLoadButton;
+    root.querySelectorAll('select').forEach(function (sel) {
+      sel.addEventListener('change', syncCreateLoadButton);
+    });
+
+    btnLoad.addEventListener('click', function () {
+      var f = readSetupFilterVals();
+
+      if (!f.academic_session_id || !f.program_id || !f.course_id || !f.batch_id) {
         if (typeof toastr !== 'undefined') toastr.error('Complete all required filters.');
         return;
       }
 
-      var pParams = new URLSearchParams();
-      Object.keys(f).forEach(function (k) {
-        if (f[k]) pParams.append(k, f[k]);
-      });
-      pParams.set('with_marks', '1');
+      var pParamsQs = new URLSearchParams();
+      pParamsQs.set('academic_session_id', f.academic_session_id);
+      pParamsQs.set('program_id', f.program_id);
+      pParamsQs.set('course_id', f.course_id);
+      pParamsQs.set('batch_id', f.batch_id);
+      if (f.section_id) pParamsQs.set('section_id', f.section_id);
+
+      var pStudent = new URLSearchParams(pParamsQs);
+      pStudent.set('with_marks', '1');
+      pStudent.set('all_components', '1');
 
       setBtnLoading(btnLoad, true);
 
       Promise.all([
-        fetchJson(routes.questionsApi + '?' + pParams.toString(), {
+        fetchJson(qCourseUrl + '?' + pParamsQs.toString(), {
           credentials: 'same-origin',
           headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() }
         }, false),
-        fetchJson(routes.studentsApi + '?' + pParams.toString(), {
+        fetchJson(routes.studentsApi + '?' + pStudent.toString(), {
           credentials: 'same-origin',
           headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() }
         }, false)
@@ -892,12 +1017,13 @@
           var stPack = pairs[1];
           if (!qPack.ok || !stPack.ok) return;
 
+          var components = (qPack.data && qPack.data.components) || [];
+
           document.getElementById('hf_sess').value = f.academic_session_id;
           document.getElementById('hf_prog').value = f.program_id;
           document.getElementById('hf_course').value = f.course_id;
           document.getElementById('hf_batch').value = f.batch_id;
           document.getElementById('hf_section').value = f.section_id || '';
-          document.getElementById('hf_comp').value = f.assessment_component_id;
 
           loadedStudentsSnapshot = stPack.data.students || [];
 
@@ -911,50 +1037,112 @@
             stSel.appendChild(o);
           });
 
-          var questions = qPack.data.questions || [];
           var qWrap = document.getElementById('sm-single-questions');
           qWrap.innerHTML = '';
 
-          questions.forEach(function (q, idx) {
-            var wrap = document.createElement('div');
-            wrap.className = 'col-md-4';
-            wrap.innerHTML =
-              '<label class="form-label small">' +
-              escapeBare(q.question_label) +
-              ' <span class="text-muted">(max ' +
-              escapeBare(q.marks) +
-              ')</span></label>' +
-              '<input type="hidden" name="questions[' +
-              idx +
-              '][question_clo_mapping_id]" value="' +
-              q.id +
-              '">' +
-              '<input type="text" inputmode="decimal" name="questions[' +
-              idx +
-              '][obtained_marks]" class="form-control form-control-sm sm-single-part" data-max="' +
-              q.marks +
-              '" value="0">';
-            qWrap.appendChild(wrap);
+          if (!components.length) {
+            saveBox.classList.add('d-none');
+            if (typeof toastr !== 'undefined') {
+              toastr.error('No question parts are mapped for this course in the selected session/section.');
+            }
+            lastComponentsSnapshot = [];
+            return;
+          }
+
+          lastComponentsSnapshot = components;
+
+          components.forEach(function (comp, ci) {
+            var block = document.createElement('div');
+            block.className = 'border rounded mb-3 p-2 sm-multi-comp-block';
+            block.dataset.componentId = String(comp.id);
+            var cap =
+              typeof comp.marks !== 'undefined' && isFinite(Number(comp.marks))
+                ? ' <span class="text-muted fw-normal">(cap ' + escapeBare(comp.marks) + ')</span>'
+                : '';
+            var head = document.createElement('div');
+            head.className = 'fw-semibold small mb-2';
+            head.innerHTML =
+              escapeBare(comp.component_name || 'Component') + cap +
+              '<div class="text-muted fst-italic fw-normal mt-1">Subtotal: <span class="sm-multi-comp-sub-display">0</span></div>';
+            block.appendChild(head);
+
+            var row = document.createElement('div');
+            row.className = 'row g-2 mb-2 sm-multi-q-row';
+
+            (comp.questions || []).forEach(function (q, qi) {
+              var col = document.createElement('div');
+              col.className = 'col-md-4';
+              col.innerHTML =
+                '<label class="form-label small">' +
+                escapeBare(q.question_label) +
+                ' <span class="text-muted">(max ' +
+                escapeBare(q.marks) +
+                ')</span></label>' +
+                '<input type="hidden" name="component_marks[' +
+                ci +
+                '][questions][' +
+                qi +
+                '][question_clo_mapping_id]" value="' +
+                q.id +
+                '">' +
+                '<input type="text" inputmode="decimal" name="component_marks[' +
+                ci +
+                '][questions][' +
+                qi +
+                '][obtained_marks]" class="form-control form-control-sm sm-multi-part sm-single-part" data-max="' +
+                q.marks +
+                '" value="0" data-ci="' +
+                ci +
+                '">';
+              row.appendChild(col);
+            });
+            block.appendChild(row);
+
+            var hidComp = document.createElement('input');
+            hidComp.type = 'hidden';
+            hidComp.name = 'component_marks[' + ci + '][assessment_component_id]';
+            hidComp.value = String(comp.id);
+            block.appendChild(hidComp);
+
+            var hidTotal = document.createElement('input');
+            hidTotal.type = 'hidden';
+            hidTotal.name = 'component_marks[' + ci + '][total_marks]';
+            hidTotal.className = 'sm-multi-comp-total';
+            hidTotal.value = '0';
+            hidTotal.dataset.ci = String(ci);
+            block.appendChild(hidTotal);
+
+            qWrap.appendChild(block);
           });
 
           var totalEl = document.getElementById('sm_single_total');
-          qWrap.parentElement.style.display = 'block';
 
           function recalcSingle() {
-            var sum = 0;
-            qWrap.querySelectorAll('.sm-single-part').forEach(function (inp) {
-              var max = parseFloat(inp.getAttribute('data-max'));
-              var v = parseFloat(String(inp.value).replace(',', '.'));
-              if (!isFinite(v)) v = 0;
-              var nv = clampNum(v, isFinite(max) ? max : Infinity);
-              if (nv !== v) inp.value = String(nv);
-              sum += nv;
+            var grand = 0;
+            qWrap.querySelectorAll('.sm-multi-comp-block').forEach(function (blk) {
+              var sub = 0;
+              blk.querySelectorAll('.sm-multi-part').forEach(function (inp) {
+                var max = parseFloat(inp.getAttribute('data-max'));
+                var v = parseFloat(String(inp.value).replace(',', '.'));
+                if (!isFinite(v)) v = 0;
+                var nv = clampNum(v, isFinite(max) ? max : Infinity);
+                if (nv !== v) inp.value = String(nv);
+                sub += nv;
+              });
+              sub = Math.round(sub * 100) / 100;
+              grand += sub;
+              var totInp = blk.querySelector('.sm-multi-comp-total');
+              if (totInp) totInp.value = String(sub);
+              var disp = blk.querySelector('.sm-multi-comp-sub-display');
+              if (disp) disp.textContent = String(sub);
             });
-            sum = Math.round(sum * 100) / 100;
-            totalEl.value = String(sum);
+            grand = Math.round(grand * 100) / 100;
+            totalEl.value = String(grand);
           }
 
-          qWrap.querySelectorAll('.sm-single-part').forEach(function (inp) {
+          qWrap.parentElement.style.display = 'block';
+
+          qWrap.querySelectorAll('.sm-multi-part').forEach(function (inp) {
             inp.addEventListener('input', recalcSingle);
             inp.addEventListener('change', recalcSingle);
           });
@@ -971,18 +1159,32 @@
                 break;
               }
             }
-            if (!st || !st.existing) {
-              return;
-            }
-            var qm = st.existing.question_marks || {};
-            var stBox = document.getElementById('sm_status_single');
-            if (stBox) stBox.value = String(st.existing.status_id || '');
+            if (!st) return;
 
-            questions.forEach(function (q, idx) {
-              var inp = qWrap.querySelector('input[name="questions[' + idx + '][obtained_marks]"]');
-              if (!inp) return;
-              var v = qm[String(q.id)];
-              if (typeof v !== 'undefined') inp.value = String(v);
+            var stBox = document.getElementById('sm_status_single');
+            var byComp = st.existing_by_component || {};
+            var statusPicked = false;
+
+            lastComponentsSnapshot.forEach(function (comp, ci) {
+              var bucket = byComp[String(comp.id)] !== undefined ? byComp[String(comp.id)] : byComp[comp.id];
+              if (!statusPicked && bucket && stBox && bucket.status_id != null && bucket.status_id !== '') {
+                stBox.value = String(bucket.status_id);
+                statusPicked = true;
+              }
+              (comp.questions || []).forEach(function (q, qi) {
+                var inp = qWrap.querySelector(
+                  'input[name="component_marks[' + ci + '][questions][' + qi + '][obtained_marks]"]'
+                );
+                if (!inp) return;
+                if (!bucket) {
+                  inp.value = '0';
+                  return;
+                }
+                var qm = bucket.question_marks || {};
+                var vv = qm[String(q.id)] !== undefined ? qm[String(q.id)] : qm[q.id];
+                if (typeof vv !== 'undefined') inp.value = String(vv);
+                else inp.value = '0';
+              });
             });
             qWrap.dispatchEvent(new Event('input'));
           };

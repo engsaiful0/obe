@@ -45,7 +45,7 @@
                         <select name="program_id" id="sm_prog" class="form-select form-select-sm" required>
                             <option value="">{{ __('Select') }}</option>
                             @foreach ($programs as $p)
-                                <option value="{{ $p->id }}">{{ $p->program_code }} — {{ Str::limit($p->program_name, 36) }}</option>
+                                <option value="{{ $p->id }}">{{ $p->program_code }} — {{ \Illuminate\Support\Str::limit($p->program_name, 36) }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -63,25 +63,10 @@
                             <option value="">{{ __('All / not specified') }}</option>
                         </select>
                     </div>
-                    <div class="col-lg-3 col-md-4">
-                        <label class="form-label small mb-0">{{ __('Assessment component') }} <span class="text-danger">*</span></label>
-                        <select name="assessment_component_id" id="sm_comp" class="form-select form-select-sm" required disabled></select>
-                    </div>
-                    <div class="col-lg-3 col-md-4">
-                        <label class="form-label small mb-0">{{ __('OBE sheet status') }} <span class="text-danger">*</span></label>
-                        <select name="status_id" id="sm_status" class="form-select form-select-sm" required>
-                            <option value="">{{ __('Select') }}</option>
-                            @foreach ($statuses as $st)
-                                <option value="{{ $st->id }}">{{ $st->status_name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-lg-6 col-md-8">
-                        <div class="rounded border px-3 py-2 bg-lighter mb-2">
-                            <small class="text-muted d-block mb-1">{{ __('Component marks cap') }}</small>
-                            <span id="sm-comp-cap-display" class="fw-medium">—</span>
-                            <span class="small text-muted ms-2">{{ __('Remaining for total column vs cap is validated on save.') }}</span>
-                        </div>
+                    <div class="col-12">
+                        <p class="small text-muted mb-0">
+                            {{ __('All assessment components for the course appear in one grid and in the Excel template. Per-question caps and per-component totals are validated on save. If you omit marks sheet status, the first OBE-related status is used.') }}
+                        </p>
                     </div>
                 </div>
 
