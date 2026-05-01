@@ -28,4 +28,9 @@ class Bloom extends Model
     {
         return $this->belongsTo(Status::class, 'status_id');
     }
+
+    public function clos()
+    {
+        return $this->hasMany(Clo::class);
+    }
 }

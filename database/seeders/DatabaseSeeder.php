@@ -63,5 +63,6 @@ class DatabaseSeeder extends Seeder
     $this->call(ObeVisionMissionPeoSeeder::class);
     $this->call(ProgramOutcomeSeeder::class);
     $this->call(BloomSeeder::class);
+    $this->call(CloSeeder::class);
   }
 }

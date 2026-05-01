@@ -113,6 +113,7 @@ use App\Http\Controllers\MissionController;
 use App\Http\Controllers\PeoController;
 use App\Http\Controllers\ProgramOutcomeController;
 use App\Http\Controllers\BloomController;
+use App\Http\Controllers\CloController;
 use App\Http\Controllers\DriverHelperAssignmentReportController;
 use App\Http\Controllers\DriverTripReportController;
 use App\Http\Controllers\FuelController;
@@ -195,6 +196,8 @@ Route::prefix('ajax')->group(function () {
         ->name('ajax.program.semesters');
     Route::get('program/{program}/courses', [CourseAssignmentCascadeController::class, 'programCourses'])
         ->name('ajax.program.courses');
+    Route::get('program/{program}/courses-for-clo', [CloController::class, 'coursesByProgram'])
+        ->name('ajax.clo.program.courses');
     Route::get('batch/{batch}/sections', [CourseAssignmentCascadeController::class, 'batchSections'])
         ->name('ajax.batch.sections');
     Route::get('semester/{semester}/courses', [CourseAssignmentCascadeController::class, 'semesterCourses'])
@@ -216,6 +219,7 @@ Route::resource('missions', MissionController::class);
 Route::resource('peos', PeoController::class);
 
 Route::resource('blooms', BloomController::class);
+Route::resource('clos', CloController::class);
 
 Route::resource('program-outcomes', ProgramOutcomeController::class)->names([
     'index' => 'program-outcomes.index',

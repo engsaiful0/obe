@@ -196,6 +196,11 @@ return '';
                         <div>{{ __("Bloom taxonomy") }}</div>
                     </a>
                 </li>
+                <li class="menu-item {{ request()->routeIs('clos.*') ? 'active' : '' }}">
+                    <a href="{{ route('clos.index') }}" class="menu-link">
+                        <div>{{ __('Course learning outcomes (CLO)') }}</div>
+                    </a>
+                </li>
             </ul>
         </li>
         @endpermission

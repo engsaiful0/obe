@@ -71,4 +71,9 @@ class Program extends Model
     {
         return $this->hasMany(ProgramOutcome::class);
     }
+
+    public function clos()
+    {
+        return $this->hasMany(Clo::class);
+    }
 }
