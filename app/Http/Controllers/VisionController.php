@@ -2,18 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\RespondsWithJsonForAjax;
 use App\Http\Requests\StoreVisionRequest;
 use App\Http\Requests\UpdateVisionRequest;
 use App\Models\Department;
 use App\Models\University;
 use App\Models\Vision;
 use App\Support\ObeStatus;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class VisionController extends Controller
 {
+    use RespondsWithJsonForAjax;
+
     protected function filteredQuery(Request $request)
     {
         $query = Vision::query()->with([
@@ -73,11 +77,11 @@ class VisionController extends Controller
         ];
     }
 
-    public function store(StoreVisionRequest $request): RedirectResponse
+    public function store(StoreVisionRequest $request): JsonResponse|RedirectResponse
     {
         Vision::create($request->validated());
 
-        return redirect()->route('visions.index')->with('success', __('Vision saved successfully.'));
+        return $this->respondSaved($request, __('Vision saved successfully.'), 'visions.index');
     }
 
     public function show(Vision $vision): View
@@ -92,17 +96,17 @@ class VisionController extends Controller
         return view('content.visions.edit', array_merge($this->formLookups(), compact('vision')));
     }
 
-    public function update(UpdateVisionRequest $request, Vision $vision): RedirectResponse
+    public function update(UpdateVisionRequest $request, Vision $vision): JsonResponse|RedirectResponse
     {
         $vision->update($request->validated());
 
-        return redirect()->route('visions.index')->with('success', __('Vision updated successfully.'));
+        return $this->respondSaved($request, __('Vision updated successfully.'), 'visions.index');
     }
 
-    public function destroy(Vision $vision): RedirectResponse
+    public function destroy(Request $request, Vision $vision): JsonResponse|RedirectResponse
     {
         $vision->delete();
 
-        return redirect()->route('visions.index')->with('success', __('Vision removed successfully.'));
+        return $this->respondDeleted($request, __('Vision removed successfully.'), 'visions.index');
     }
 }

@@ -89,11 +89,17 @@
                             <td class="text-end">
                                 <a href="{{ route('visions.show', $row) }}" class="btn btn-sm btn-outline-info">{{ __('View') }}</a>
                                 <a href="{{ route('visions.edit', $row) }}" class="btn btn-sm btn-outline-warning">{{ __('Edit') }}</a>
-                                <form class="d-inline" method="POST" action="{{ route('visions.destroy', $row) }}"
-                                    onsubmit="return confirm(@json(__('Delete this vision?')));">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('Delete') }}</button>
-                                </form>
+                                <button type="button"
+                                    class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 obe-vision-delete-btn"
+                                    data-async-delete-url="{{ route('visions.destroy', $row) }}"
+                                    data-swal-title="{{ __('Delete vision') }}"
+                                    data-confirm="{{ __('Are you sure you want to delete this vision?') }}"
+                                    data-confirm-yes="{{ __('Yes, delete') }}"
+                                    data-confirm-no="{{ __('Cancel') }}"
+                                    aria-label="{{ __('Delete') }}">
+                                    <span class="obe-btn-label">{{ __('Delete') }}</span>
+                                    <span class="spinner-border spinner-border-sm d-none obe-btn-spinner" role="status" aria-hidden="true"></span>
+                                </button>
                             </td>
                         </tr>
                     @empty
@@ -105,4 +111,8 @@
         {{ $visions->links() }}
     </div>
 </div>
+@endsection
+
+@section('page-script')
+<script src="{{ asset('assets/js/obe-ajax-crud.js') }}"></script>
 @endsection

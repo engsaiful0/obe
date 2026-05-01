@@ -6,14 +6,22 @@
 <div class="card">
     <div class="card-header"><h5 class="mb-0">{{ __('New PEO') }}</h5></div>
     <div class="card-body">
-        <form method="POST" action="{{ route('peos.store') }}">
+        <form method="POST" action="{{ route('peos.store') }}" data-ajax-submit>
             @csrf
+            <div class="alert alert-danger d-none mb-3" role="alert" data-ajax-errors></div>
             @include('content.peos._form', ['peo' => null])
             <div class="mt-3 d-flex gap-2">
-                <button type="submit" class="btn btn-primary">{{ __('Save') }}</button>
+                <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2 obe-ajax-primary">
+                    <span class="obe-btn-label">{{ __('Save') }}</span>
+                    <span class="spinner-border spinner-border-sm d-none obe-btn-spinner" role="status" aria-hidden="true"></span>
+                </button>
                 <a href="{{ route('peos.index') }}" class="btn btn-outline-secondary">{{ __('Cancel') }}</a>
             </div>
         </form>
     </div>
 </div>
+@endsection
+
+@section('page-script')
+<script src="{{ asset('assets/js/obe-ajax-crud.js') }}"></script>
 @endsection

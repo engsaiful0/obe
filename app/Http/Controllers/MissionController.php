@@ -2,18 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\RespondsWithJsonForAjax;
 use App\Http\Requests\StoreMissionRequest;
 use App\Http\Requests\UpdateMissionRequest;
 use App\Models\Department;
 use App\Models\Mission;
 use App\Models\University;
 use App\Support\ObeStatus;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class MissionController extends Controller
 {
+    use RespondsWithJsonForAjax;
+
     protected function filteredQuery(Request $request)
     {
         $query = Mission::query()->with([
@@ -73,11 +77,11 @@ class MissionController extends Controller
         ];
     }
 
-    public function store(StoreMissionRequest $request): RedirectResponse
+    public function store(StoreMissionRequest $request): JsonResponse|RedirectResponse
     {
         Mission::create($request->validated());
 
-        return redirect()->route('missions.index')->with('success', __('Mission saved successfully.'));
+        return $this->respondSaved($request, __('Mission saved successfully.'), 'missions.index');
     }
 
     public function show(Mission $mission): View
@@ -92,17 +96,17 @@ class MissionController extends Controller
         return view('content.missions.edit', array_merge($this->formLookups(), compact('mission')));
     }
 
-    public function update(UpdateMissionRequest $request, Mission $mission): RedirectResponse
+    public function update(UpdateMissionRequest $request, Mission $mission): JsonResponse|RedirectResponse
     {
         $mission->update($request->validated());
 
-        return redirect()->route('missions.index')->with('success', __('Mission updated successfully.'));
+        return $this->respondSaved($request, __('Mission updated successfully.'), 'missions.index');
     }
 
-    public function destroy(Mission $mission): RedirectResponse
+    public function destroy(Request $request, Mission $mission): JsonResponse|RedirectResponse
     {
         $mission->delete();
 
-        return redirect()->route('missions.index')->with('success', __('Mission removed successfully.'));
+        return $this->respondDeleted($request, __('Mission removed successfully.'), 'missions.index');
     }
 }

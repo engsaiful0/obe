@@ -90,9 +90,12 @@
                                 <a href="{{ route('missions.show', $row) }}" class="btn btn-sm btn-outline-info">{{ __('View') }}</a>
                                 <a href="{{ route('missions.edit', $row) }}" class="btn btn-sm btn-outline-warning">{{ __('Edit') }}</a>
                                 <form class="d-inline" method="POST" action="{{ route('missions.destroy', $row) }}"
-                                    onsubmit="return confirm(@json(__('Delete this mission?')));">
+                                    data-ajax-delete data-confirm="{{ __('Delete this mission?') }}">
                                     @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('Delete') }}</button>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 obe-ajax-delete-btn">
+                                        <span class="obe-btn-label">{{ __('Delete') }}</span>
+                                        <span class="spinner-border spinner-border-sm d-none obe-btn-spinner" role="status" aria-hidden="true"></span>
+                                    </button>
                                 </form>
                             </td>
                         </tr>
@@ -105,4 +108,8 @@
         {{ $missions->links() }}
     </div>
 </div>
+@endsection
+
+@section('page-script')
+<script src="{{ asset('assets/js/obe-ajax-crud.js') }}"></script>
 @endsection

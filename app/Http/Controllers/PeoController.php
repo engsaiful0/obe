@@ -2,18 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\RespondsWithJsonForAjax;
 use App\Http\Requests\StorePeoRequest;
 use App\Http\Requests\UpdatePeoRequest;
 use App\Models\Department;
 use App\Models\Peo;
 use App\Models\Program;
 use App\Support\ObeStatus;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class PeoController extends Controller
 {
+    use RespondsWithJsonForAjax;
+
     public function index(Request $request): View
     {
         $query = Peo::query()->with([
@@ -64,11 +68,11 @@ class PeoController extends Controller
         ];
     }
 
-    public function store(StorePeoRequest $request): RedirectResponse
+    public function store(StorePeoRequest $request): JsonResponse|RedirectResponse
     {
         Peo::create($request->validated());
 
-        return redirect()->route('peos.index')->with('success', __('PEO saved successfully.'));
+        return $this->respondSaved($request, __('PEO saved successfully.'), 'peos.index');
     }
 
     public function show(Peo $peo): View
@@ -83,17 +87,17 @@ class PeoController extends Controller
         return view('content.peos.edit', array_merge($this->formLookups(), compact('peo')));
     }
 
-    public function update(UpdatePeoRequest $request, Peo $peo): RedirectResponse
+    public function update(UpdatePeoRequest $request, Peo $peo): JsonResponse|RedirectResponse
     {
         $peo->update($request->validated());
 
-        return redirect()->route('peos.index')->with('success', __('PEO updated successfully.'));
+        return $this->respondSaved($request, __('PEO updated successfully.'), 'peos.index');
     }
 
-    public function destroy(Peo $peo): RedirectResponse
+    public function destroy(Request $request, Peo $peo): JsonResponse|RedirectResponse
     {
         $peo->delete();
 
-        return redirect()->route('peos.index')->with('success', __('PEO removed successfully.'));
+        return $this->respondDeleted($request, __('PEO removed successfully.'), 'peos.index');
     }
 }
