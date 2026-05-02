@@ -107,6 +107,26 @@ trait ValidatesStudentMarkContext
     }
 
     /**
+     * Bulk marks: session, program, and course only (no batch/section). Batch on stored marks comes from each student’s record.
+     *
+     * @return array<string, mixed>
+     */
+    protected function studentMarkBulkMinimalRules(): array
+    {
+        $programId = (int) $this->input('program_id');
+
+        return [
+            'academic_session_id' => ['required', 'integer', 'exists:academic_sessions,id'],
+            'program_id' => ['required', 'integer', 'exists:programs,id'],
+            'course_id' => [
+                'required',
+                'integer',
+                Rule::exists('courses', 'id')->where(fn ($q) => $q->where('program_id', $programId)),
+            ],
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     protected function obeMarkStatusRules(): array

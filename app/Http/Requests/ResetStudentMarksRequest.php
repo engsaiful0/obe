@@ -27,7 +27,7 @@ class ResetStudentMarksRequest extends FormRequest
         $bulk = $this->boolean('bulk_all');
 
         return array_merge(
-            $bulk ? $this->studentMarkContextWithoutComponentRules() : $this->studentMarkContextRules(),
+            $bulk ? $this->studentMarkBulkMinimalRules() : $this->studentMarkContextRules(),
             ['bulk_all' => ['sometimes', 'boolean']]
         );
     }

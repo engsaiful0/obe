@@ -193,6 +193,7 @@
   function wireCascade(scope, cascade, opts) {
     opts = opts || {};
     var skipAssessmentComponents = !!opts.skipAssessmentComponents;
+    var skipBatchAndSection = !!opts.skipBatchAndSection;
     if (!scope || !cascade) return {};
 
     var elProg = scope.querySelector('#sm_prog');
@@ -367,7 +368,10 @@
     var form = document.getElementById('sm-bulk-filters');
     if (!form || !routes.bulkSave) return;
 
-    wireCascade(form, cascade, { skipAssessmentComponents: true });
+    wireCascade(form, cascade, {
+      skipAssessmentComponents: true,
+      skipBatchAndSection: true
+    });
 
     var qCourseUrl = routes.questionsByCourseApi || routes.questionsApi;
 
@@ -396,9 +400,7 @@
       return {
         academic_session_id: pick('academic_session_id'),
         program_id: pick('program_id'),
-        course_id: pick('course_id'),
-        batch_id: pick('batch_id'),
-        section_id: pick('section_id')
+        course_id: pick('course_id')
       };
     }
 
@@ -407,10 +409,6 @@
       params.set('academic_session_id', f.academic_session_id);
       params.set('program_id', f.program_id);
       params.set('course_id', f.course_id);
-      params.set('batch_id', f.batch_id);
-      if (f.section_id) {
-        params.set('section_id', f.section_id);
-      }
     }
 
     function flattenQuestionsFromComponents(components) {
@@ -438,17 +436,26 @@
         .replace(/"/g, '&quot;');
     }
 
-    function syncBulkLoadButton() {
-      if (!btnLoad) return;
+    function syncBulkFilterButtons() {
       var f = readFilters();
-      btnLoad.disabled = !(f.academic_session_id && f.program_id && f.course_id && f.batch_id);
+      var hasSessionProgramCourse = !!(
+        f.academic_session_id &&
+        f.program_id &&
+        f.course_id
+      );
+      if (btnLoad) {
+        btnLoad.disabled = !(hasSessionProgramCourse);
+      }
+      if (btnTemplate) {
+        btnTemplate.disabled = !hasSessionProgramCourse;
+      }
     }
 
-    window.__studentMarksSyncBulkLoadBtn = syncBulkLoadButton;
+    window.__studentMarksSyncBulkLoadBtn = syncBulkFilterButtons;
     form.querySelectorAll('select').forEach(function (sel) {
-      sel.addEventListener('change', syncBulkLoadButton);
+      sel.addEventListener('change', syncBulkFilterButtons);
     });
-    syncBulkLoadButton();
+    syncBulkFilterButtons();
 
     function showFeedback(msgOrNull) {
       if (!feedback) return;
@@ -601,8 +608,8 @@
     if (btnLoad && qCourseUrl) {
       btnLoad.addEventListener('click', function () {
         var f = readFilters();
-        if (!f.academic_session_id || !f.program_id || !f.course_id || !f.batch_id) {
-          showFeedback('Fill session, program, course, and batch.');
+        if (!f.academic_session_id || !f.program_id || !f.course_id) {
+          showFeedback('Fill session, program, course.');
           return;
         }
         showFeedback(null);
@@ -705,8 +712,6 @@
             academic_session_id: f.academic_session_id,
             program_id: f.program_id,
             course_id: f.course_id,
-            batch_id: f.batch_id,
-            section_id: f.section_id || null,
             rows: rowsPayload
           })
         })
@@ -753,8 +758,8 @@
     if (btnTemplate) {
       btnTemplate.addEventListener('click', function () {
         var f = readFilters();
-        if (!f.academic_session_id || !f.program_id || !f.course_id || !f.batch_id) {
-          if (typeof toastr !== 'undefined') toastr.error('Select session, program, course, and batch first.');
+        if (!f.academic_session_id || !f.program_id || !f.course_id) {
+          if (typeof toastr !== 'undefined') toastr.error('Select academic session, program, and course first.');
           return;
         }
         try {
@@ -775,14 +780,13 @@
     if (btnReset && routes.reset) {
       btnReset.addEventListener('click', function () {
         var f = readFilters();
-        if (!f.academic_session_id || !f.program_id || !f.course_id || !f.batch_id) {
+        if (!f.academic_session_id || !f.program_id || !f.course_id) {
           if (typeof toastr !== 'undefined') toastr.error('Select filters first.');
           return;
         }
 
         confirmSwal(
-          'Delete all marks for every assessment component under this session, program, course, and batch' +
-            (f.section_id ? ' and selected section?' : '?'),
+          'Delete all marks for every assessment component under this academic session, program, and course?',
           { confirmText: 'Yes, reset', cancelText: 'Cancel', icon: 'warning' }
         ).then(function (ok) {
           if (!ok) return;
@@ -797,19 +801,13 @@
               'X-CSRF-TOKEN': csrfToken(),
               'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify(
-              Object.assign(
-                {
-                  _token: csrfToken(),
-                  bulk_all: true,
-                  academic_session_id: f.academic_session_id,
-                  program_id: f.program_id,
-                  course_id: f.course_id,
-                  batch_id: f.batch_id
-                },
-                f.section_id ? { section_id: f.section_id } : {}
-              )
-            )
+            body: JSON.stringify({
+              _token: csrfToken(),
+              bulk_all: true,
+              academic_session_id: f.academic_session_id,
+              program_id: f.program_id,
+              course_id: f.course_id
+            })
           })
             .then(function (res) {
               return res.json().then(function (data) {
@@ -844,16 +842,14 @@
         fd.append('academic_session_id', filt.academic_session_id);
         fd.append('program_id', filt.program_id);
         fd.append('course_id', filt.course_id);
-        fd.append('batch_id', filt.batch_id);
-        if (filt.section_id) fd.append('section_id', filt.section_id);
 
         var fileInp = document.getElementById('sm-import-file');
         if (!fileInp || !fileInp.files || !fileInp.files.length) {
           if (typeof toastr !== 'undefined') toastr.error('Choose a file.');
           return;
         }
-        if (!filt.academic_session_id || !filt.program_id || !filt.course_id || !filt.batch_id) {
-          if (typeof toastr !== 'undefined') toastr.error('Select session, program, course, and batch first.');
+        if (!filt.academic_session_id || !filt.program_id || !filt.course_id) {
+          if (typeof toastr !== 'undefined') toastr.error('Select academic session, program, and course first.');
           return;
         }
 
@@ -959,8 +955,8 @@
         academic_session_id: pick(root.querySelector('#sm_sess')),
         program_id: pick(root.querySelector('#sm_prog')),
         course_id: pick(root.querySelector('#sm_course')),
-        batch_id: pick(root.querySelector('#sm_batch')),
-        section_id: pick(root.querySelector('#sm_section'))
+        // batch_id: pick(root.querySelector('#sm_batch')),
+        // section_id: pick(root.querySelector('#sm_section'))
       };
     }
 
@@ -970,8 +966,8 @@
       btnLoad.disabled = !(
         f.academic_session_id &&
         f.program_id &&
-        f.course_id &&
-        f.batch_id
+        f.course_id 
+        // f.batch_id
       );
     }
 
@@ -984,7 +980,7 @@
     btnLoad.addEventListener('click', function () {
       var f = readSetupFilterVals();
 
-      if (!f.academic_session_id || !f.program_id || !f.course_id || !f.batch_id) {
+      if (!f.academic_session_id || !f.program_id || !f.course_id) {
         if (typeof toastr !== 'undefined') toastr.error('Complete all required filters.');
         return;
       }
@@ -993,8 +989,8 @@
       pParamsQs.set('academic_session_id', f.academic_session_id);
       pParamsQs.set('program_id', f.program_id);
       pParamsQs.set('course_id', f.course_id);
-      pParamsQs.set('batch_id', f.batch_id);
-      if (f.section_id) pParamsQs.set('section_id', f.section_id);
+      // pParamsQs.set('batch_id', f.batch_id);
+      // if (f.section_id) pParamsQs.set('section_id', f.section_id);
 
       var pStudent = new URLSearchParams(pParamsQs);
       pStudent.set('with_marks', '1');
@@ -1022,8 +1018,8 @@
           document.getElementById('hf_sess').value = f.academic_session_id;
           document.getElementById('hf_prog').value = f.program_id;
           document.getElementById('hf_course').value = f.course_id;
-          document.getElementById('hf_batch').value = f.batch_id;
-          document.getElementById('hf_section').value = f.section_id || '';
+          // document.getElementById('hf_batch').value = f.batch_id;
+          // document.getElementById('hf_section').value = f.section_id || '';
 
           loadedStudentsSnapshot = stPack.data.students || [];
 

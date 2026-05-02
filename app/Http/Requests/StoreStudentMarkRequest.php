@@ -28,7 +28,7 @@ class StoreStudentMarkRequest extends FormRequest
         $multi = $this->hasStructuredComponentMarks();
 
         $context = $multi
-            ? $this->studentMarkContextWithoutComponentRules()
+            ? $this->studentMarkBulkMinimalRules()
             : $this->studentMarkContextRules();
 
         $courseId = (int) $this->input('course_id');

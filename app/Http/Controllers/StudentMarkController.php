@@ -181,26 +181,25 @@ class StudentMarkController extends Controller
             'academic_session_id' => $data['academic_session_id'],
             'program_id' => $data['program_id'],
             'course_id' => $data['course_id'],
-            'batch_id' => $data['batch_id'],
-            'section_id' => $data['section_id'] ?? null,
         ];
 
-        $ctxErr = $this->validateStudentInContext((int) $data['student_id'], $base);
+        $ctxErr = $this->validateStudentInMinimalContext((int) $data['student_id'], $base);
         if ($ctxErr) {
             return response()->json(['message' => __('Validation failed.'), 'errors' => ['form' => [$ctxErr]]], 422);
         }
+
+        $mappingCtx = ['section_id' => null];
 
         $errors = [];
         foreach ($data['component_marks'] as $block) {
             $compId = (int) ($block['assessment_component_id'] ?? 0);
             $component = AssessmentComponent::query()->findOrFail($compId);
-            $ctx = array_merge($base, ['assessment_component_id' => $compId]);
             $mappings = $this->questionMappingsForContext(
                 (int) $data['academic_session_id'],
                 (int) $data['program_id'],
                 (int) $data['course_id'],
                 $compId,
-                ['section_id' => $data['section_id'] ?? null]
+                $mappingCtx
             )->keyBy(fn ($m) => (int) $m->getKey());
 
             $errors = array_merge($errors, MarkRules::validateCompleteQuestionSet($block['questions'], $mappings));
@@ -218,8 +217,14 @@ class StudentMarkController extends Controller
 
         try {
             DB::transaction(function () use ($data, $base) {
+                $student = Student::query()->findOrFail((int) $data['student_id']);
+                $batchId = (int) $student->batch_id;
                 foreach ($data['component_marks'] as $block) {
-                    $ctx = array_merge($base, ['assessment_component_id' => (int) $block['assessment_component_id']]);
+                    $ctx = array_merge($base, [
+                        'batch_id' => $batchId,
+                        'section_id' => null,
+                        'assessment_component_id' => (int) $block['assessment_component_id'],
+                    ]);
                     $this->persistStudentMark(
                         $ctx,
                         (int) $data['student_id'],
@@ -346,15 +351,15 @@ class StudentMarkController extends Controller
             'academic_session_id' => $data['academic_session_id'],
             'program_id' => $data['program_id'],
             'course_id' => $data['course_id'],
-            'batch_id' => $data['batch_id'],
-            'section_id' => $data['section_id'] ?? null,
         ];
+
+        $mappingCtx = ['section_id' => null];
 
         $batchErrors = [];
         foreach ($data['rows'] as $i => $row) {
             $errs = [];
 
-            $ctxErr = $this->validateStudentInContext((int) $row['student_id'], $base);
+            $ctxErr = $this->validateStudentInMinimalContext((int) $row['student_id'], $base);
             if ($ctxErr) {
                 $errs[] = $ctxErr;
             }
@@ -371,7 +376,7 @@ class StudentMarkController extends Controller
                     (int) $data['program_id'],
                     (int) $data['course_id'],
                     $compId,
-                    ['section_id' => $data['section_id'] ?? null]
+                    $mappingCtx
                 )->keyBy(fn ($m) => (int) $m->getKey());
 
                 $errs = array_merge($errs, MarkRules::validateCompleteQuestionSet($block['questions'], $mappings));
@@ -398,8 +403,17 @@ class StudentMarkController extends Controller
         try {
             DB::transaction(function () use ($data, $base) {
                 foreach ($data['rows'] as $row) {
+                    $student = Student::query()->find((int) $row['student_id']);
+                    if ($student === null) {
+                        continue;
+                    }
+                    $batchId = (int) $student->batch_id;
                     foreach ($row['component_marks'] ?? [] as $block) {
-                        $ctx = array_merge($base, ['assessment_component_id' => (int) $block['assessment_component_id']]);
+                        $ctx = array_merge($base, [
+                            'batch_id' => $batchId,
+                            'section_id' => null,
+                            'assessment_component_id' => (int) $block['assessment_component_id'],
+                        ]);
                         $this->persistStudentMark(
                             $ctx,
                             (int) $row['student_id'],
@@ -426,6 +440,91 @@ class StudentMarkController extends Controller
     public function getStudentsByFilter(Request $request): JsonResponse
     {
         $allComponents = $request->boolean('all_components');
+        $hasBatch = $request->filled('batch_id');
+
+        if (! $hasBatch) {
+            $rules = array_merge($this->inlineContextRulesMinimal(), [
+                'with_marks' => ['sometimes'],
+                'all_components' => ['sometimes'],
+            ]);
+            if (! $allComponents) {
+                $courseId = (int) $request->input('course_id');
+                $rules['assessment_component_id'] = [
+                    'required',
+                    'integer',
+                    Rule::exists('assessment_components', 'id')->where(fn ($q) => $q->where('course_id', $courseId)),
+                ];
+            }
+            $validated = Validator::make($request->all(), $rules)->validate();
+
+            $students = $this->studentsQueryForMinimalContext($validated)
+                ->orderBy('student_name')
+                ->get(['id', 'student_code', 'student_name']);
+
+            $existingByStudentSingle = collect();
+            $existingByStudentMulti = collect();
+
+            if ($request->boolean('with_marks')) {
+                $marksQuery = StudentMark::query()
+                    ->where('academic_session_id', (int) $validated['academic_session_id'])
+                    ->where('program_id', (int) $validated['program_id'])
+                    ->where('course_id', (int) $validated['course_id'])
+                    ->with('studentQuestionMarks');
+
+                if ($allComponents) {
+                    $existingByStudentMulti = $marksQuery->get()->groupBy('student_id');
+                } else {
+                    $existingByStudentSingle = $marksQuery
+                        ->where('assessment_component_id', (int) $validated['assessment_component_id'])
+                        ->get()
+                        ->keyBy('student_id');
+                }
+            }
+
+            $component = $allComponents
+                ? null
+                : AssessmentComponent::query()->find((int) $validated['assessment_component_id']);
+
+            return response()->json([
+                'students' => $students->map(function (Student $s) use ($allComponents, $existingByStudentSingle, $existingByStudentMulti) {
+                    $row = [
+                        'id' => $s->id,
+                        'student_code' => $s->student_code,
+                        'student_name' => $s->student_name,
+                    ];
+
+                    if ($allComponents) {
+                        $bundle = $existingByStudentMulti->get($s->id);
+                        if ($bundle !== null && $bundle->isNotEmpty()) {
+                            /** @var \Illuminate\Support\Collection<int, StudentMark> $bundle */
+                            $row['existing_by_component'] = $bundle->mapWithKeys(fn (StudentMark $mark) => [
+                                (int) $mark->assessment_component_id => [
+                                    'total_marks' => (float) $mark->total_marks,
+                                    'status_id' => (int) $mark->status_id,
+                                    'question_marks' => $mark->studentQuestionMarks->mapWithKeys(
+                                        fn (StudentQuestionMark $qm) => [(int) $qm->question_clo_mapping_id => (float) $qm->obtained_marks]
+                                    ),
+                                ],
+                            ]);
+                        }
+                    } else {
+                        $mark = $existingByStudentSingle->get($s->id);
+                        if ($mark) {
+                            $row['existing'] = [
+                                'total_marks' => (float) $mark->total_marks,
+                                'status_id' => (int) $mark->status_id,
+                                'question_marks' => $mark->studentQuestionMarks->mapWithKeys(
+                                    fn (StudentQuestionMark $qm) => [(int) $qm->question_clo_mapping_id => (float) $qm->obtained_marks]
+                                ),
+                            ];
+                        }
+                    }
+
+                    return $row;
+                }),
+                'component' => $component ? ['marks' => (float) $component->marks] : null,
+            ]);
+        }
 
         $validated = Validator::make(
             $request->all(),
@@ -516,7 +615,7 @@ class StudentMarkController extends Controller
 
     public function getQuestionsForCourse(Request $request): JsonResponse
     {
-        $validated = Validator::make($request->all(), $this->inlineContextRules($request->all(), false))->validate();
+        $validated = Validator::make($request->all(), $this->inlineContextRulesMinimal())->validate();
 
         $components = AssessmentComponent::query()
             ->where('course_id', (int) $validated['course_id'])
@@ -530,7 +629,7 @@ class StudentMarkController extends Controller
                 (int) $validated['program_id'],
                 (int) $validated['course_id'],
                 (int) $ac->getKey(),
-                ['section_id' => $validated['section_id'] ?? null]
+                ['section_id' => null]
             );
             if ($mappings->isEmpty()) {
                 continue;
@@ -587,21 +686,23 @@ class StudentMarkController extends Controller
             ->all();
 
         $bulkAll = $request->boolean('bulk_all');
-        $validator = Validator::make($queryInput, $this->inlineContextRules($queryInput, ! $bulkAll));
+        $rules = $bulkAll
+            ? $this->inlineContextRulesMinimal()
+            : $this->inlineContextRules($queryInput, true);
+        $validator = Validator::make($queryInput, $rules);
         if ($validator->fails()) {
             return redirect()->route('student-marks.bulk')->withErrors($validator);
         }
 
         /** @var array<string, mixed> $validated */
         $validated = $validator->validated();
-        $validated['section_id'] = $validated['section_id'] ?? null;
 
         $mappings = $bulkAll
             ? $this->flattenedQuestionMappingsForBulkTemplate(
                 (int) $validated['academic_session_id'],
                 (int) $validated['program_id'],
                 (int) $validated['course_id'],
-                $validated['section_id'] ?? null ? (int) $validated['section_id'] : null
+                null
             )
             : $this->questionMappingsForContext(
                 (int) $validated['academic_session_id'],
@@ -615,18 +716,21 @@ class StudentMarkController extends Controller
             return redirect()->route('student-marks.bulk')->with(
                 'error',
                 $bulkAll
-                    ? __('No question–CLO mappings exist for any component in this session and section.')
+                    ? __('No question–CLO mappings exist for any component in this session.')
                     : __('No question–CLO mappings exist for this session and component.')
             );
         }
 
-        $sectionModel = ! empty($validated['section_id'])
-            ? Section::query()->find((int) $validated['section_id'])
-            : null;
-
-        $students = $this->studentsQueryForContext($validated, $sectionModel)
-            ->orderBy('student_name')
-            ->get(['student_code', 'student_name']);
+        $students = $bulkAll
+            ? $this->studentsQueryForMinimalContext($validated)
+                ->orderBy('student_name')
+                ->get(['student_code', 'student_name'])
+            : $this->studentsQueryForContext(
+                $validated,
+                ! empty($validated['section_id']) ? Section::query()->find((int) $validated['section_id']) : null
+            )
+                ->orderBy('student_name')
+                ->get(['student_code', 'student_name']);
 
         $headings = array_merge(
             ['Student ID', 'Student Name'],
@@ -665,7 +769,7 @@ class StudentMarkController extends Controller
                 (int) $data['academic_session_id'],
                 (int) $data['program_id'],
                 (int) $data['course_id'],
-                isset($data['section_id']) && $data['section_id'] !== null ? (int) $data['section_id'] : null
+                null
             );
             $mappingsById = $mappingsFlat->keyBy(fn ($m) => (int) $m->getKey());
         } else {
@@ -708,9 +812,11 @@ class StudentMarkController extends Controller
             'academic_session_id' => $data['academic_session_id'],
             'program_id' => $data['program_id'],
             'course_id' => $data['course_id'],
-            'batch_id' => $data['batch_id'],
-            'section_id' => $data['section_id'] ?? null,
         ];
+        if (! $bulkAll) {
+            $baseContext['batch_id'] = $data['batch_id'];
+            $baseContext['section_id'] = $data['section_id'] ?? null;
+        }
 
         $rowErrors = [];
         $preparedRows = [];
@@ -746,7 +852,9 @@ class StudentMarkController extends Controller
                 continue;
             }
 
-            $ctxErr = $this->validateStudentInContext((int) $student->getKey(), $baseContext);
+            $ctxErr = $bulkAll
+                ? $this->validateStudentInMinimalContext((int) $student->getKey(), $baseContext)
+                : $this->validateStudentInContext((int) $student->getKey(), $baseContext);
             if ($ctxErr) {
                 $rowErrors[] = __('Row :row, Student :code: :detail', [
                     'row' => $rowNumber,
@@ -889,8 +997,14 @@ class StudentMarkController extends Controller
             DB::transaction(function () use ($data, $baseContext, $preparedRows, $bulkAll) {
                 foreach ($preparedRows as $row) {
                     if ($bulkAll) {
+                        $student = Student::query()->findOrFail((int) $row['student_id']);
+                        $batchId = (int) $student->batch_id;
                         foreach ($row['component_marks'] as $block) {
-                            $ctx = array_merge($baseContext, ['assessment_component_id' => (int) $block['assessment_component_id']]);
+                            $ctx = array_merge($baseContext, [
+                                'batch_id' => $batchId,
+                                'section_id' => null,
+                                'assessment_component_id' => (int) $block['assessment_component_id'],
+                            ]);
                             $this->persistStudentMark(
                                 $ctx,
                                 (int) $row['student_id'],
@@ -933,15 +1047,19 @@ class StudentMarkController extends Controller
         $query = StudentMark::query()
             ->where('academic_session_id', (int) $data['academic_session_id'])
             ->where('program_id', (int) $data['program_id'])
-            ->where('course_id', (int) $data['course_id'])
-            ->where('batch_id', (int) $data['batch_id']);
+            ->where('course_id', (int) $data['course_id']);
 
-        if (! $bulkAll) {
-            $query->where('assessment_component_id', (int) $data['assessment_component_id']);
-        }
+        if ($bulkAll) {
+            // Remove all component marks for this session/program/course regardless of stored batch/section.
+        } else {
+            $query->where('batch_id', (int) $data['batch_id'])
+                ->where('assessment_component_id', (int) $data['assessment_component_id']);
 
-        if (! empty($data['section_id'])) {
-            $query->where('section_id', (int) $data['section_id']);
+            if (! empty($data['section_id'])) {
+                $query->where('section_id', (int) $data['section_id']);
+            } else {
+                $query->whereNull('section_id');
+            }
         }
 
         $marks = $query->get();
@@ -1076,6 +1194,30 @@ class StudentMarkController extends Controller
                     }
                 });
             });
+    }
+
+    /**
+     * All students in the program for the academic session (no batch/section filter).
+     *
+     * @param  array<string, mixed>  $context  academic_session_id, program_id, course_id (course used only for related validations elsewhere)
+     */
+    protected function studentsQueryForMinimalContext(array $context): \Illuminate\Database\Eloquent\Builder
+    {
+        return Student::query()
+            ->where('academic_session_id', (int) $context['academic_session_id'])
+            ->where('program_id', (int) $context['program_id']);
+    }
+
+    /**
+     * @param  array<string, mixed>  $context  academic_session_id, program_id, course_id
+     */
+    protected function validateStudentInMinimalContext(int $studentId, array $context): ?string
+    {
+        $exists = $this->studentsQueryForMinimalContext($context)
+            ->whereKey($studentId)
+            ->exists();
+
+        return $exists ? null : __('Student is not in the selected academic session and program.');
     }
 
     /**
@@ -1235,6 +1377,28 @@ class StudentMarkController extends Controller
             ],
             'labels_to_mapping_id' => $labelToMapping,
             'column_index_by_mapping_id' => $colByMapId,
+        ];
+    }
+
+    /**
+     * Session + program + course only (used for bulk Excel and APIs without batch/section).
+     *
+     * @param  array<string, mixed>|null  $payload
+     * @return array<string, mixed>
+     */
+    protected function inlineContextRulesMinimal(?array $payload = null): array
+    {
+        $payload ??= request()->all();
+        $programId = (int) ($payload['program_id'] ?? 0);
+
+        return [
+            'academic_session_id' => ['required', 'integer', 'exists:academic_sessions,id'],
+            'program_id' => ['required', 'integer', 'exists:programs,id'],
+            'course_id' => [
+                'required',
+                'integer',
+                Rule::exists('courses', 'id')->where(fn ($q) => $q->where('program_id', $programId)),
+            ],
         ];
     }
 
