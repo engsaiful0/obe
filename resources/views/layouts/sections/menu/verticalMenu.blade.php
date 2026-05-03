@@ -111,8 +111,7 @@ return '';
             </ul>
         </li>
         @endpermission
-        
-       <!-- Teacher -->
+         <!-- Teacher -->
         @permission('add-course-assignment')
         <li class="menu-item {{ isMenuActive('course-assignment', $currentRouteName) }}">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
@@ -138,7 +137,33 @@ return '';
         </li>
         @endpermission
 
-        <!-- Report -->
+       <!-- Marks Input -->
+        @permission('student-marks-view')
+        <li class="menu-item {{ isMenuActive('student-marks', $currentRouteName) }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons ti ti-file-text"></i>
+                <div>{{ __('Marks Input') }}</div>
+            </a>
+            <ul class="menu-sub">
+                @permission('student-marks-add')
+                <li class="menu-item {{ $currentRouteName === 'student-marks.bulk' ? 'active' : '' }}">
+                    <a href="{{ route('student-marks.bulk') }}" class="menu-link">
+                        <div>{{ __('Add Marks') }}</div>
+                    </a>
+                </li>
+                @endpermission
+                 @permission('student-marks-view')
+                <li class="menu-item {{ $currentRouteName === 'student-marks.view' ? 'active' : '' }}">
+                    <a href="{{ route('student-marks.index') }}" class="menu-link">
+                        <div>{{ __('View Marks') }}</div>
+                    </a>
+                </li>
+                @endpermission
+               
+            </ul>
+        </li>
+        @endpermission
+ 
         <li class="menu-item {{ isMenuActive('app-report', $currentRouteName) }}">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons ti ti-report"></i>
@@ -216,11 +241,7 @@ return '';
                         <div>{{ __('Question–CLO mapping') }}</div>
                     </a>
                 </li>
-                <li class="menu-item {{ request()->routeIs('student-marks.*') ? 'active' : '' }}">
-                    <a href="{{ route('student-marks.index') }}" class="menu-link">
-                        <div>{{ __('Student marks') }}</div>
-                    </a>
-                </li>
+               
             </ul>
         </li>
         @endpermission

@@ -242,13 +242,21 @@ Route::get('question-clo-mappings/matrix', [QuestionCloMappingController::class,
 Route::resource('question-clo-mappings', QuestionCloMappingController::class);
 
 Route::get('student-marks/bulk', [StudentMarkController::class, 'bulkEntry'])->name('student-marks.bulk');
+
 Route::post('student-marks/bulk-save', [StudentMarkController::class, 'saveBulkMarks'])->name('student-marks.bulk-save');
+Route::get('student-marks/view', [StudentMarkController::class, 'view'])->name('student-marks.view');
+
 Route::get('student-marks/template', [StudentMarkController::class, 'downloadTemplate'])->name('student-marks.template');
+
 Route::post('student-marks/import', [StudentMarkController::class, 'importExcel'])->name('student-marks.import');
+
 Route::post('student-marks/reset', [StudentMarkController::class, 'resetMarks'])->name('student-marks.reset');
+
 Route::get('student-marks/api/students', [StudentMarkController::class, 'getStudentsByFilter'])->name('student-marks.api.students');
 Route::get('student-marks/api/questions', [StudentMarkController::class, 'getQuestionsByComponent'])->name('student-marks.api.questions');
+
 Route::get('student-marks/api/questions-by-course', [StudentMarkController::class, 'getQuestionsForCourse'])->name('student-marks.api.questions-course');
+
 Route::resource('student-marks', StudentMarkController::class);
 
 Route::resource('program-outcomes', ProgramOutcomeController::class)->names([
