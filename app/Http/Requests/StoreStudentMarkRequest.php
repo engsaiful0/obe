@@ -38,6 +38,7 @@ class StoreStudentMarkRequest extends FormRequest
         ]);
 
         if ($multi) {
+            $rules['attendance_marks'] = ['sometimes', 'nullable', 'numeric', 'min:0'];
             $rules['component_marks'] = ['required', 'array', 'min:1'];
             $rules['component_marks.*.assessment_component_id'] = [
                 'required',

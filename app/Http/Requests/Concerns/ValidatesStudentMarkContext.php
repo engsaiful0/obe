@@ -123,6 +123,11 @@ trait ValidatesStudentMarkContext
                 'integer',
                 Rule::exists('courses', 'id')->where(fn ($q) => $q->where('program_id', $programId)),
             ],
+            'section_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('sections', 'id')->where(fn ($q) => $q->where('program_id', $programId)),
+            ],
         ];
     }
 

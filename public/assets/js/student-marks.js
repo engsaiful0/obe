@@ -549,6 +549,9 @@
 
       var trh = document.createElement('tr');
       trh.appendChild(document.createElement('th')).textContent = 'Student';
+      var thAtt = document.createElement('th');
+      thAtt.textContent = 'Attendance marks';
+      trh.appendChild(thAtt);
       questions.forEach(function (q) {
         var th = document.createElement('th');
         th.textContent = q.question_label + ' (' + q.marks + ')';
@@ -568,6 +571,18 @@
           escapeHtml(st.student_name || '') +
           '</div>';
         tr.appendChild(nm);
+
+        var tdAtt = document.createElement('td');
+        var inpAtt = document.createElement('input');
+        inpAtt.type = 'text';
+        inpAtt.inputMode = 'decimal';
+        inpAtt.className = 'form-control form-control-sm sm-attendance';
+        inpAtt.setAttribute('data-student-id', String(st.id));
+        if (typeof st.attendance_marks !== 'undefined' && st.attendance_marks !== null && st.attendance_marks !== '') {
+          inpAtt.value = String(st.attendance_marks);
+        }
+        tdAtt.appendChild(inpAtt);
+        tr.appendChild(tdAtt);
 
         questions.forEach(function (q) {
           var td = document.createElement('td');
@@ -660,9 +675,9 @@
         var rowsPayload = [];
 
         tbl.querySelector('tbody').querySelectorAll('tr').forEach(function (tr) {
-          var firstCell = tr.querySelector('input.sm-qpart');
-          if (!firstCell) return;
-          var sid = parseInt(firstCell.getAttribute('data-student-id'), 10);
+          var sidEl = tr.querySelector('input.sm-attendance') || tr.querySelector('input.sm-qpart');
+          if (!sidEl) return;
+          var sid = parseInt(sidEl.getAttribute('data-student-id'), 10);
 
           /** @type {Record<number, { assessment_component_id: number, questions: Array<{ question_clo_mapping_id: number, obtained_marks: number }> }>} */
           var byComp = {};
@@ -692,7 +707,14 @@
               questions: qsArr
             };
           });
-          rowsPayload.push({ student_id: sid, component_marks: blocks });
+          var attInp = tr.querySelector('input.sm-attendance');
+          var rowObj = { student_id: sid, component_marks: blocks };
+          if (attInp) {
+            var attStr = String(attInp.value).replace(',', '.').trim();
+            rowObj.attendance_marks =
+              attStr === '' || !isFinite(parseFloat(attStr)) ? null : Math.round(parseFloat(attStr) * 100) / 100;
+          }
+          rowsPayload.push(rowObj);
         });
 
         showFeedback(null);

@@ -28,6 +28,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -36,6 +37,9 @@ use Maatwebsite\Excel\Facades\Excel;
 class StudentMarkController extends Controller
 {
     use RespondsWithJsonForAjax;
+
+    /** Excel column after Student Name; plain label (no “(max)”); stored on each student_marks row for result use. */
+    private const STUDENT_MARKS_EXCEL_ATTENDANCE_HEADER = 'Attendance marks';
 
     /** @return \Illuminate\Support\Collection<int, Status> */
     protected function obeStatuses(): Collection
@@ -188,18 +192,17 @@ class StudentMarkController extends Controller
             return response()->json(['message' => __('Validation failed.'), 'errors' => ['form' => [$ctxErr]]], 422);
         }
 
-        $mappingCtx = ['section_id' => null];
+        $narrowSection = $this->narrowSectionForBulkMarks($data);
 
         $errors = [];
         foreach ($data['component_marks'] as $block) {
             $compId = (int) ($block['assessment_component_id'] ?? 0);
             $component = AssessmentComponent::query()->findOrFail($compId);
-            $mappings = $this->questionMappingsForContext(
+            $mappings = $this->questionMappingsForBulkEntry(
                 (int) $data['academic_session_id'],
-                (int) $data['program_id'],
                 (int) $data['course_id'],
                 $compId,
-                $mappingCtx
+                $narrowSection
             )->keyBy(fn ($m) => (int) $m->getKey());
 
             $errors = array_merge($errors, MarkRules::validateCompleteQuestionSet($block['questions'], $mappings));
@@ -225,6 +228,9 @@ class StudentMarkController extends Controller
                         'section_id' => null,
                         'assessment_component_id' => (int) $block['assessment_component_id'],
                     ]);
+                    if (array_key_exists('attendance_marks', $data)) {
+                        $ctx['attendance_marks'] = $data['attendance_marks'];
+                    }
                     $this->persistStudentMark(
                         $ctx,
                         (int) $data['student_id'],
@@ -353,7 +359,7 @@ class StudentMarkController extends Controller
             'course_id' => $data['course_id'],
         ];
 
-        $mappingCtx = ['section_id' => null];
+        $narrowSection = $this->narrowSectionForBulkMarks($data);
 
         $batchErrors = [];
         foreach ($data['rows'] as $i => $row) {
@@ -371,12 +377,11 @@ class StudentMarkController extends Controller
                     continue;
                 }
 
-                $mappings = $this->questionMappingsForContext(
+                $mappings = $this->questionMappingsForBulkEntry(
                     (int) $data['academic_session_id'],
-                    (int) $data['program_id'],
                     (int) $data['course_id'],
                     $compId,
-                    $mappingCtx
+                    $narrowSection
                 )->keyBy(fn ($m) => (int) $m->getKey());
 
                 $errs = array_merge($errs, MarkRules::validateCompleteQuestionSet($block['questions'], $mappings));
@@ -414,6 +419,9 @@ class StudentMarkController extends Controller
                             'section_id' => null,
                             'assessment_component_id' => (int) $block['assessment_component_id'],
                         ]);
+                        if (array_key_exists('attendance_marks', $row)) {
+                            $ctx['attendance_marks'] = $row['attendance_marks'];
+                        }
                         $this->persistStudentMark(
                             $ctx,
                             (int) $row['student_id'],
@@ -506,6 +514,10 @@ class StudentMarkController extends Controller
                                     ),
                                 ],
                             ]);
+                            $first = $bundle->first();
+                            if ($first instanceof StudentMark) {
+                                $row['attendance_marks'] = $first->getAttribute('attendance_marks');
+                            }
                         }
                     } else {
                         $mark = $existingByStudentSingle->get($s->id);
@@ -593,6 +605,10 @@ class StudentMarkController extends Controller
                                 ),
                             ],
                         ]);
+                        $first = $bundle->first();
+                        if ($first instanceof StudentMark) {
+                            $row['attendance_marks'] = $first->getAttribute('attendance_marks');
+                        }
                     }
                 } else {
                     $mark = $existingByStudentSingle->get($s->id);
@@ -617,6 +633,8 @@ class StudentMarkController extends Controller
     {
         $validated = Validator::make($request->all(), $this->inlineContextRulesMinimal())->validate();
 
+        $narrowSection = $this->narrowSectionForBulkMarks($validated);
+
         $components = AssessmentComponent::query()
             ->where('course_id', (int) $validated['course_id'])
             ->orderBy('component_name')
@@ -624,16 +642,12 @@ class StudentMarkController extends Controller
 
         $payload = [];
         foreach ($components as $ac) {
-            $mappings = $this->questionMappingsForContext(
+            $mappings = $this->questionMappingsForBulkEntry(
                 (int) $validated['academic_session_id'],
-                (int) $validated['program_id'],
                 (int) $validated['course_id'],
                 (int) $ac->getKey(),
-                ['section_id' => null]
+                $narrowSection
             );
-            if ($mappings->isEmpty()) {
-                continue;
-            }
             $payload[] = [
                 'id' => (int) $ac->getKey(),
                 'component_name' => $ac->component_name,
@@ -696,13 +710,14 @@ class StudentMarkController extends Controller
 
         /** @var array<string, mixed> $validated */
         $validated = $validator->validated();
+        $validated['section_id'] = $validated['section_id'] ?? null;
+        $narrowSection = $this->narrowSectionForBulkMarks($validated);
 
         $mappings = $bulkAll
             ? $this->flattenedQuestionMappingsForBulkTemplate(
                 (int) $validated['academic_session_id'],
-                (int) $validated['program_id'],
                 (int) $validated['course_id'],
-                null
+                $narrowSection
             )
             : $this->questionMappingsForContext(
                 (int) $validated['academic_session_id'],
@@ -733,7 +748,7 @@ class StudentMarkController extends Controller
                 ->get(['student_code', 'student_name']);
 
         $headings = array_merge(
-            ['Student ID', 'Student Name'],
+            ['Student ID', 'Student Name', self::STUDENT_MARKS_EXCEL_ATTENDANCE_HEADER],
             $mappings->map(function (QuestionCloMapping $m) use ($bulkAll) {
                 $max = rtrim(rtrim(number_format((float) $m->marks, 2, '.', ''), '0'), '.');
 
@@ -744,8 +759,9 @@ class StudentMarkController extends Controller
             ['Total']
         );
 
+        /** @var \Illuminate\Support\Collection<int, array<int, string>> $rows */
         $rows = $students->map(function (Student $s) use ($mappings) {
-            $base = [(string) $s->student_code, (string) $s->student_name];
+            $base = [(string) $s->student_code, (string) $s->student_name, ''];
             foreach ($mappings as $_) {
                 $base[] = '';
             }
@@ -753,6 +769,20 @@ class StudentMarkController extends Controller
 
             return $base;
         });
+
+        if ($bulkAll) {
+            $qCount = $mappings->count();
+            $target = max(25, $students->count() + 20);
+            $padTo = max(0, $target - $rows->count());
+            for ($r = 0; $r < $padTo; $r++) {
+                $blank = ['', '', ''];
+                for ($c = 0; $c < $qCount; $c++) {
+                    $blank[] = '';
+                }
+                $blank[] = '';
+                $rows->push($blank);
+            }
+        }
 
         $fileName = 'student_marks_template_'.now()->format('Y-m-d_His').'.xlsx';
 
@@ -767,9 +797,8 @@ class StudentMarkController extends Controller
         if ($bulkAll) {
             $mappingsFlat = $this->flattenedQuestionMappingsForBulkTemplate(
                 (int) $data['academic_session_id'],
-                (int) $data['program_id'],
                 (int) $data['course_id'],
-                null
+                $this->narrowSectionForBulkMarks($data)
             );
             $mappingsById = $mappingsFlat->keyBy(fn ($m) => (int) $m->getKey());
         } else {
@@ -897,6 +926,25 @@ class StudentMarkController extends Controller
                 continue;
             }
 
+            $idxAtt = $parsed['indexes']['attendance_marks'] ?? null;
+            $attendanceMarks = null;
+            $hasAttendanceColumn = $idxAtt !== null;
+            if ($hasAttendanceColumn) {
+                $rawAtt = $cells[$idxAtt] ?? '';
+                $attStr = trim((string) $rawAtt);
+                if ($attStr !== '') {
+                    if (! is_numeric($rawAtt)) {
+                        $rowErrors[] = __('Row :row, Student :code: Attendance marks must be a number or empty.', [
+                            'row' => $rowNumber,
+                            'code' => $studentCode,
+                        ]);
+
+                        continue;
+                    }
+                    $attendanceMarks = round((float) $rawAtt, 2);
+                }
+            }
+
             if ($bulkAll) {
                 $sumParts = round(array_sum(array_column($questions, 'obtained_marks')), 2);
                 if (abs($sumParts - $totalMarks) > 0.0001) {
@@ -957,10 +1005,14 @@ class StudentMarkController extends Controller
                         'questions' => $qList,
                     ];
                 }
-                $preparedRows[] = [
+                $prepared = [
                     'student_id' => (int) $student->getKey(),
                     'component_marks' => $componentBlocks,
                 ];
+                if ($hasAttendanceColumn) {
+                    $prepared['attendance_marks'] = $attendanceMarks;
+                }
+                $preparedRows[] = $prepared;
             } else {
                 /** @var AssessmentComponent $singleComp */
                 $singleComp = AssessmentComponent::query()->findOrFail((int) $data['assessment_component_id']);
@@ -978,11 +1030,15 @@ class StudentMarkController extends Controller
                     continue;
                 }
 
-                $preparedRows[] = [
+                $preparedSingle = [
                     'student_id' => (int) $student->getKey(),
                     'total_marks' => $totalMarks,
                     'questions' => $questions,
                 ];
+                if ($hasAttendanceColumn) {
+                    $preparedSingle['attendance_marks'] = $attendanceMarks;
+                }
+                $preparedRows[] = $preparedSingle;
             }
         }
 
@@ -1005,6 +1061,9 @@ class StudentMarkController extends Controller
                                 'section_id' => null,
                                 'assessment_component_id' => (int) $block['assessment_component_id'],
                             ]);
+                            if (array_key_exists('attendance_marks', $row)) {
+                                $ctx['attendance_marks'] = $row['attendance_marks'];
+                            }
                             $this->persistStudentMark(
                                 $ctx,
                                 (int) $row['student_id'],
@@ -1015,6 +1074,9 @@ class StudentMarkController extends Controller
                         }
                     } else {
                         $ctx = array_merge($baseContext, ['assessment_component_id' => (int) $data['assessment_component_id']]);
+                        if (array_key_exists('attendance_marks', $row)) {
+                            $ctx['attendance_marks'] = $row['attendance_marks'];
+                        }
                         $this->persistStudentMark(
                             $ctx,
                             (int) $row['student_id'],
@@ -1097,7 +1159,7 @@ class StudentMarkController extends Controller
             $mark->restore();
         }
 
-        $mark->fill([
+        $attributes = [
             'academic_session_id' => (int) $context['academic_session_id'],
             'program_id' => (int) $context['program_id'],
             'course_id' => (int) $context['course_id'],
@@ -1107,7 +1169,13 @@ class StudentMarkController extends Controller
             'student_id' => $studentId,
             'total_marks' => $totalMarks,
             'status_id' => $statusId,
-        ]);
+        ];
+
+        if (Schema::hasColumn('student_marks', 'attendance_marks') && array_key_exists('attendance_marks', $context)) {
+            $attributes['attendance_marks'] = $context['attendance_marks'];
+        }
+
+        $mark->fill($attributes);
 
         $mark->save();
 
@@ -1168,6 +1236,53 @@ class StudentMarkController extends Controller
             ->orderBy('question_part')
             ->orderBy('question_label')
             ->get();
+    }
+
+    /**
+     * Bulk / multi-component marks grids: all CLO mapping rows for session + course + component.
+     * Scoped by course_id (not program_id) so rows are not dropped when program_id on the mapping is wrong.
+     * When section_id exists on the table and a narrow section is set, include course-wide (null) rows or that section.
+     *
+     * @return Collection<int, QuestionCloMapping>
+     */
+    protected function questionMappingsForBulkEntry(
+        int $academicSessionId,
+        int $courseId,
+        int $assessmentComponentId,
+        ?int $narrowSectionId
+    ): Collection {
+        $q = QuestionCloMapping::query()
+            ->where('academic_session_id', $academicSessionId)
+            ->where('course_id', $courseId)
+            ->where('assessment_component_id', $assessmentComponentId);
+
+        // program_id omitted: mappings are keyed by course; strict program equality hid rows saved under a mismatched program_id.
+
+        $hasSectionColumn = Schema::hasColumn('question_clo_mappings', 'section_id');
+
+        if ($narrowSectionId !== null && $hasSectionColumn) {
+            $q->where(function ($w) use ($narrowSectionId) {
+                $w->whereNull('question_clo_mappings.section_id')
+                    ->orWhere('question_clo_mappings.section_id', $narrowSectionId);
+            });
+        }
+
+        if ($hasSectionColumn) {
+            $q->orderBy('question_clo_mappings.section_id');
+        }
+
+        return $q->orderBy('main_question_no')
+            ->orderBy('question_part')
+            ->orderBy('question_label')
+            ->get();
+    }
+
+    /** @param  array<string, mixed>  $data */
+    protected function narrowSectionForBulkMarks(array $data): ?int
+    {
+        $raw = $data['section_id'] ?? null;
+
+        return $raw !== null && $raw !== '' ? (int) $raw : null;
     }
 
     /**
@@ -1255,11 +1370,9 @@ class StudentMarkController extends Controller
      */
     protected function flattenedQuestionMappingsForBulkTemplate(
         int $academicSessionId,
-        int $programId,
         int $courseId,
         ?int $sectionId
     ): Collection {
-        $sectionCtx = ['section_id' => $sectionId];
         $flat = collect();
         $components = AssessmentComponent::query()
             ->where('course_id', $courseId)
@@ -1267,12 +1380,11 @@ class StudentMarkController extends Controller
             ->get();
 
         foreach ($components as $ac) {
-            $maps = $this->questionMappingsForContext(
+            $maps = $this->questionMappingsForBulkEntry(
                 $academicSessionId,
-                $programId,
                 $courseId,
                 (int) $ac->getKey(),
-                $sectionCtx
+                $sectionId
             );
             foreach ($maps as $m) {
                 $m->loadMissing('assessmentComponent');
@@ -1293,7 +1405,7 @@ class StudentMarkController extends Controller
 
     /**
      * @param  Collection<int, QuestionCloMapping>  $mappingsById  keyed by int id
-     * @return array{errors: array<int, string>, indexes: array{student_id: int|null, student_name: int|null, total: int|null}, labels_to_mapping_id: array<string, int>, column_index_by_mapping_id: array<int, int>}
+     * @return array{errors: array<int, string>, indexes: array{student_id: int|null, student_name: int|null, attendance_marks: int|null, total: int|null}, labels_to_mapping_id: array<string, int>, column_index_by_mapping_id: array<int, int>}
      */
     protected function parseMarksHeaderColumns(array $header, Collection $mappingsById, bool $compoundHeaders = false): array
     {
@@ -1301,7 +1413,10 @@ class StudentMarkController extends Controller
 
         $idxStudentId = null;
         $idxStudentName = null;
+        $idxAttendance = null;
         $idxTotal = null;
+        $attendanceNorm = strtolower(trim(self::STUDENT_MARKS_EXCEL_ATTENDANCE_HEADER));
+
         foreach ($header as $i => $label) {
             $norm = strtolower(trim((string) $label));
 
@@ -1310,6 +1425,9 @@ class StudentMarkController extends Controller
             }
             if (in_array($norm, ['student name', 'name'], true)) {
                 $idxStudentName = $i;
+            }
+            if ($norm === $attendanceNorm || $norm === 'attendance_marks') {
+                $idxAttendance = $i;
             }
             if ($norm === 'total') {
                 $idxTotal = $i;
@@ -1373,6 +1491,7 @@ class StudentMarkController extends Controller
             'indexes' => [
                 'student_id' => $idxStudentId,
                 'student_name' => $idxStudentName,
+                'attendance_marks' => $idxAttendance,
                 'total' => $idxTotal,
             ],
             'labels_to_mapping_id' => $labelToMapping,

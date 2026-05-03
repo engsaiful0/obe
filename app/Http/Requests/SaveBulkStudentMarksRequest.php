@@ -17,6 +17,7 @@ class SaveBulkStudentMarksRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $this->coerceSectionId();
         $this->mergeDefaultObeStatusIfMissing();
     }
 
@@ -33,6 +34,7 @@ class SaveBulkStudentMarksRequest extends FormRequest
             [
                 'rows' => ['required', 'array', 'min:1'],
                 'rows.*.student_id' => ['required', 'integer', 'exists:students,id'],
+                'rows.*.attendance_marks' => ['sometimes', 'nullable', 'numeric', 'min:0'],
                 'rows.*.component_marks' => ['required', 'array', 'min:1'],
                 'rows.*.component_marks.*.assessment_component_id' => [
                     'required',

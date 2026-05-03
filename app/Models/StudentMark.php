@@ -26,12 +26,14 @@ class StudentMark extends Model
         'section_id',
         'assessment_component_id',
         'student_id',
+        'attendance_marks',
         'total_marks',
         'status_id',
     ];
 
     protected $casts = [
         'total_marks' => 'decimal:2',
+        'attendance_marks' => 'decimal:2',
         'section_id' => 'integer',
     ];
 
