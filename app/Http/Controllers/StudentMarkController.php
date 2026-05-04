@@ -348,7 +348,8 @@ class StudentMarkController extends Controller
 
     public function bulkEntry(): View
     {
-        return view('content.student-marks.bulk', $this->indexLookups());
+        $sections = Section::query()->orderBy('section_name')->get(['id', 'section_name', 'section_code', 'program_id', 'batch_id']);
+        return view('content.student-marks.bulk', array_merge($this->indexLookups(), compact('sections')));
     }
 
     public function saveBulkMarks(SaveBulkStudentMarksRequest $request): JsonResponse
