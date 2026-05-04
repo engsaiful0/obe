@@ -370,7 +370,7 @@
 
     wireCascade(form, cascade, {
       skipAssessmentComponents: true,
-      skipBatchAndSection: true
+      skipBatchAndSection: false
     });
 
     var qCourseUrl = routes.questionsByCourseApi || routes.questionsApi;
@@ -400,7 +400,9 @@
       return {
         academic_session_id: pick('academic_session_id'),
         program_id: pick('program_id'),
-        course_id: pick('course_id')
+        course_id: pick('course_id'),
+        batch_id: pick('batch_id'),
+        section_id: pick('section_id')
       };
     }
 
@@ -409,6 +411,8 @@
       params.set('academic_session_id', f.academic_session_id);
       params.set('program_id', f.program_id);
       params.set('course_id', f.course_id);
+      if (f.batch_id) params.set('batch_id', f.batch_id);
+      if (f.section_id) params.set('section_id', f.section_id);
     }
 
     function flattenQuestionsFromComponents(components) {
@@ -443,11 +447,12 @@
         f.program_id &&
         f.course_id
       );
+      var hasBulkContext = !!(hasSessionProgramCourse && f.batch_id);
       if (btnLoad) {
-        btnLoad.disabled = !(hasSessionProgramCourse);
+        btnLoad.disabled = !hasBulkContext;
       }
       if (btnTemplate) {
-        btnTemplate.disabled = !hasSessionProgramCourse;
+        btnTemplate.disabled = !hasBulkContext;
       }
     }
 
@@ -623,8 +628,8 @@
     if (btnLoad && qCourseUrl) {
       btnLoad.addEventListener('click', function () {
         var f = readFilters();
-        if (!f.academic_session_id || !f.program_id || !f.course_id) {
-          showFeedback('Fill session, program, course.');
+        if (!f.academic_session_id || !f.program_id || !f.course_id || !f.batch_id) {
+          showFeedback('Fill session, program, course, and batch.');
           return;
         }
         showFeedback(null);
@@ -669,6 +674,10 @@
     if (btnSave) {
       btnSave.addEventListener('click', function () {
         var f = readFilters();
+        if (!f.batch_id) {
+          showFeedback('Select a batch before saving.');
+          return;
+        }
         if (!lastQuestions.length || !lastStudents.length) {
           return;
         }
@@ -734,6 +743,8 @@
             academic_session_id: f.academic_session_id,
             program_id: f.program_id,
             course_id: f.course_id,
+            batch_id: f.batch_id,
+            section_id: f.section_id || null,
             rows: rowsPayload
           })
         })
@@ -780,8 +791,9 @@
     if (btnTemplate) {
       btnTemplate.addEventListener('click', function () {
         var f = readFilters();
-        if (!f.academic_session_id || !f.program_id || !f.course_id) {
-          if (typeof toastr !== 'undefined') toastr.error('Select academic session, program, and course first.');
+        if (!f.academic_session_id || !f.program_id || !f.course_id || !f.batch_id) {
+          if (typeof toastr !== 'undefined')
+            toastr.error('Select academic session, program, course, and batch first.');
           return;
         }
         try {
@@ -802,35 +814,37 @@
     if (btnReset && routes.reset) {
       btnReset.addEventListener('click', function () {
         var f = readFilters();
-        if (!f.academic_session_id || !f.program_id || !f.course_id) {
-          if (typeof toastr !== 'undefined') toastr.error('Select filters first.');
+        if (!f.academic_session_id || !f.program_id || !f.course_id || !f.batch_id) {
+          if (typeof toastr !== 'undefined') toastr.error('Select filters (including batch) first.');
           return;
         }
 
         confirmSwal(
-          'Delete all marks for every assessment component under this academic session, program, and course?',
+          'Delete all marks for every assessment component under this academic session, program, batch, and course?',
           { confirmText: 'Yes, reset', cancelText: 'Cancel', icon: 'warning' }
         ).then(function (ok) {
           if (!ok) return;
           setBtnLoading(btnReset, true);
 
-          fetch(routes.reset, {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: {
-              Accept: 'application/json',
-              'Content-Type': 'application/json',
-              'X-CSRF-TOKEN': csrfToken(),
-              'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({
-              _token: csrfToken(),
-              bulk_all: true,
-              academic_session_id: f.academic_session_id,
-              program_id: f.program_id,
-              course_id: f.course_id
-            })
+        fetch(routes.reset, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken(),
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({
+            _token: csrfToken(),
+            bulk_all: true,
+            academic_session_id: f.academic_session_id,
+            program_id: f.program_id,
+            course_id: f.course_id,
+            batch_id: f.batch_id,
+            section_id: f.section_id || null
           })
+        })
             .then(function (res) {
               return res.json().then(function (data) {
                 return { ok: res.ok, data: data };
@@ -875,6 +889,9 @@
           return;
         }
 
+        if (filt.batch_id) fd.append('batch_id', filt.batch_id);
+        if (filt.section_id) fd.append('section_id', filt.section_id);
+
         if (importErrors) {
           importErrors.classList.add('d-none');
           importErrors.innerHTML = '';
@@ -899,7 +916,20 @@
           })
           .then(function (pack) {
             if (pack.ok) {
-              if (typeof toastr !== 'undefined' && pack.data.message) toastr.success(pack.data.message);
+              if (typeof toastr !== 'undefined' && pack.data.message) {
+                var dm = '';
+                if (typeof pack.data.created_students !== 'undefined') {
+                  dm =
+                    ' — ' +
+                    pack.data.created_students +
+                    ' new student(s), ' +
+                    pack.data.existing_students +
+                    ' existing, ' +
+                    pack.data.marks_inserted +
+                    ' mark sheet(s).';
+                }
+                toastr.success(pack.data.message + dm);
+              }
               if (pack.data.redirect) window.location.href = pack.data.redirect;
               return;
             }

@@ -28,7 +28,7 @@ class ImportStudentMarksRequest extends FormRequest
         $bulk = $this->boolean('bulk_all');
 
         return array_merge(
-            $bulk ? $this->studentMarkBulkMinimalRules() : $this->studentMarkContextRules(),
+            $bulk ? $this->studentMarkBulkImportRules() : $this->studentMarkContextRules(),
             ['bulk_all' => ['sometimes', 'boolean']],
             $this->obeMarkStatusRules(),
             [

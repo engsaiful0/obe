@@ -14,6 +14,7 @@ use App\Models\AcademicSession;
 use App\Models\AssessmentComponent;
 use App\Models\Batch;
 use App\Models\Course;
+use App\Models\Gender;
 use App\Models\Program;
 use App\Models\QuestionCloMapping;
 use App\Models\RelatedTo;
@@ -27,6 +28,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
@@ -354,9 +356,11 @@ class StudentMarkController extends Controller
         $data = $request->validated();
 
         $base = [
-            'academic_session_id' => $data['academic_session_id'],
-            'program_id' => $data['program_id'],
-            'course_id' => $data['course_id'],
+            'academic_session_id' => (int) $data['academic_session_id'],
+            'program_id' => (int) $data['program_id'],
+            'course_id' => (int) $data['course_id'],
+            'batch_id' => (int) $data['batch_id'],
+            'section_id' => $data['section_id'] ?? null,
         ];
 
         $narrowSection = $this->narrowSectionForBulkMarks($data);
@@ -365,7 +369,7 @@ class StudentMarkController extends Controller
         foreach ($data['rows'] as $i => $row) {
             $errs = [];
 
-            $ctxErr = $this->validateStudentInMinimalContext((int) $row['student_id'], $base);
+            $ctxErr = $this->validateStudentInContext((int) $row['student_id'], $base);
             if ($ctxErr) {
                 $errs[] = $ctxErr;
             }
@@ -412,11 +416,8 @@ class StudentMarkController extends Controller
                     if ($student === null) {
                         continue;
                     }
-                    $batchId = (int) $student->batch_id;
                     foreach ($row['component_marks'] ?? [] as $block) {
                         $ctx = array_merge($base, [
-                            'batch_id' => $batchId,
-                            'section_id' => null,
                             'assessment_component_id' => (int) $block['assessment_component_id'],
                         ]);
                         if (array_key_exists('attendance_marks', $row)) {
@@ -631,7 +632,8 @@ class StudentMarkController extends Controller
 
     public function getQuestionsForCourse(Request $request): JsonResponse
     {
-        $validated = Validator::make($request->all(), $this->inlineContextRulesMinimal())->validate();
+        $validated = Validator::make($request->all(), ImportStudentMarksRequest::bulkMarksContextRules($request->all()))
+            ->validate();
 
         $narrowSection = $this->narrowSectionForBulkMarks($validated);
 
@@ -701,7 +703,7 @@ class StudentMarkController extends Controller
 
         $bulkAll = $request->boolean('bulk_all');
         $rules = $bulkAll
-            ? $this->inlineContextRulesMinimal()
+            ? ImportStudentMarksRequest::bulkMarksContextRules($queryInput)
             : $this->inlineContextRules($queryInput, true);
         $validator = Validator::make($queryInput, $rules);
         if ($validator->fails()) {
@@ -737,7 +739,10 @@ class StudentMarkController extends Controller
         }
 
         $students = $bulkAll
-            ? $this->studentsQueryForMinimalContext($validated)
+            ? $this->studentsQueryForContext(
+                $validated,
+                ! empty($validated['section_id']) ? Section::query()->find((int) $validated['section_id']) : null
+            )
                 ->orderBy('student_name')
                 ->get(['student_code', 'student_name'])
             : $this->studentsQueryForContext(
@@ -747,7 +752,7 @@ class StudentMarkController extends Controller
                 ->orderBy('student_name')
                 ->get(['student_code', 'student_name']);
 
-        $headings = array_merge(
+        $headingParts = [
             ['Student ID', 'Student Name', self::STUDENT_MARKS_EXCEL_ATTENDANCE_HEADER],
             $mappings->map(function (QuestionCloMapping $m) use ($bulkAll) {
                 $max = rtrim(rtrim(number_format((float) $m->marks, 2, '.', ''), '0'), '.');
@@ -756,16 +761,21 @@ class StudentMarkController extends Controller
 
                 return $label.' ('.$max.')';
             })->all(),
-            ['Total']
-        );
+        ];
+        if (! $bulkAll) {
+            $headingParts[] = ['Total'];
+        }
+        $headings = array_merge(...$headingParts);
 
         /** @var \Illuminate\Support\Collection<int, array<int, string>> $rows */
-        $rows = $students->map(function (Student $s) use ($mappings) {
+        $rows = $students->map(function (Student $s) use ($mappings, $bulkAll) {
             $base = [(string) $s->student_code, (string) $s->student_name, ''];
             foreach ($mappings as $_) {
                 $base[] = '';
             }
-            $base[] = '';
+            if (! $bulkAll) {
+                $base[] = '';
+            }
 
             return $base;
         });
@@ -779,7 +789,6 @@ class StudentMarkController extends Controller
                 for ($c = 0; $c < $qCount; $c++) {
                     $blank[] = '';
                 }
-                $blank[] = '';
                 $rows->push($blank);
             }
         }
@@ -793,6 +802,26 @@ class StudentMarkController extends Controller
     {
         $data = $request->validated();
         $bulkAll = $request->boolean('bulk_all');
+
+        if ($bulkAll) {
+            $rawBatch = $data['batch_id'] ?? null;
+            $explicitBatch = $rawBatch !== null && $rawBatch !== '' && (int) $rawBatch > 0;
+            $resolvedBatchId = $explicitBatch
+                ? (int) $rawBatch
+                : (int) Batch::query()
+                    ->where('program_id', (int) $data['program_id'])
+                    ->orderBy('id')
+                    ->value('id');
+            if ($resolvedBatchId < 1) {
+                return response()->json([
+                    'message' => __('Cannot import marks: add at least one batch for this program, or choose a batch when importing.'),
+                ], 422);
+            }
+            $data['batch_id'] = $resolvedBatchId;
+            if (! $explicitBatch) {
+                $data['section_id'] = null;
+            }
+        }
 
         if ($bulkAll) {
             $mappingsFlat = $this->flattenedQuestionMappingsForBulkTemplate(
@@ -838,24 +867,23 @@ class StudentMarkController extends Controller
 
         $labelToMappingId = $parsed['labels_to_mapping_id'];
         $baseContext = [
-            'academic_session_id' => $data['academic_session_id'],
-            'program_id' => $data['program_id'],
-            'course_id' => $data['course_id'],
+            'academic_session_id' => (int) $data['academic_session_id'],
+            'program_id' => (int) $data['program_id'],
+            'course_id' => (int) $data['course_id'],
+            'batch_id' => (int) $data['batch_id'],
+            'section_id' => $data['section_id'] ?? null,
         ];
-        if (! $bulkAll) {
-            $baseContext['batch_id'] = $data['batch_id'];
-            $baseContext['section_id'] = $data['section_id'] ?? null;
-        }
 
         $rowErrors = [];
         $preparedRows = [];
+        $importCreatedStudents = 0;
+        $importExistingStudents = 0;
 
         foreach ($sheet as $excelRowIdx => $row) {
             $rowNumber = (int) $excelRowIdx + 2;
             /** @var array<int, mixed> */
             $cells = $row->values()->all();
             $idxSid = $parsed['indexes']['student_id'];
-            $idxTotal = $parsed['indexes']['total'];
             $studentCode = isset($cells[$idxSid]) ? trim((string) $cells[$idxSid]) : '';
             $studentName = '';
 
@@ -874,16 +902,26 @@ class StudentMarkController extends Controller
                 continue;
             }
 
-            $student = Student::query()->where('student_code', $studentCode)->first();
-            if (! $student instanceof Student) {
-                $rowErrors[] = __('Row :row: Student :code not found.', ['row' => $rowNumber, 'code' => $studentCode]);
+            try {
+                [$student, $createdForImport] = $this->resolveStudentForMarksImport(
+                    $studentCode,
+                    $studentName !== '' ? $studentName : null,
+                    $data
+                );
+            } catch (\Throwable $e) {
+                report($e);
+                $rowErrors[] = __('Row :row: Could not create student :code.', ['row' => $rowNumber, 'code' => $studentCode]);
 
                 continue;
             }
 
-            $ctxErr = $bulkAll
-                ? $this->validateStudentInMinimalContext((int) $student->getKey(), $baseContext)
-                : $this->validateStudentInContext((int) $student->getKey(), $baseContext);
+            if ($createdForImport) {
+                $importCreatedStudents++;
+            } else {
+                $importExistingStudents++;
+            }
+
+            $ctxErr = $this->validateStudentInContext((int) $student->getKey(), $baseContext);
             if ($ctxErr) {
                 $rowErrors[] = __('Row :row, Student :code: :detail', [
                     'row' => $rowNumber,
@@ -918,14 +956,6 @@ class StudentMarkController extends Controller
                 ];
             }
 
-            $totalRaw = $cells[$idxTotal] ?? '';
-            $totalMarks = is_numeric($totalRaw) ? round((float) $totalRaw, 2) : null;
-            if ($totalMarks === null) {
-                $rowErrors[] = __('Row :row, Student :code: Total is missing or invalid.', ['row' => $rowNumber, 'code' => $studentCode]);
-
-                continue;
-            }
-
             $idxAtt = $parsed['indexes']['attendance_marks'] ?? null;
             $attendanceMarks = null;
             $hasAttendanceColumn = $idxAtt !== null;
@@ -946,18 +976,28 @@ class StudentMarkController extends Controller
             }
 
             if ($bulkAll) {
-                $sumParts = round(array_sum(array_column($questions, 'obtained_marks')), 2);
-                if (abs($sumParts - $totalMarks) > 0.0001) {
-                    $rowErrors[] = __('Row :row, Student :code: Sheet total (:t1) must equal sum of question marks (:t2).', [
+                $totalMarks = round(array_sum(array_column($questions, 'obtained_marks')), 2);
+            } else {
+                $idxTotal = $parsed['indexes']['total'];
+                if ($idxTotal === null) {
+                    $rowErrors[] = __('Row :row, Student :code: Total column is missing from the sheet.', [
                         'row' => $rowNumber,
                         'code' => $studentCode,
-                        't1' => rtrim(rtrim(number_format($totalMarks, 2, '.', ''), '0'), '.'),
-                        't2' => rtrim(rtrim(number_format($sumParts, 2, '.', ''), '0'), '.'),
                     ]);
 
                     continue;
                 }
 
+                $totalRaw = $cells[$idxTotal] ?? '';
+                $totalMarks = is_numeric($totalRaw) ? round((float) $totalRaw, 2) : null;
+                if ($totalMarks === null) {
+                    $rowErrors[] = __('Row :row, Student :code: Total is missing or invalid.', ['row' => $rowNumber, 'code' => $studentCode]);
+
+                    continue;
+                }
+            }
+
+            if ($bulkAll) {
                 $byComponent = [];
                 foreach ($questions as $q) {
                     $mid = (int) $q['question_clo_mapping_id'];
@@ -1049,16 +1089,14 @@ class StudentMarkController extends Controller
             ], 422);
         }
 
+        $marksWritten = 0;
+
         try {
-            DB::transaction(function () use ($data, $baseContext, $preparedRows, $bulkAll) {
+            DB::transaction(function () use ($data, $baseContext, $preparedRows, $bulkAll, &$marksWritten) {
                 foreach ($preparedRows as $row) {
                     if ($bulkAll) {
-                        $student = Student::query()->findOrFail((int) $row['student_id']);
-                        $batchId = (int) $student->batch_id;
                         foreach ($row['component_marks'] as $block) {
                             $ctx = array_merge($baseContext, [
-                                'batch_id' => $batchId,
-                                'section_id' => null,
                                 'assessment_component_id' => (int) $block['assessment_component_id'],
                             ]);
                             if (array_key_exists('attendance_marks', $row)) {
@@ -1071,6 +1109,7 @@ class StudentMarkController extends Controller
                                 (int) $data['status_id'],
                                 $block['questions']
                             );
+                            $marksWritten++;
                         }
                     } else {
                         $ctx = array_merge($baseContext, ['assessment_component_id' => (int) $data['assessment_component_id']]);
@@ -1084,6 +1123,7 @@ class StudentMarkController extends Controller
                             (int) $data['status_id'],
                             $row['questions']
                         );
+                        $marksWritten++;
                     }
                 }
             });
@@ -1097,6 +1137,9 @@ class StudentMarkController extends Controller
             'success' => true,
             'message' => __('Marks imported successfully.'),
             'redirect' => route('student-marks.index'),
+            'created_students' => $importCreatedStudents,
+            'existing_students' => $importExistingStudents,
+            'marks_inserted' => $marksWritten,
         ]);
     }
 
@@ -1112,7 +1155,12 @@ class StudentMarkController extends Controller
             ->where('course_id', (int) $data['course_id']);
 
         if ($bulkAll) {
-            // Remove all component marks for this session/program/course regardless of stored batch/section.
+            $query->where('batch_id', (int) $data['batch_id']);
+            if (! empty($data['section_id'])) {
+                $query->where('section_id', (int) $data['section_id']);
+            } else {
+                $query->whereNull('section_id');
+            }
         } else {
             $query->where('batch_id', (int) $data['batch_id'])
                 ->where('assessment_component_id', (int) $data['assessment_component_id']);
@@ -1139,6 +1187,88 @@ class StudentMarkController extends Controller
     }
 
     /**
+     * @param  array<string, mixed>  $validatedImport  Import / template context (requires program_id, batch_id, academic_session_id; optional section_id)
+     * @return array{0: Student, 1: bool}  [student, created_this_request]
+     */
+    protected function resolveStudentForMarksImport(string $studentCode, ?string $preferredName, array $validatedImport): array
+    {
+        $studentCode = trim($studentCode);
+
+        $existing = Student::query()->where('student_code', $studentCode)->first();
+        if ($existing instanceof Student) {
+            return [$existing, false];
+        }
+
+        $genderId = Gender::query()->orderBy('id')->value('id');
+        if ($genderId === null) {
+            throw new \RuntimeException(__('No gender records found; cannot create students from import.'));
+        }
+
+        $studentRelatedToId = RelatedTo::query()->where('name', 'Student')->value('id');
+        $activeStatusId = null;
+        if ($studentRelatedToId !== null) {
+            $activeStatusId = Status::query()
+                ->where('related_to_id', $studentRelatedToId)
+                ->whereRaw('LOWER(status_name) = ?', ['active'])
+                ->value('id');
+        }
+        if ($activeStatusId === null && $studentRelatedToId !== null) {
+            $activeStatusId = Status::query()
+                ->where('related_to_id', $studentRelatedToId)
+                ->orderBy('id')
+                ->value('id');
+        }
+
+        $sectionLabel = null;
+        $sidRaw = $validatedImport['section_id'] ?? null;
+        if ($sidRaw !== null && $sidRaw !== '') {
+            $sec = Section::query()->find((int) $sidRaw);
+            if ($sec instanceof Section) {
+                $code = trim((string) $sec->section_code);
+                $sectionLabel = $code !== '' ? $code : trim((string) $sec->section_name);
+                if ($sectionLabel === '') {
+                    $sectionLabel = null;
+                }
+            }
+        }
+
+        $displayName = ($preferredName !== null && trim($preferredName) !== '') ? trim($preferredName) : $studentCode;
+
+        $payload = [
+            'program_id' => (int) $validatedImport['program_id'],
+            'batch_id' => (int) $validatedImport['batch_id'],
+            'academic_session_id' => (int) $validatedImport['academic_session_id'],
+            'student_name' => $displayName,
+            'father_name' => '—',
+            'gender_id' => (int) $genderId,
+            'status_id' => $activeStatusId,
+            'section' => $sectionLabel,
+        ];
+
+        try {
+            $student = Student::query()->create(array_merge(['student_code' => $studentCode], $payload));
+
+            return [$student, true];
+        } catch (QueryException $e) {
+            $sqlState = $e->errorInfo[0] ?? '';
+            $driverCode = $e->errorInfo[1] ?? null;
+            $dup = $sqlState === '23000'
+                || $sqlState === '23505'
+                || $driverCode === 1062
+                || $driverCode === 19;
+
+            if ($dup) {
+                $retry = Student::query()->where('student_code', $studentCode)->first();
+                if ($retry instanceof Student) {
+                    return [$retry, false];
+                }
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
      * @param  array<string, mixed>  $context
      * @param  array<int, array<string, mixed>>  $questions
      */
@@ -1147,26 +1277,17 @@ class StudentMarkController extends Controller
         $sectionId = $context['section_id'] ?? null;
         $sectionId = $sectionId !== null && $sectionId !== '' ? (int) $sectionId : null;
 
-        $mark = StudentMark::withTrashed()
-            ->where('academic_session_id', (int) $context['academic_session_id'])
-            ->where('student_id', $studentId)
-            ->where('assessment_component_id', (int) $context['assessment_component_id'])
-            ->first();
-
-        if ($mark === null) {
-            $mark = new StudentMark;
-        } elseif ($mark->trashed()) {
-            $mark->restore();
-        }
+        $lookup = [
+            'academic_session_id' => (int) $context['academic_session_id'],
+            'student_id' => $studentId,
+            'assessment_component_id' => (int) $context['assessment_component_id'],
+        ];
 
         $attributes = [
-            'academic_session_id' => (int) $context['academic_session_id'],
             'program_id' => (int) $context['program_id'],
             'course_id' => (int) $context['course_id'],
             'batch_id' => (int) $context['batch_id'],
             'section_id' => $sectionId,
-            'assessment_component_id' => (int) $context['assessment_component_id'],
-            'student_id' => $studentId,
             'total_marks' => $totalMarks,
             'status_id' => $statusId,
         ];
@@ -1175,9 +1296,12 @@ class StudentMarkController extends Controller
             $attributes['attendance_marks'] = $context['attendance_marks'];
         }
 
-        $mark->fill($attributes);
+        /** @var StudentMark $mark */
+        $mark = StudentMark::withTrashed()->updateOrCreate($lookup, $attributes);
 
-        $mark->save();
+        if ($mark->trashed()) {
+            $mark->restore();
+        }
 
         $this->syncQuestionMarks($mark, $questions);
     }
@@ -1406,6 +1530,7 @@ class StudentMarkController extends Controller
     /**
      * @param  Collection<int, QuestionCloMapping>  $mappingsById  keyed by int id
      * @return array{errors: array<int, string>, indexes: array{student_id: int|null, student_name: int|null, attendance_marks: int|null, total: int|null}, labels_to_mapping_id: array<string, int>, column_index_by_mapping_id: array<int, int>}
+     *         For bulk compound sheets, Total is optional; indexes.total may be null.
      */
     protected function parseMarksHeaderColumns(array $header, Collection $mappingsById, bool $compoundHeaders = false): array
     {
@@ -1437,7 +1562,7 @@ class StudentMarkController extends Controller
         if ($idxStudentId === null) {
             $errors[] = __('The header row must contain a Student ID column.');
         }
-        if ($idxTotal === null) {
+        if ($idxTotal === null && ! $compoundHeaders) {
             $errors[] = __('The header row must contain a Total column.');
         }
 

@@ -72,6 +72,7 @@ use App\Http\Controllers\settings\Faculty;
 use App\Http\Controllers\settings\FeeHead;
 use App\Http\Controllers\settings\FeeSettings;
 use App\Http\Controllers\settings\Gender;
+use App\Http\Controllers\settings\Grade;
 use App\Http\Controllers\settings\IncomeHead;
 use App\Http\Controllers\settings\IssuingAuthority;
 use App\Http\Controllers\settings\Item;
@@ -510,6 +511,13 @@ Route::get('/app/settings/section/semesters-by-program', [SectionSettingsControl
 Route::post('/app/settings/section', [SectionSettingsController::class, 'store'])->name('app-settings-section.store');
 Route::put('/app/settings/section/{id}', [SectionSettingsController::class, 'update'])->name('app-settings-section.update');
 Route::delete('/app/settings/section/{id}', [SectionSettingsController::class, 'destroy'])->name('app-settings-section.destroy');
+
+// Grade (marking scale)
+Route::get('/app/settings/grade', [Grade::class, 'index'])->name('grade.index');
+Route::get('/app/settings/get-grade', [Grade::class, 'getGrades'])->name('grade.data');
+Route::post('/app/settings/grade', [Grade::class, 'store'])->name('grade.store');
+Route::put('/app/settings/grade/{id}', [Grade::class, 'update'])->name('grade.update');
+Route::delete('/app/settings/grade/{id}', [Grade::class, 'destroy'])->name('grade.destroy');
 
 Route::get('/app/settings/item', [Item::class, 'index'])->name('app-settings-item');
 Route::get('/app/settings/get-item', [Item::class, 'getItem'])->name('app-settings-get-item');

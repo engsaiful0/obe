@@ -81,9 +81,21 @@
                         </select>
                     </div>
 
+                   
+
+                    <div class="col-lg-4 col-md-4">
+                        <label class="form-label small mb-0">
+                            {{ __('Section') }}
+                        </label>
+
+                        <select name="section_id" id="sm_section" class="form-select form-select-sm" >
+                            <option value="">{{ __('All / not specified') }}</option>
+                        </select>
+                    </div>
+
                     <div class="col-12">
                         <p class="small text-muted mb-0">
-                            {{ __('After you choose academic session, program, and course, you can download the Excel template. All assessment components appear in one sheet. Per-question caps are validated on save/import.') }}
+                            {{ __('After you choose academic session, program, course, and batch, you can download the Excel template. All assessment components appear in one sheet. Per-question caps are validated on save/import. Missing students are created automatically on import.') }}
                         </p>
                     </div>
                 </div>

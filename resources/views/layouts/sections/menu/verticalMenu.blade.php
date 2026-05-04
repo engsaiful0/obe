@@ -297,6 +297,11 @@ return '';
                         <div>{{ __('Section') }}</div>
                     </a>
                 </li>
+                <li class="menu-item {{ request()->routeIs('grade.*') ? 'active' : '' }}">
+                    <a href="{{ route('grade.index') }}" class="menu-link">
+                        <div>{{ __('Grade') }}</div>
+                    </a>
+                </li>
                 <li class="menu-item {{ $currentRouteName === 'blood-group' ? 'active' : '' }}">
                     <a href="{{ url('app/settings/blood-group') }}" class="menu-link">
                         <div>{{ __('Blood Group') }}</div>
