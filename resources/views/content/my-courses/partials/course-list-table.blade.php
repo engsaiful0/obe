@@ -22,7 +22,7 @@
                         <span class="text-muted">/</span>
                         {{ $assignment->academicSession?->session_name ?? '-' }}
                     </td>
-                    <td>{{ $assignment->Section?->section_code ?? '-' }}</td>
+                    <td>{{ $assignment->section?->section_code.$assignment->section?->section_name ?? '-' }}</td>
                     <td class="text-center">{{ (int) ($assignment->total_students ?? 0) }}</td>
                     <td class="text-end">
                         <a href="{{ route('my-courses.marks-entry', $assignment) }}" class="btn btn-primary btn-sm">
