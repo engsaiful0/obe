@@ -73,13 +73,7 @@ return '';
              </a>
          </li>
          @endpermission
-         @permission('view-teacher')
-         <li class="menu-item {{ $currentRouteName === 'teachers.index' ? 'active' : '' }}">
-             <a href="{{ route('teachers.index') }}" class="menu-link">
-                 <div>{{ __('View Teacher') }}</div>
-             </a>
-         </li>
-         @endpermission
+        
      </ul>
  </li>
  @endpermission
