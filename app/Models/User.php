@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Traits\HasPermissions;
@@ -51,5 +52,10 @@ class User extends Authenticatable
   public function rule()
   {
     return $this->belongsTo(Rule::class);
+  }
+
+  public function teacher(): HasOne
+  {
+    return $this->hasOne(Teacher::class);
   }
 }

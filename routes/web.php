@@ -41,6 +41,7 @@ use App\Http\Controllers\LubricantController;
 use App\Http\Controllers\MissionController;
 use App\Http\Controllers\MonthlyBillController;
 use App\Http\Controllers\MonthlySalarySettingController;
+use App\Http\Controllers\MyCourseController;
 use App\Http\Controllers\PeoController;
 use App\Http\Controllers\ProgramOutcomeController;
 use App\Http\Controllers\PunishmentReportController;
@@ -179,6 +180,15 @@ Route::get('/app/student/{student}/edit', [StudentController::class, 'edit'])->n
 Route::put('/app/student/{student}', [StudentController::class, 'update'])->name('student.update');
 Route::delete('/app/student/{student}', [StudentController::class, 'destroy'])->name('student.destroy');
 Route::resource('teachers', TeacherController::class);
+
+Route::prefix('/app/my-courses')->name('my-courses.')->group(function () {
+    Route::get('/', [MyCourseController::class, 'courseList'])->name('course-list');
+    Route::get('/{courseAssignment}/marks', [MyCourseController::class, 'marksEntry'])->name('marks-entry');
+    Route::get('/{courseAssignment}/students', [MyCourseController::class, 'students'])->name('students');
+    Route::post('/{courseAssignment}/save-marks', [MyCourseController::class, 'saveMarks'])->name('save-marks');
+    Route::get('/{courseAssignment}/template', [MyCourseController::class, 'downloadTemplate'])->name('download-template');
+    Route::post('/{courseAssignment}/import', [MyCourseController::class, 'importMarks'])->name('import');
+});
 
 Route::prefix('ajax')->group(function () {
     Route::get('program/{program}/batches', [CourseAssignmentCascadeController::class, 'programBatches'])
