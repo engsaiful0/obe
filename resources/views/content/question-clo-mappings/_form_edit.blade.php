@@ -23,7 +23,7 @@
             <select class="form-select form-select-sm mt-1 text-dark" disabled aria-readonly="true">
                 @foreach ($academicSessions as $sess)
                     <option value="{{ $sess->id }}" @selected((int) $m->academic_session_id === (int) $sess->id)>
-                        {{ $sess->session_name }} ({{ $sess->academic_year }})
+                        {{ $sess->session_name }} 
                     </option>
                 @endforeach
             </select>

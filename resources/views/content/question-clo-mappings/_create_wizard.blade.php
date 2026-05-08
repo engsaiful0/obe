@@ -19,7 +19,7 @@ $wiz = [
             <select id="wiz_academic_session_id" class="form-select" data-wiz-session required>
                 <option value="">{{ __('Select session') }}</option>
                 @foreach ($academicSessions as $sess)
-                    <option value="{{ $sess->id }}">{{ $sess->session_name }} ({{ $sess->academic_year }})</option>
+                    <option value="{{ $sess->id }}">{{ $sess->session_name }} </option>
                 @endforeach
             </select>
         </div>
