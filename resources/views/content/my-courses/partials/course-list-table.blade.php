@@ -2,9 +2,11 @@
     <table class="table table-sm table-striped align-middle mb-0">
         <thead class="table-light">
             <tr>
+                <th>#</th>
                 <th>{{ __('Course Name') }}</th>
-                <th>{{ __('Course Code') }}</th>
+                
                 <th>{{ __('Semester / Session') }}</th>
+                <th>{{ __('Section') }}</th>
                 <th class="text-center">{{ __('Total Students') }}</th>
                 <th class="text-end">{{ __('Action') }}</th>
             </tr>
@@ -12,13 +14,15 @@
         <tbody>
             @forelse ($courses as $assignment)
                 <tr>
-                    <td>{{ $assignment->course?->course_title ?? '-' }}</td>
+                    <td>{{ $loop->iteration }}</td>
+
                     <td>{{ $assignment->course?->course_code ?? '-' }}</td>
                     <td>
                         {{ $assignment->semester?->semester_name ?? '-' }}
                         <span class="text-muted">/</span>
                         {{ $assignment->academicSession?->session_name ?? '-' }}
                     </td>
+                    <td>{{ $assignment->Section?->section_code ?? '-' }}</td>
                     <td class="text-center">{{ (int) ($assignment->total_students ?? 0) }}</td>
                     <td class="text-end">
                         <a href="{{ route('my-courses.marks-entry', $assignment) }}" class="btn btn-primary btn-sm">

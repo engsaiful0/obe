@@ -11,6 +11,7 @@ use App\Models\Nationality;
 use App\Models\Program;
 use App\Models\Religion;
 use App\Models\Rule;
+use App\Models\Section;
 use App\Models\Status;
 use App\Models\RelatedTo;
 use App\Models\Student;
@@ -61,6 +62,9 @@ class StudentController extends Controller
             'genders' => $genders,
             'religions' => $religions,
             'studentStatuses' => $studentStatuses,
+            'sections' => Section::query()
+                ->orderBy('section_name')
+                ->get(['id', 'section_name', 'section_code', 'batch_id']),
         ]);
     }
 
@@ -110,6 +114,23 @@ class StudentController extends Controller
 
         if ($request->filled('batch_id')) {
             $query->where('students.batch_id', (int) $request->input('batch_id'));
+        }
+
+        if ($request->filled('section_id')) {
+            $sectionId = (int) $request->input('section_id');
+            $section = Section::query()->find($sectionId);
+            if ($section) {
+                $code = trim((string) ($section->section_code ?? ''));
+                $name = trim((string) ($section->section_name ?? ''));
+                $query->where(function ($w) use ($code, $name) {
+                    if ($code !== '') {
+                        $w->where('students.section', $code);
+                    }
+                    if ($name !== '') {
+                        $w->orWhere('students.section', $name);
+                    }
+                });
+            }
         }
 
         if ($request->filled('academic_session_id')) {
@@ -168,6 +189,7 @@ class StudentController extends Controller
                 'student_type' => $s->student_type,
                 'program' => $s->program,
                 'batch' => $s->batch,
+                'section' => $s->section,
                 'academic_session' => $s->academicSession,
                 'gender' => $s->gender,
                 'religion' => $s->religion,

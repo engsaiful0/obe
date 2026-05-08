@@ -57,6 +57,12 @@
                     </select>
                 </div>
                 <div class="col-6 col-md-4 col-lg-2">
+                    <label class="form-label small mb-0">Section</label>
+                    <select id="filter-section" class="form-select form-select-sm js-student-filter" disabled>
+                        <option value="">All sections</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-4 col-lg-2">
                     <label class="form-label small mb-0">Session</label>
                     <select id="filter-academic_session_id"
                         class="form-select form-select-sm js-student-filter">
@@ -176,6 +182,7 @@
                                 <th>Batch</th>
                                 <th>Program</th>
                                 <th>Academic Session</th>
+                                <th>Section</th>
                                 <th>Gender</th>
                                 <th>Shift</th>
                                 <th>Status</th>
@@ -184,7 +191,7 @@
                         </thead>
                         <tbody id="student-table-body">
                             <tr>
-                                <td colspan="11" class="text-center text-muted py-4">Loading…</td>
+                                <td colspan="12" class="text-center text-muted py-4">Loading…</td>
                             </tr>
                         </tbody>
                     </table>

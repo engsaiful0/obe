@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\CourseAssignment;
 use App\Models\RelatedTo;
+use App\Models\Section;
 use App\Models\Status;
 use App\Models\Student;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -44,9 +45,13 @@ class TeacherCourseMarksService
             ->where('program_id', (int) $assignment->program_id)
             ->where('batch_id', (int) $assignment->batch_id);
 
-        if ($assignment->section) {
-            $code = trim((string) $assignment->section->section_code);
-            $name = trim((string) $assignment->section->section_name);
+        if ((int) $assignment->section_id > 0) {
+            $section = $assignment->relationLoaded('section')
+                ? $assignment->section
+                : Section::query()->find((int) $assignment->section_id);
+
+            $code = trim((string) ($section?->section_code ?? ''));
+            $name = trim((string) ($section?->section_name ?? ''));
             if (Schema::hasColumn('students', 'section')) {
                 $query->where(function ($sub) use ($code, $name) {
                     if ($code !== '') {

@@ -45,6 +45,7 @@
         [
             ['program_id', '#filter-program_id'],
             ['batch_id', '#filter-batch_id'],
+            ['section_id', '#filter-section'],
             ['academic_session_id', '#filter-academic_session_id'],
             ['gender_id', '#filter-gender_id'],
             ['religion_id', '#filter-religion_id'],
@@ -170,6 +171,9 @@
                 cellSession(row) +
                 '</td>' +
                 '<td>' +
+                escapeHtml(row.section || '—') +
+                '</td>' +
+                '<td>' +
                 (row.gender && row.gender.gender_name
                     ? escapeHtml(row.gender.gender_name)
                     : '—') +
@@ -238,6 +242,7 @@
     function loadBatchOptions(programId) {
         var $batch = $('#filter-batch_id');
         $batch.prop('disabled', true).find('option:not(:first)').remove();
+        $('#filter-section').prop('disabled', true).find('option:not(:first)').remove();
         if (!programId) {
             return;
         }
@@ -266,6 +271,31 @@
         });
     }
 
+    function loadSectionOptions(batchId) {
+        var $section = $('#filter-section');
+        $section.prop('disabled', true).find('option:not(:first)').remove();
+        if (!batchId) {
+            return;
+        }
+        $.ajax({
+            url: '/ajax/batch/' + encodeURIComponent(batchId) + '/sections',
+            type: 'GET',
+            dataType: 'json',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        }).done(function (pack) {
+            var rows = (pack && pack.items) ? pack.items : [];
+            rows.forEach(function (sec) {
+                if (!sec.id) {
+                    return;
+                }
+                $section.append($('<option/>').attr('value', sec.id).text(sec.label || 'Section ' + sec.id));
+            });
+            $section.prop('disabled', false);
+        });
+    }
+
     function fetchPage(page) {
         currentPage = page;
         showSpinner(true);
@@ -283,7 +313,7 @@
             $empty.addClass('d-none');
             if (rows.length === 0) {
                 $tbody.html(
-                    '<tr><td colspan="11" class="text-center text-muted py-4">' +
+                    '<tr><td colspan="12" class="text-center text-muted py-4">' +
                         (totalAll === 0 ? 'No students in the database yet.' : 'No students match your filters.') +
                         '</td></tr>'
                 );
@@ -317,7 +347,7 @@
             }
             $alert.text(msg).removeClass('d-none');
             $tbody.html(
-                '<tr><td colspan="11" class="text-center text-danger py-4">Failed to load data.</td></tr>'
+                '<tr><td colspan="12" class="text-center text-danger py-4">Failed to load data.</td></tr>'
             );
         }).always(function () {
             showSpinner(false);
@@ -346,6 +376,8 @@
         $('#filter-program_id').on('change.studentList', function () {
             $('#filter-batch_id').val('');
             $('#filter-batch_id').find('option:not(:first)').remove().end().prop('disabled', true);
+            $('#filter-section').val('');
+            $('#filter-section').find('option:not(:first)').remove().end().prop('disabled', true);
             var pid = $(this).val();
             if (pid) {
                 loadBatchOptions(pid);
@@ -353,8 +385,19 @@
             reloadCurrentFromFilters();
         });
 
+        $('#filter-batch_id').on('change.studentList', function () {
+            $('#filter-section').val('');
+            $('#filter-section').find('option:not(:first)').remove().end().prop('disabled', true);
+            var bid = $(this).val();
+            if (bid) {
+                loadSectionOptions(bid);
+            }
+            reloadCurrentFromFilters();
+        });
+
         $('.js-student-filter')
             .not('#filter-program_id')
+            .not('#filter-batch_id')
             .not('#filter-q')
             .on('change.studentList', reloadCurrentFromFilters);
 
@@ -373,10 +416,14 @@
                 'disabled',
                 true
             );
+            $('#filter-section').empty().append('<option value="">All sections</option>').prop(
+                'disabled',
+                true
+            );
             $('#filter-academic_session_id').val('');
             $('#filter-gender_id').val('');
             $('#filter-religion_id').val('');
-            $('#filter-status').val('');
+            $('#status_id').val('');
             $('#filter-shift').val('');
             $('#filter-student_type').val('');
             $('#filter-admission_date_from').val('');
