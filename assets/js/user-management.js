@@ -7,28 +7,69 @@
 let fv, offCanvasEl;
 
 function initializeRuleSelect(selector) {
-  const ruleSelect = $(selector);
-  if (ruleSelect.length) {
-    $.ajax({
-      url: '/app/settings/get-rules',
-      type: 'GET',
-      dataType: 'json',
-      success: function (data) {
-        const ruleData = $.map(data.data, function (rule) {
-          return {
-            id: rule.id,
-            text: rule.name,
-          };
-        });
-
-        ruleSelect.select2({
-          placeholder: 'Select a rule',
-          dropdownParent: ruleSelect.closest('.offcanvas'),
-          data: ruleData
-        });
-      }
-    });
+  var ruleSelect = $(selector);
+  if (!ruleSelect.length) {
+    return;
   }
+
+  var rulesUrl = typeof window.getRulesUrl === 'string' ? window.getRulesUrl : '';
+  if (!rulesUrl && window.userUrls && typeof window.userUrls.getData === 'string') {
+    rulesUrl = window.userUrls.getData.replace(/get-users$/, 'get-rules');
+  }
+  if (!rulesUrl && window.AppUtils && typeof window.AppUtils.buildUrl === 'function') {
+    rulesUrl = window.AppUtils.buildUrl('app/settings/get-rules');
+  }
+
+  if (!rulesUrl) {
+    console.error('Could not resolve get-rules URL.');
+    return;
+  }
+
+  $.ajax({
+    url: rulesUrl,
+    type: 'GET',
+    dataType: 'json',
+    success: function (res) {
+      var rows = res && res.data != null ? res.data : [];
+      if (!Array.isArray(rows)) {
+        rows = [];
+      }
+
+      if (ruleSelect.data('select2')) {
+        ruleSelect.select2('destroy');
+      }
+      ruleSelect.empty();
+
+      var ruleData = $.map(rows, function (rule) {
+        var label =
+          rule.name != null && String(rule.name).length
+            ? String(rule.name)
+            : 'Rule #' + rule.id;
+        return {
+          id: String(rule.id),
+          text: label
+        };
+      });
+
+      var $parent = ruleSelect.closest('.offcanvas');
+      if (!$parent.length) {
+        $parent = $(document.body);
+      }
+
+      ruleSelect.select2({
+        placeholder: 'Select a rule',
+        width: '100%',
+        dropdownParent: $parent,
+        data: ruleData
+      });
+    },
+    error: function (xhr, status, err) {
+      console.error('Failed to load rules:', status, err, xhr && xhr.responseText);
+      if (typeof toastr !== 'undefined') {
+        toastr.error('Could not load rules. Check the network request for get-rules.');
+      }
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', function (e) {
@@ -46,6 +87,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
           // Empty fields on offCanvas open
           offCanvasElement.querySelector('.dt-full-name').value = '';
           $('#form-add-new-record').removeAttr('data-id');
+          $('#rule_id').val(null).trigger('change');
+          var addTitle = offCanvasElement.querySelector('.offcanvas-title');
+          if (addTitle) addTitle.textContent = 'New User';
           // Open offCanvas with form
           offCanvasEl.show();
         });
@@ -84,12 +128,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
       }
     });
   })();
-  // Initialize Rule Select2
-  initializeRuleSelect('.rule-select');
 });
 
 // datatable (jquery)
 $(function () {
+  initializeRuleSelect('.rule-select');
+
   var dt_basic_table = $('.datatables-users'),
     dt_basic;
 
@@ -305,6 +349,17 @@ $(function () {
     document.querySelector('.dt-full-name').value = data.name;
     document.querySelector('.dt-email').value = data.email;
     $('#form-add-new-record').attr('data-id', data.id);
+    var ruleId =
+      data.rule_id != null ? data.rule_id : data.rule && data.rule.id != null ? data.rule.id : null;
+    if (ruleId != null) {
+      $('#rule_id').val(String(ruleId)).trigger('change');
+    } else {
+      $('#rule_id').val(null).trigger('change');
+    }
+    var editTitle = document.querySelector('#add-new-record .offcanvas-title');
+    if (editTitle) editTitle.textContent = 'Edit User';
+    var pwdInput = document.getElementById('add-user-password');
+    if (pwdInput) pwdInput.value = '';
     offCanvasEl.show();
   });
 });

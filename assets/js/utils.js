@@ -5,10 +5,19 @@
 // URL Utilities
 window.AppUtils = {
     /**
-     * Get the base URL from the HTML data attribute
+     * Application root (scheme + host + path before /app/), e.g. http://localhost/obe for /obe/app/... .
+     * Falls back to data-base-url when the path has no /app/ (fixes wrong APP_URL omitting a subfolder).
      */
     getBaseUrl: function() {
-        return $('html').attr('data-base-url') || '';
+        var attr = $('html').attr('data-base-url') || '';
+        if (typeof window !== 'undefined' && window.location && window.location.pathname) {
+            var pathname = window.location.pathname;
+            var appIdx = pathname.indexOf('/app/');
+            if (appIdx !== -1) {
+                return window.location.origin + pathname.substring(0, appIdx);
+            }
+        }
+        return attr;
     },
 
     /**

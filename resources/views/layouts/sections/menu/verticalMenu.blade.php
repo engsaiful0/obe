@@ -58,7 +58,31 @@ return '';
                 <div>{{ __('Dashboards') }}</div>
             </a>
         </li>
-
+ <!-- Teacher -->
+ @permission('my-courses')
+ <li class="menu-item {{ isMenuActive('teachers', $currentRouteName) }}">
+     <a href="javascript:void(0);" class="menu-link menu-toggle">
+         <i class="menu-icon tf-icons ti ti-users"></i>
+         <div>{{ __('My Courses') }}</div>
+     </a>
+     <ul class="menu-sub">
+         @permission('my-course-list')
+         <li class="menu-item {{ $currentRouteName === 'my-courses.course-list' ? 'active' : '' }}">
+             <a href="{{ route('my-courses.course-list') }}" class="menu-link">
+                 <div>{{ __('Course List') }}</div>
+             </a>
+         </li>
+         @endpermission
+         @permission('view-teacher')
+         <li class="menu-item {{ $currentRouteName === 'teachers.index' ? 'active' : '' }}">
+             <a href="{{ route('teachers.index') }}" class="menu-link">
+                 <div>{{ __('View Teacher') }}</div>
+             </a>
+         </li>
+         @endpermission
+     </ul>
+ </li>
+ @endpermission
     
         <!-- Teacher -->
         @permission('add-teacher')

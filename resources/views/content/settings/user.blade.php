@@ -5,7 +5,7 @@
 @section('page-script')
     <script>
         window.userUrls = AppUtils.buildApiUrls('app/settings/users');
-        console.log('User URLs:', window.userUrls);
+        window.getRulesUrl = window.userUrls.getData.replace(/get-users$/, 'get-rules');
     </script>
     <script src="{{ asset('assets/js/user-management.js') }}?v={{ time() }}"></script>
 @endsection

@@ -898,7 +898,7 @@ Route::resource('rules', RuleController::class)->names([
     'update' => 'app-access-rules.update',
     'destroy' => 'app-access-rules.destroy',
 ]);
-Route::get('app/settings/get-rules', [RuleController::class, 'getRules'])->name('get-rules');
+Route::get('/app/settings/get-rules', [RuleController::class, 'getRules'])->name('get-rules');
 Route::resource('permissions', PermissionController::class)->names([
     'index' => 'app-access-permission.index',
     'store' => 'app-access-permission.store',

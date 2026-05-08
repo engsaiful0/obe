@@ -17,9 +17,10 @@ class RuleController extends Controller
         $permissions = Permission::all();
         return view('content.apps.app-access-rules', compact('rules', 'permissions'));
     }
- public function getRules(Request $request)
+    public function getRules(Request $request)
     {
-        $rules = Rule::all();
+        $rules = Rule::query()->orderBy('name')->get(['id', 'name']);
+
         return response()->json([
             'data' => $rules,
         ]);
