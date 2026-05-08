@@ -112,8 +112,19 @@
         headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
         credentials: 'same-origin'
       })
-        .then(function (res) { return res.json(); })
-        .then(renderRows)
+        .then(function (res) {
+          return res.json().then(function (data) {
+            return { ok: res.ok, data: data };
+          });
+        })
+        .then(function (pack) {
+          if (!pack.ok) {
+            showFeedback(feedback, (pack.data && pack.data.message) || 'Could not load students.', 'danger');
+            renderRows({ students: [], pagination: { current_page: 1, last_page: 1, total: 0 } });
+            return;
+          }
+          renderRows(pack.data || {});
+        })
         .finally(function () {
           if (loading) loading.classList.add('d-none');
         });

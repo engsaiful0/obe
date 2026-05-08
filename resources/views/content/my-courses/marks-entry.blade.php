@@ -15,6 +15,11 @@
         </div>
         <div class="card-body">
             <div id="my-course-feedback" class="alert d-none" role="alert"></div>
+            @if (!empty($marksUnavailableMessage))
+                <div class="alert alert-warning" role="alert">
+                    {{ $marksUnavailableMessage }}
+                </div>
+            @endif
 
             <div class="row g-2 mb-3">
                 <div class="col-md-6">

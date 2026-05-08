@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
+use Throwable;
 
 class MyCourseController extends Controller
 {
@@ -61,11 +62,20 @@ class MyCourseController extends Controller
         Gate::authorize('view', $courseAssignment);
 
         $markColumns = $this->marksService->markColumns();
+        $studentsPayload = ['students' => [], 'pagination' => ['current_page' => 1, 'last_page' => 1, 'per_page' => 20, 'total' => 0]];
+        $marksUnavailableMessage = null;
+
+        try {
+            $studentsPayload = $this->studentsResponsePayload($courseAssignment, null);
+        } catch (Throwable $e) {
+            $marksUnavailableMessage = $this->friendlyMarksMessage($e);
+        }
 
         return view('content.my-courses.marks-entry', [
             'courseAssignment' => $courseAssignment->load(['course', 'semester', 'academicSession']),
             'markColumns' => $markColumns,
-            'students' => $this->studentsResponsePayload($courseAssignment, null),
+            'students' => $studentsPayload,
+            'marksUnavailableMessage' => $marksUnavailableMessage,
         ]);
     }
 
@@ -74,7 +84,15 @@ class MyCourseController extends Controller
         Gate::authorize('view', $courseAssignment);
 
         $search = trim((string) $request->input('search', ''));
-        return response()->json($this->studentsResponsePayload($courseAssignment, $search));
+        try {
+            return response()->json($this->studentsResponsePayload($courseAssignment, $search));
+        } catch (Throwable $e) {
+            return response()->json([
+                'message' => $this->friendlyMarksMessage($e),
+                'students' => [],
+                'pagination' => ['current_page' => 1, 'last_page' => 1, 'per_page' => 20, 'total' => 0],
+            ], 422);
+        }
     }
 
     public function saveMarks(CourseAssignment $courseAssignment, TeacherCourseMarksUpdateRequest $request): JsonResponse
@@ -96,7 +114,13 @@ class MyCourseController extends Controller
             ];
         })->all();
 
-        $result = $this->marksService->saveMarks($courseAssignment, $rows);
+        try {
+            $result = $this->marksService->saveMarks($courseAssignment, $rows);
+        } catch (Throwable $e) {
+            return response()->json([
+                'message' => $this->friendlyMarksMessage($e),
+            ], 422);
+        }
 
         return response()->json([
             'message' => 'Marks updated successfully.',
@@ -109,7 +133,13 @@ class MyCourseController extends Controller
         Gate::authorize('view', $courseAssignment);
 
         $markColumns = $this->marksService->markColumns();
-        $students = collect($this->marksService->studentsForAssignment($courseAssignment, null, 10000)->items());
+        try {
+            $students = collect($this->marksService->studentsForAssignment($courseAssignment, null, 10000)->items());
+        } catch (Throwable $e) {
+            return redirect()
+                ->route('my-courses.marks-entry', $courseAssignment)
+                ->with('error', $this->friendlyMarksMessage($e));
+        }
 
         $headings = array_merge(['student_id', 'student_code', 'student_name'], $markColumns);
         $rows = $students->map(function ($student) use ($markColumns) {
@@ -202,7 +232,13 @@ class MyCourseController extends Controller
             ], 422);
         }
 
-        $result = $this->marksService->saveMarks($courseAssignment, $rows);
+        try {
+            $result = $this->marksService->saveMarks($courseAssignment, $rows);
+        } catch (Throwable $e) {
+            return response()->json([
+                'message' => $this->friendlyMarksMessage($e),
+            ], 422);
+        }
 
         return response()->json([
             'message' => 'Excel marks imported successfully.',
@@ -254,5 +290,19 @@ class MyCourseController extends Controller
         abort_if(! $teacher, 403, 'Teacher profile is missing.');
 
         return $teacher;
+    }
+
+    private function friendlyMarksMessage(Throwable $e): string
+    {
+        $raw = trim((string) $e->getMessage());
+        if (stripos($raw, 'No assessment component found') !== false) {
+            return __('Marks entry is not available for this course yet. Please create at least one assessment component first.');
+        }
+
+        if ($raw !== '') {
+            return $raw;
+        }
+
+        return __('Could not load marks right now. Please try again.');
     }
 }
