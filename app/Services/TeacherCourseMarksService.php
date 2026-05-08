@@ -42,8 +42,7 @@ class TeacherCourseMarksService
     {
         $query = Student::query()
             ->where('academic_session_id', (int) $assignment->academic_session_id)
-            ->where('program_id', (int) $assignment->program_id)
-            ->where('batch_id', (int) $assignment->batch_id);
+            ->where('program_id', (int) $assignment->program_id);
 
         if ((int) $assignment->section_id > 0) {
             if (Schema::hasColumn('students', 'section_id')) {
@@ -87,8 +86,27 @@ class TeacherCourseMarksService
         $defaultStatusId = $this->defaultObeStatusId();
         $componentId = $this->defaultAssessmentComponentId((int) $assignment->course_id);
 
-        DB::transaction(function () use ($rows, $assignment, $markColumns, $defaultStatusId, $componentId): void {
+        $studentIds = collect($rows)
+            ->map(fn (array $row) => (int) ($row['student_id'] ?? 0))
+            ->filter(fn (int $id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+        $batchByStudentId = $studentIds === []
+            ? []
+            : Student::query()
+                ->whereIn('id', $studentIds)
+                ->pluck('batch_id', 'id')
+                ->all();
+
+        DB::transaction(function () use ($rows, $assignment, $markColumns, $defaultStatusId, $componentId, $batchByStudentId): void {
             foreach ($rows as $row) {
+                $studentId = (int) $row['student_id'];
+                $batchId = (int) ($batchByStudentId[$studentId] ?? 0);
+                if ($batchId < 1) {
+                    abort(422, __('Student :id must have a batch assigned to save marks.', ['id' => $studentId]));
+                }
+
                 $marks = [];
                 $total = 0.0;
 
@@ -108,13 +126,13 @@ class TeacherCourseMarksService
                 DB::table('student_marks')->updateOrInsert(
                     [
                         'academic_session_id' => (int) $assignment->academic_session_id,
-                        'student_id' => (int) $row['student_id'],
+                        'student_id' => $studentId,
                         'assessment_component_id' => $componentId,
                     ],
                     array_merge($marks, [
                         'program_id' => (int) $assignment->program_id,
                         'course_id' => (int) $assignment->course_id,
-                        'batch_id' => (int) $assignment->batch_id,
+                        'batch_id' => $batchId,
                         'section_id' => $assignment->section_id ? (int) $assignment->section_id : null,
                         'status_id' => $defaultStatusId,
                         'updated_at' => now(),

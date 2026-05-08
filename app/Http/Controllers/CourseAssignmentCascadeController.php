@@ -57,6 +57,21 @@ class CourseAssignmentCascadeController extends Controller
         return response()->json(['items' => $items]);
     }
 
+    public function programSections(Program $program): JsonResponse
+    {
+        $items = Section::query()
+            ->where('program_id', $program->getKey())
+            ->orderBy('section_name')
+            ->get(['id', 'section_name', 'section_code', 'semester_id'])
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'label' => $s->section_name.($s->section_code ? ' ('.$s->section_code.')' : ''),
+                'semester_id' => $s->semester_id,
+            ]);
+
+        return response()->json(['items' => $items]);
+    }
+
     public function batchSections(Batch $batch): JsonResponse
     {
         $items = Section::query()

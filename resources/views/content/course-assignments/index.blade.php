@@ -16,7 +16,7 @@
             <div class="col-md-4">
                 <label class="form-label small mb-0">{{ __('Search') }}</label>
                 <input class="form-control" name="q" value="{{ request('q') }}"
-                    placeholder="{{ __('Course code, title, teacher, batch, section…') }}">
+                    placeholder="{{ __('Course code, title, teacher, section…') }}">
             </div>
             <div class="col-md-2">
                 <label class="form-label small mb-0">{{ __('Session') }}</label>
@@ -36,17 +36,6 @@
                     @foreach ($programs as $program)
                         <option value="{{ $program->id }}" @selected(request('program_id') == $program->id)>
                             {{ $program->program_name }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small mb-0">{{ __('Batch') }}</label>
-                <select name="batch_id" class="form-select">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach ($batches as $batch)
-                        <option value="{{ $batch->id }}" @selected(request('batch_id') == $batch->id)>
-                            {{ $batch->batch_name }}
                         </option>
                     @endforeach
                 </select>
@@ -93,7 +82,6 @@
                     <tr>
                         <th>{{ __('Session') }}</th>
                         <th>{{ __('Program') }}</th>
-                        <th>{{ __('Batch') }}</th>
                         <th>{{ __('Semester') }}</th>
                         <th>{{ __('Course') }}</th>
                         <th>{{ __('Section') }}</th>
@@ -107,7 +95,6 @@
                         <tr>
                             <td>{{ $row->academicSession->session_name ?? '—' }}</td>
                             <td>{{ $row->program->program_name ?? '—' }}</td>
-                            <td>{{ $row->batch->batch_name ?? '—' }}</td>
                             <td>{{ $row->semester->semester_name ?? '—' }}</td>
                             <td>
                                 <span class="fw-medium">{{ $row->course->course_code ?? '' }}</span>
@@ -133,7 +120,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-4">{{ __('No assignments found.') }}</td>
+                            <td colspan="8" class="text-center text-muted py-4">{{ __('No assignments found.') }}</td>
                         </tr>
                     @endforelse
                 </tbody>

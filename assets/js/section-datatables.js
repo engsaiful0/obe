@@ -211,9 +211,13 @@ function loadFacultyList() {
         return $.Deferred().reject().promise();
     }
     if (!facultiesCachePromise) {
-        facultiesCachePromise = getJson(window.sectionCascadeUrls.facultyList, {}).then(function (res) {
-            return res.data || [];
-        });
+        facultiesCachePromise = getJson(window.sectionCascadeUrls.facultyList, {})
+            .then(function (res) {
+                return res.data || [];
+            })
+            .fail(function () {
+                facultiesCachePromise = null;
+            });
     }
     return facultiesCachePromise;
 }
@@ -290,6 +294,28 @@ function applySectionRowToFields(rd) {
     $('.section-form .dt-status').val(rd.status || 'Active');
 }
 
+/**
+ * Resolve the clicked row for Responsive layouts (controls may render on a child row).
+ */
+function resolveSectionDataTableRow($btn) {
+    if (!dtSection) {
+        return null;
+    }
+    var $tr = $btn.closest('tr');
+    var primary = dtSection.row($tr);
+    if (primary.data()) {
+        return primary;
+    }
+    var $prev = $tr.prev();
+    if ($prev.length) {
+        var parentRow = dtSection.row($prev);
+        if (parentRow.data()) {
+            return parentRow;
+        }
+    }
+    return null;
+}
+
 function openEditSection(rd, $btn) {
     SpinnerUtils.show($btn, 'Loading...');
     offCanvasSection =
@@ -322,28 +348,10 @@ function openEditSection(rd, $btn) {
         });
 }
 
-document.addEventListener('DOMContentLoaded', function () {
+$(function () {
     var formEl = document.getElementById('form-section-record');
-    if (!formEl) {
-        return;
-    }
 
-    setTimeout(function () {
-        var addBtn = document.querySelector('.create-new');
-        var canvas = document.getElementById('add-new-record-section');
-
-        if (addBtn && canvas) {
-            addBtn.addEventListener('click', function () {
-                offCanvasSection =
-                    offCanvasSection || new bootstrap.Offcanvas(canvas);
-                resetSectionFormForCreate();
-                loadFacultyList().done(function (all) {
-                    fillFacultySelect(all, null);
-                });
-                offCanvasSection.show();
-            });
-        }
-
+    function wireSectionCascade() {
         $('.section-form .dt-faculty-id')
             .off('change.sectionCascade')
             .on('change.sectionCascade', function () {
@@ -376,96 +384,96 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 loadSemestersForProgram(pid, null);
             });
-    }, 250);
+    }
 
-    fvSection = FormValidation.formValidation(formEl, {
-        fields: {
-            faculty_id: {
-                validators: {
-                    notEmpty: {
-                        message: 'Please select a faculty'
+    if (formEl && typeof FormValidation !== 'undefined') {
+        fvSection = FormValidation.formValidation(formEl, {
+            fields: {
+                faculty_id: {
+                    validators: {
+                        notEmpty: {
+                            message: 'Please select a faculty'
+                        }
+                    }
+                },
+                department_id: {
+                    validators: {
+                        notEmpty: {
+                            message: 'Please select a department'
+                        }
+                    }
+                },
+                program_id: {
+                    validators: {
+                        notEmpty: {
+                            message: 'Please select a program'
+                        }
+                    }
+                },
+                semester_id: {
+                    validators: {
+                        notEmpty: {
+                            message: 'Please select a semester'
+                        }
+                    }
+                },
+                section_name: {
+                    validators: {
+                        notEmpty: {
+                            message: 'Section name is required'
+                        }
+                    }
+                },
+                section_code: {
+                    validators: {
+                        notEmpty: {
+                            message: 'Section code is required'
+                        }
+                    }
+                },
+                gender_type: {
+                    validators: {
+                        notEmpty: {
+                            message: 'Gender type is required'
+                        }
+                    }
+                },
+                capacity: {
+                    validators: {
+                        notEmpty: {
+                            message: 'Capacity is required'
+                        },
+                        integer: {
+                            message: 'Capacity must be a whole number'
+                        },
+                        between: {
+                            min: 0,
+                            max: 100000,
+                            message: 'Capacity must be between 0 and 100000'
+                        }
+                    }
+                },
+                status: {
+                    validators: {
+                        notEmpty: {
+                            message: 'Status is required'
+                        }
                     }
                 }
             },
-            department_id: {
-                validators: {
-                    notEmpty: {
-                        message: 'Please select a department'
-                    }
-                }
-            },
-            program_id: {
-                validators: {
-                    notEmpty: {
-                        message: 'Please select a program'
-                    }
-                }
-            },
-           
-            semester_id: {
-                validators: {
-                    notEmpty: {
-                        message: 'Please select a semester'
-                    }
-                }
-            },
-            section_name: {
-                validators: {
-                    notEmpty: {
-                        message: 'Section name is required'
-                    }
-                }
-            },
-            section_code: {
-                validators: {
-                    notEmpty: {
-                        message: 'Section code is required'
-                    }
-                }
-            },
-            gender_type: {
-                validators: {
-                    notEmpty: {
-                        message: 'Gender type is required'
-                    }
-                }
-            },
-            capacity: {
-                validators: {
-                    notEmpty: {
-                        message: 'Capacity is required'
-                    },
-                    integer: {
-                        message: 'Capacity must be a whole number'
-                    },
-                    between: {
-                        min: 0,
-                        max: 100000,
-                        message: 'Capacity must be between 0 and 100000'
-                    }
-                }
-            },
-            status: {
-                validators: {
-                    notEmpty: {
-                        message: 'Status is required'
-                    }
-                }
+            plugins: {
+                trigger: new FormValidation.plugins.Trigger(),
+                bootstrap5: new FormValidation.plugins.Bootstrap5({
+                    eleValidClass: '',
+                    rowSelector: '.col-sm-12'
+                }),
+                submitButton: new FormValidation.plugins.SubmitButton(),
+                autoFocus: new FormValidation.plugins.AutoFocus()
             }
-        },
-        plugins: {
-            trigger: new FormValidation.plugins.Trigger(),
-            bootstrap5: new FormValidation.plugins.Bootstrap5({
-                eleValidClass: '',
-                rowSelector: '.col-sm-12'
-            }),
-            submitButton: new FormValidation.plugins.SubmitButton(),
-            autoFocus: new FormValidation.plugins.AutoFocus()
-        }
-    });
-});
+        });
+        wireSectionCascade();
+    }
 
-$(function () {
     if (typeof window.sectionUrls === 'undefined') {
         return;
     }
@@ -588,6 +596,21 @@ $(function () {
             initComplete: function () {
                 $('.card-header').first().after('<hr class="my-0">');
                 $('div.head-label').html('<h5 class="card-title mb-0">Sections</h5>');
+
+                var canvas = document.getElementById('add-new-record-section');
+                $('.create-new')
+                    .off('click.sectionNew')
+                    .on('click.sectionNew', function () {
+                        if (!canvas) {
+                            return;
+                        }
+                        offCanvasSection = offCanvasSection || new bootstrap.Offcanvas(canvas);
+                        resetSectionFormForCreate();
+                        loadFacultyList().done(function (all) {
+                            fillFacultySelect(all, null);
+                        });
+                        offCanvasSection.show();
+                    });
             }
         });
     }
@@ -596,12 +619,10 @@ $(function () {
         fvSection.on('core.form.valid', function () {
             var recordId = $('#form-section-record').attr('data-record-id');
             var url = window.sectionUrls.store;
-            var method = 'POST';
             var msg = 'Section added successfully.';
 
             if (recordId) {
                 url = window.sectionUrls.update + '/' + recordId;
-                method = 'PUT';
                 msg = 'Section updated successfully.';
             }
 
@@ -619,11 +640,15 @@ $(function () {
                 status: $('.section-form .dt-status').val()
             };
 
+            if (recordId) {
+                payload._method = 'PUT';
+            }
+
             var $btn = $('#form-section-record button[type="submit"]');
 
             AjaxUtils.request({
                 url: url,
-                type: method,
+                type: 'POST',
                 data: payload,
                 showSpinner: true,
                 spinnerElement: $btn,
@@ -647,13 +672,28 @@ $(function () {
     }
 
     $('.datatables-basic tbody').on('click', '.section-edit', function () {
-        var rd = dtSection.row($(this).parents('tr')).data();
-        openEditSection(rd, $(this));
+        var $icon = $(this);
+        var row = resolveSectionDataTableRow($icon);
+        var rd = row ? row.data() : null;
+        if (!rd || rd.id == null) {
+            if (typeof toastr !== 'undefined') {
+                toastr.error('Could not read this row. Try reloading the page.');
+            }
+            return;
+        }
+        openEditSection(rd, $icon);
     });
 
     $('.datatables-basic tbody').on('click', '.section-delete', function () {
-        var rd = dtSection.row($(this).parents('tr')).data();
         var $del = $(this);
+        var row = resolveSectionDataTableRow($del);
+        var rd = row ? row.data() : null;
+        if (!rd || rd.id == null) {
+            if (typeof toastr !== 'undefined') {
+                toastr.error('Could not read this row. Try reloading the page.');
+            }
+            return;
+        }
 
         Swal.fire({
             title: 'Are you sure?',
@@ -679,7 +719,9 @@ $(function () {
                 },
                 showSpinner: false,
                 onSuccess: function () {
-                    dtSection.row($del.parents('tr')).remove().draw(false);
+                    if (row && row.node()) {
+                        row.remove().draw(false);
+                    }
                     SpinnerUtils.hide($del);
                     if (typeof toastr !== 'undefined') {
                         toastr.success('Section deleted successfully.');

@@ -31,10 +31,6 @@ class UpdateCourseAssignmentRequest extends FormRequest
         return [
             'academic_session_id' => ['required', 'exists:academic_sessions,id'],
             'program_id' => ['required', 'exists:programs,id'],
-            'batch_id' => [
-                'required',
-                Rule::exists('batches', 'id')->where(fn ($q) => $q->where('program_id', $programId)),
-            ],
             'semester_id' => [
                 'required',
                 Rule::exists('semesters', 'id')->where(fn ($q) => $q->where('program_id', $programId)),

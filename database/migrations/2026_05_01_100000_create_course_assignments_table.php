@@ -12,7 +12,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('academic_session_id')->constrained('academic_sessions')->cascadeOnDelete();
             $table->foreignId('program_id')->constrained('programs')->cascadeOnDelete();
-            $table->foreignId('batch_id')->constrained('batches')->cascadeOnDelete();
             $table->foreignId('semester_id')->constrained('semesters')->cascadeOnDelete();
             $table->foreignId('course_id')->constrained('courses')->cascadeOnDelete();
             $table->foreignId('teacher_id')->constrained('teachers')->cascadeOnDelete();
@@ -25,7 +24,6 @@ return new class extends Migration
                 [
                     'academic_session_id',
                     'program_id',
-                    'batch_id',
                     'semester_id',
                     'course_id',
                     'section_id',

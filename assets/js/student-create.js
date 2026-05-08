@@ -72,9 +72,7 @@ function applyFormMeta(data) {
     'id',
     function (s) {
       let t = s.session_name || '';
-      if (s.academic_year) {
-        t += ' (' + s.academic_year + ')';
-      }
+    
       return t;
     },
     '— Select session —'
@@ -141,6 +139,64 @@ function loadFormMeta() {
   }).done(applyFormMeta);
 }
 
+function loadSections(programId) {
+  const $section = $('#section_id');
+  const base = typeof window.studentAjaxBase === 'string' ? window.studentAjaxBase.replace(/\/$/, '') : '';
+  if (!programId || !base) {
+    $section.prop('disabled', true);
+    fillSelect(
+      $section,
+      [],
+      'id',
+      function () {
+        return '';
+      },
+      '— Select program first —'
+    );
+    return;
+  }
+  $section.prop('disabled', true);
+  $.ajax({
+    url: base + '/program/' + encodeURIComponent(programId) + '/sections',
+    type: 'GET',
+    headers: {
+      'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .done(function (res) {
+      const rows = res.items || [];
+      const items = rows.map(function (r) {
+        return { id: r.id, label: r.label || '' };
+      });
+      fillSelect(
+        $section,
+        items,
+        'id',
+        function (x) {
+          return x.label || '';
+        },
+        '— Select section —'
+      );
+      $section.prop('disabled', false);
+    })
+    .fail(function () {
+      if (typeof toastr !== 'undefined') {
+        toastr.error('Could not load sections.');
+      }
+      fillSelect(
+        $section,
+        [],
+        'id',
+        function () {
+          return '';
+        },
+        '— Select program first —'
+      );
+      $section.prop('disabled', true);
+    });
+}
+
 function loadBatches(programId) {
   const $batch = $('#batch_id');
   if (!programId) {
@@ -165,12 +221,8 @@ function loadBatches(programId) {
       $batch.append($('<option></option>').val('').text('— Select batch —'));
       rows.forEach(function (b) {
         let label = b.batch_name || '';
-        if (b.batch_code) {
-          label += ' (' + b.batch_code + ')';
-        }
-        if (b.academic_session && b.academic_session.session_name) {
-          label += ' · ' + b.academic_session.session_name;
-        }
+       
+       
         $batch.append($('<option></option>').val(b.id).text(label));
       });
       $batch.prop('disabled', false);
@@ -198,7 +250,9 @@ $(function () {
   });
 
   $('#program_id').on('change', function () {
-    loadBatches($(this).val());
+    const pid = $(this).val();
+    loadBatches(pid);
+    loadSections(pid);
   });
 
   $form.on('submit', function (e) {
@@ -233,7 +287,12 @@ $(function () {
           .empty()
           .append($('<option></option>').val('').text('— Select program first —'))
           .prop('disabled', true);
+        $('#section_id')
+          .empty()
+          .append($('<option></option>').val('').text('— Select program first —'))
+          .prop('disabled', true);
         loadBatches('');
+        loadSections('');
       })
       .fail(function (xhr) {
         showErrors(xhr);

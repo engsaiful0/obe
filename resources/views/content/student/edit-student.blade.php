@@ -5,6 +5,7 @@
 @section('page-script')
     <script>
         window.studentBatchesUrl = @json(route('student.batches-by-program'));
+        window.studentAjaxBase = @json(url('/ajax'));
     </script>
     <script>
         (function() {
@@ -14,6 +15,46 @@
                 var submitSpinner = document.getElementById('studentUpdateSpinner');
                 var programSelect = document.getElementById('program_id');
                 var batchSelect = document.getElementById('batch_id');
+                var sectionSelect = document.getElementById('section_id');
+
+                function loadSectionsForProgram(programId) {
+                    if (!sectionSelect || !window.studentAjaxBase || !programId) {
+                        if (sectionSelect && !programId) {
+                            sectionSelect.innerHTML = '<option value="">— Select program first —</option>';
+                            sectionSelect.disabled = true;
+                        }
+                        return;
+                    }
+                    var base = String(window.studentAjaxBase).replace(/\/$/, '');
+                    sectionSelect.innerHTML = '<option value="">Loading sections...</option>';
+                    sectionSelect.disabled = true;
+
+                    fetch(
+                            base + '/program/' + encodeURIComponent(programId) + '/sections', {
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                },
+                                credentials: 'same-origin'
+                            })
+                        .then(function(res) {
+                            return res.json();
+                        })
+                        .then(function(data) {
+                            var rows = data.items || [];
+                            sectionSelect.innerHTML = '<option value="">— Select section —</option>';
+                            rows.forEach(function(s) {
+                                var opt = document.createElement('option');
+                                opt.value = s.id;
+                                opt.textContent = s.label || '';
+                                sectionSelect.appendChild(opt);
+                            });
+                            sectionSelect.disabled = false;
+                        })
+                        .catch(function() {
+                            sectionSelect.innerHTML = '<option value="">Could not load sections</option>';
+                            sectionSelect.disabled = false;
+                        });
+                }
 
                 if (programSelect && batchSelect && window.studentBatchesUrl) {
                     programSelect.addEventListener('change', function() {
@@ -23,6 +64,7 @@
 
                         if (!programId) {
                             batchSelect.innerHTML = '<option value="">— Select program first —</option>';
+                            loadSectionsForProgram('');
                             return;
                         }
 
@@ -31,7 +73,8 @@
                         fetch(url, {
                                 headers: {
                                     'X-Requested-With': 'XMLHttpRequest'
-                                }
+                                },
+                                credentials: 'same-origin'
                             })
                             .then(function(res) {
                                 return res.json();
@@ -47,6 +90,7 @@
                                     batchSelect.appendChild(opt);
                                 });
                                 batchSelect.disabled = false;
+                                loadSectionsForProgram(programId);
                             })
                             .catch(function() {
                                 batchSelect.innerHTML = '<option value="">Could not load batches</option>';
@@ -124,7 +168,7 @@
                             <div class="col-12 col-md-4">
                                 <label class="form-label" for="section_id">Section <span class="text-danger">*</span></label>
                                 <select name="section_id" id="section_id" class="form-select" required>
-                                    <option value="">— Load sections —</option>
+                                    <option value="">— Select section —</option>
                                     @foreach ($sections ?? [] as $s)
                                         <option value="{{ $s->id }}" @selected(old('section_id', $student->section_id) == $s->id)>
                                             {{ $s->section_name }}@if ($s->section_code)

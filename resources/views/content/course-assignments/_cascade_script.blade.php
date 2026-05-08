@@ -3,7 +3,6 @@
     $assignment = $assignment ?? null;
     $aid = optional($assignment);
     $courseAssignmentStateEncoded = json_encode([
-        'batchId' => old('batch_id', $aid->batch_id),
         'semesterId' => old('semester_id', $aid->semester_id),
         'courseId' => old('course_id', $aid->course_id),
         'sectionId' => old('section_id', $aid->section_id),
@@ -19,11 +18,10 @@
     function str(v) { return v !== undefined && v !== null ? String(v) : ''; }
 
     const programEl = document.getElementById('course_assignment_program_id');
-    const batchEl = document.getElementById('course_assignment_batch_id');
     const semesterEl = document.getElementById('course_assignment_semester_id');
     const courseEl = document.getElementById('course_assignment_course_id');
     const sectionEl = document.getElementById('course_assignment_section_id');
-    if (!programEl || !batchEl || !semesterEl || !courseEl || !sectionEl) return;
+    if (!programEl || !semesterEl || !courseEl || !sectionEl) return;
 
     let lastSections = [];
 
@@ -73,18 +71,6 @@
         selectValue(sectionEl, STATE.sectionId);
     }
 
-    async function hydrateSectionsOnly() {
-        const bid = batchEl.value ? Number(batchEl.value) : 0;
-        if (!bid) {
-            lastSections = [];
-            fillSelect(sectionEl, 'Select section', []);
-            return;
-        }
-        const res = await fetchJson(BASE + '/batch/' + bid + '/sections');
-        lastSections = res.items || [];
-        renderSections();
-    }
-
     async function loadCoursesForSemester() {
         const sid = semesterEl.value ? Number(semesterEl.value) : 0;
         if (!sid) {
@@ -101,7 +87,6 @@
     async function loadProgramChains() {
         const pid = programEl.value ? Number(programEl.value) : 0;
         if (!pid) {
-            fillSelect(batchEl, 'Select batch', []);
             fillSelect(semesterEl, 'Select semester', []);
             fillSelect(courseEl, 'Select course', []);
             fillSelect(sectionEl, 'Select section', []);
@@ -109,18 +94,15 @@
             return;
         }
         try {
-            const [batchRes, semRes] = await Promise.all([
-                fetchJson(BASE + '/program/' + pid + '/batches'),
-                fetchJson(BASE + '/program/' + pid + '/semesters')
+            const [semRes, secRes] = await Promise.all([
+                fetchJson(BASE + '/program/' + pid + '/semesters'),
+                fetchJson(BASE + '/program/' + pid + '/sections')
             ]);
-            fillSelect(batchEl, 'Select batch', batchRes.items || []);
             fillSelect(semesterEl, 'Select semester', semRes.items || []);
-            selectValue(batchEl, STATE.batchId);
             selectValue(semesterEl, STATE.semesterId);
             fillSelect(courseEl, 'Select course', []);
-            fillSelect(sectionEl, 'Select section', []);
-            lastSections = [];
-            if (batchEl.value) await hydrateSectionsOnly();
+            lastSections = secRes.items || [];
+            renderSections();
             if (semesterEl.value) await loadCoursesForSemester();
             else renderSections();
         } catch (e) {
@@ -130,15 +112,10 @@
 
     programEl.addEventListener('change', function () {
         STATE.programId = programEl.value;
-        STATE.batchId = '';
         STATE.semesterId = '';
         STATE.courseId = '';
         STATE.sectionId = '';
         loadProgramChains();
-    });
-    batchEl.addEventListener('change', function () {
-        STATE.batchId = batchEl.value;
-        hydrateSectionsOnly().catch(console.error);
     });
     semesterEl.addEventListener('change', function () {
         STATE.semesterId = semesterEl.value;
@@ -146,13 +123,8 @@
     });
 
     document.addEventListener('DOMContentLoaded', function () {
-        if (!EDIT && programEl.value) {
-            loadProgramChains();
-        }
-        if (EDIT && programEl.value) {
-            hydrateSectionsOnly()
-                .then(function () { return loadCoursesForSemester(); })
-                .catch(console.error);
+        if (programEl.value) {
+            loadProgramChains().catch(console.error);
         }
     });
 })();

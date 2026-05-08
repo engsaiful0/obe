@@ -2,7 +2,6 @@
     $assignment = $assignment ?? null;
     $ca = optional($assignment);
     $isEdit = $assignment !== null;
-    $batches = $batches ?? collect();
     $semesters = $semesters ?? collect();
     $courses = $courses ?? collect();
     $sections = $sections ?? collect();
@@ -43,19 +42,6 @@
                 <option value="{{ $program->id }}"
                     @selected(old('program_id', $ca->program_id) == $program->id)>
                     {{ $program->program_code ? $program->program_code.' — ' : '' }}{{ $program->program_name }}
-                </option>
-            @endforeach
-        </select>
-    </div>
-
-    <div class="col-md-6">
-        <label class="form-label">Batch <span class="text-danger">*</span></label>
-        <select name="batch_id" class="form-select" id="course_assignment_batch_id" required>
-            <option value="">Select batch</option>
-            @foreach ($batches as $batch)
-                <option value="{{ $batch->id }}"
-                    @selected(old('batch_id', $ca->batch_id) == $batch->id)>
-                    {{ $batch->batch_name }}
                 </option>
             @endforeach
         </select>

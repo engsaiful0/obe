@@ -197,6 +197,8 @@ Route::prefix('ajax')->group(function () {
         ->name('ajax.program.semesters');
     Route::get('program/{program}/courses', [CourseAssignmentCascadeController::class, 'programCourses'])
         ->name('ajax.program.courses');
+    Route::get('program/{program}/sections', [CourseAssignmentCascadeController::class, 'programSections'])
+        ->name('ajax.program.sections');
     Route::get('program/{program}/courses-for-clo', [CloController::class, 'coursesByProgram'])
         ->name('ajax.clo.program.courses');
     Route::prefix('clo-po')->group(function () {

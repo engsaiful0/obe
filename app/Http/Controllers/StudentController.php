@@ -345,7 +345,15 @@ class StudentController extends Controller
             $rules['password'] = 'required|string|min:6|max:255';
         }
 
-        $validated = $request->validate($rules);
+        $validated = $request->validate(array_merge($rules, [
+            'section_id' => [
+                'required',
+                'integer',
+                ValidationRule::exists('sections', 'id')->where(
+                    fn ($q) => $q->where('program_id', (int) $request->program_id)
+                ),
+            ],
+        ]));
 
         $batchMatchesProgram = Batch::where('id', $request->batch_id)
             ->where('program_id', $request->program_id)
@@ -389,6 +397,7 @@ class StudentController extends Controller
             $student = Student::create([
                 'program_id' => $validated['program_id'],
                 'batch_id' => $validated['batch_id'],
+                'section_id' => $validated['section_id'],
                 'student_code' => $validated['student_code'],
                 'student_name' => $validated['student_name'],
                 'picture' => $picturePath,
@@ -466,6 +475,10 @@ class StudentController extends Controller
 
         $programs = Program::query()->where('status', 'Active')->orderBy('program_name')->get(['id', 'program_name', 'program_code']);
         $batches = Batch::query()->where('program_id', $student->program_id)->orderBy('batch_name')->get(['id', 'batch_name', 'batch_code']);
+        $sections = Section::query()
+            ->where('program_id', $student->program_id)
+            ->orderBy('section_name')
+            ->get(['id', 'section_name', 'section_code']);
         $academicSessions = AcademicSession::query()->where('status', 'Active')->orderByDesc('academic_year')->orderBy('session_name')->get(['id', 'session_name', 'academic_year']);
         $genders = Gender::query()->orderBy('gender_name')->get(['id', 'gender_name']);
         $religions = Religion::query()->orderBy('religion_name')->get(['id', 'religion_name']);
@@ -478,6 +491,7 @@ class StudentController extends Controller
             'studentStatuses' => $studentStatuses,
             'programs' => $programs,
             'batches' => $batches,
+            'sections' => $sections,
             'academicSessions' => $academicSessions,
             'genders' => $genders,
             'religions' => $religions,
@@ -496,6 +510,13 @@ class StudentController extends Controller
         $validated = $request->validate([
             'program_id' => 'required|exists:programs,id',
             'batch_id' => 'required|exists:batches,id',
+            'section_id' => [
+                'required',
+                'integer',
+                ValidationRule::exists('sections', 'id')->where(
+                    fn ($q) => $q->where('program_id', (int) $request->program_id)
+                ),
+            ],
             'student_code' => 'required|string|max:100|unique:students,student_code,'.$student->id,
             'student_name' => 'required|string|max:255',
             'picture' => 'nullable|image|max:4096',
@@ -592,6 +613,7 @@ class StudentController extends Controller
             $student->update([
                 'program_id' => $validated['program_id'],
                 'batch_id' => $validated['batch_id'],
+                'section_id' => $validated['section_id'],
                 'student_code' => $validated['student_code'],
                 'student_name' => $validated['student_name'],
                 'picture' => $picturePath,

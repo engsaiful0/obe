@@ -16,7 +16,6 @@ trait EnsuresUniqueCourseAssignment
         $query = CourseAssignment::query()
             ->where('academic_session_id', (int) $this->input('academic_session_id'))
             ->where('program_id', (int) $this->input('program_id'))
-            ->where('batch_id', (int) $this->input('batch_id'))
             ->where('semester_id', (int) $this->input('semester_id'))
             ->where('course_id', (int) $this->input('course_id'))
             ->where('section_id', (int) $this->input('section_id'));

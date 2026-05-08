@@ -9,6 +9,7 @@
             batches: @json(route('student.batches-by-program')),
             store: @json(route('students.store'))
         };
+        window.studentAjaxBase = @json(url('/ajax'));
     </script>
     <script src="{{ asset('assets/js/student-create.js') }}?v={{ time() }}"></script>
 @endsection
@@ -47,8 +48,8 @@
                             </div>
                             <div class="col-12 col-md-4">
                                 <label class="form-label" for="section_id">Section <span class="text-danger">*</span></label>
-                                <select name="section_id" id="section_id" class="form-select" required>
-                                    <option value="">— Load sections —</option>
+                                <select name="section_id" id="section_id" class="form-select" required disabled>
+                                    <option value="">— Select program first —</option>
                                 </select>
                             </div>
                             <div class="col-12 col-md-4">

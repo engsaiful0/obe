@@ -15,7 +15,6 @@ class CourseAssignment extends Model
     protected $fillable = [
         'academic_session_id',
         'program_id',
-        'batch_id',
         'semester_id',
         'course_id',
         'teacher_id',
@@ -31,11 +30,6 @@ class CourseAssignment extends Model
     public function program(): BelongsTo
     {
         return $this->belongsTo(Program::class);
-    }
-
-    public function batch(): BelongsTo
-    {
-        return $this->belongsTo(Batch::class);
     }
 
     public function semester(): BelongsTo

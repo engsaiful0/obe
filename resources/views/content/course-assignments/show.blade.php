@@ -15,7 +15,6 @@
         <div class="row g-3">
             <div class="col-md-6"><strong>{{ __('Academic session') }}:</strong> {{ $assignment->academicSession->session_name ?? '—' }}</div>
             <div class="col-md-6"><strong>{{ __('Program') }}:</strong> {{ $assignment->program->program_name ?? '—' }}</div>
-            <div class="col-md-6"><strong>{{ __('Batch') }}:</strong> {{ $assignment->batch->batch_name ?? '—' }}</div>
             <div class="col-md-6"><strong>{{ __('Semester') }}:</strong> {{ $assignment->semester->semester_name ?? '—' }}</div>
             <div class="col-md-6"><strong>{{ __('Course') }}:</strong> {{ $assignment->course->course_code ?? '' }} — {{ $assignment->course->course_title ?? '' }}</div>
             <div class="col-md-6"><strong>{{ __('Section') }}:</strong> {{ $assignment->section->section_name ?? '—' }}</div>

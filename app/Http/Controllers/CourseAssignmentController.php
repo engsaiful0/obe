@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreCourseAssignmentRequest;
 use App\Http\Requests\UpdateCourseAssignmentRequest;
 use App\Models\AcademicSession;
-use App\Models\Batch;
 use App\Models\Course;
 use App\Models\CourseAssignment;
 use App\Models\Program;
@@ -27,7 +26,6 @@ class CourseAssignmentController extends Controller
             ->with([
                 'academicSession:id,session_name',
                 'program:id,program_name,program_code',
-                'batch:id,batch_name,batch_code',
                 'semester:id,semester_name',
                 'course:id,course_code,course_title',
                 'teacher:id,teacher_name,employee_id',
@@ -45,10 +43,6 @@ class CourseAssignmentController extends Controller
                         $tq->where('teacher_name', 'like', "%{$q}%")
                             ->orWhere('employee_id', 'like', "%{$q}%");
                     })
-                    ->orWhereHas('batch', function ($bq) use ($q) {
-                        $bq->where('batch_name', 'like', "%{$q}%")
-                            ->orWhere('batch_code', 'like', "%{$q}%");
-                    })
                     ->orWhereHas('section', function ($sq) use ($q) {
                         $sq->where('section_name', 'like', "%{$q}%")
                             ->orWhere('section_code', 'like', "%{$q}%");
@@ -56,7 +50,7 @@ class CourseAssignmentController extends Controller
             });
         }
 
-        foreach (['academic_session_id', 'program_id', 'batch_id', 'semester_id', 'section_id'] as $field) {
+        foreach (['academic_session_id', 'program_id', 'semester_id', 'section_id'] as $field) {
             if ($request->filled($field)) {
                 $query->where($field, (int) $request->input($field));
             }
@@ -70,7 +64,6 @@ class CourseAssignmentController extends Controller
 
         $sessions = AcademicSession::query()->orderByDesc('academic_year')->orderByDesc('session_name')->get(['id', 'session_name']);
         $programs = Program::query()->orderBy('program_name')->get(['id', 'program_name', 'program_code']);
-        $batches = Batch::query()->orderBy('batch_name')->get(['id', 'batch_name', 'program_id']);
         $semesters = Semester::query()->orderBy('semester_order')->get(['id', 'semester_name', 'program_id']);
         $sections = Section::query()->orderBy('section_name')->get(['id', 'section_name', 'program_id']);
 
@@ -78,7 +71,6 @@ class CourseAssignmentController extends Controller
             'assignments',
             'sessions',
             'programs',
-            'batches',
             'semesters',
             'sections'
         ));
@@ -93,7 +85,6 @@ class CourseAssignmentController extends Controller
 
         return view('content.course-assignments.create', array_merge($this->formLookups(), [
             'assignment' => null,
-            'batches' => collect(),
             'semesters' => collect(),
             'courses' => collect(),
             'sections' => collect(),
@@ -113,7 +104,6 @@ class CourseAssignmentController extends Controller
     private function dependentsForAssignment(CourseAssignment $assignment): array
     {
         $programId = $assignment->program_id;
-        $batches = Batch::query()->where('program_id', $programId)->orderBy('batch_name')->get();
         $semesters = Semester::query()->where('program_id', $programId)->orderBy('semester_order')->get();
         $courses = Course::query()
             ->where('program_id', $programId)
@@ -122,12 +112,11 @@ class CourseAssignmentController extends Controller
             ->get();
         $sections = Section::query()
             ->where('program_id', $programId)
-            ->where('batch_id', $assignment->batch_id)
             ->where('semester_id', $assignment->semester_id)
             ->orderBy('section_name')
             ->get();
 
-        return compact('batches', 'semesters', 'courses', 'sections');
+        return compact('semesters', 'courses', 'sections');
     }
 
     public function store(StoreCourseAssignmentRequest $request): RedirectResponse|JsonResponse
@@ -135,7 +124,6 @@ class CourseAssignmentController extends Controller
         $assignment = CourseAssignment::create([
             'academic_session_id' => $request->academic_session_id,
             'program_id' => $request->program_id,
-            'batch_id' => $request->batch_id,
             'semester_id' => $request->semester_id,
             'course_id' => $request->course_id,
             'teacher_id' => $request->teacher_id,
@@ -158,7 +146,6 @@ class CourseAssignmentController extends Controller
         $course_assignment->load([
             'academicSession',
             'program',
-            'batch',
             'semester',
             'course',
             'teacher',
