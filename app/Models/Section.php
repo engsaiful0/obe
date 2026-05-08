@@ -13,7 +13,6 @@ class Section extends Model
         'faculty_id',
         'department_id',
         'program_id',
-        'batch_id',
         'semester_id',
         'section_name',
         'section_code',
@@ -43,10 +42,7 @@ class Section extends Model
         return $this->belongsTo(Program::class);
     }
 
-    public function batch()
-    {
-        return $this->belongsTo(Batch::class);
-    }
+   
 
     public function semester()
     {

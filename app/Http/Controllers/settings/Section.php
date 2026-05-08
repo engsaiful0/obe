@@ -28,7 +28,6 @@ class Section extends Controller
             'faculty:id,faculty_name,faculty_code',
             'department:id,name,department_code',
             'program:id,program_name,program_code',
-            'batch:id,batch_name,batch_code',
             'semester:id,semester_name,semester_order',
         ])
             ->orderBy('section_name')
@@ -120,7 +119,6 @@ class Section extends Controller
             'faculty_id' => 'required|exists:faculties,id',
             'department_id' => 'required|exists:departments,id',
             'program_id' => 'required|exists:programs,id',
-            'batch_id' => 'required|exists:batches,id',
             'semester_id' => 'required|exists:semesters,id',
             'section_name' => 'required|string|max:255',
             'section_code' => [
@@ -130,7 +128,6 @@ class Section extends Controller
                 Rule::unique('sections', 'section_code')
                     ->where(fn($q) => $q
                         ->where('program_id', (int) $request->program_id)
-                        ->where('batch_id', (int) $request->batch_id)
                         ->where('semester_id', (int) $request->semester_id))
                     ->ignore($sectionId),
             ],
@@ -155,14 +152,7 @@ class Section extends Controller
             ]);
         }
 
-        $batchBelongs = Batch::where('id', $request->batch_id)
-            ->where('program_id', $request->program_id)
-            ->exists();
-        if (!$batchBelongs) {
-            throw ValidationException::withMessages([
-                'batch_id' => 'The batch does not belong to the selected program.',
-            ]);
-        }
+       
 
         $semesterBelongs = Semester::where('id', $request->semester_id)
             ->where('program_id', $request->program_id)
@@ -191,7 +181,6 @@ class Section extends Controller
             'faculty_id' => $request->faculty_id,
             'department_id' => $request->department_id,
             'program_id' => $request->program_id,
-            'batch_id' => $request->batch_id,
             'semester_id' => $request->semester_id,
             'section_name' => $request->section_name,
             'section_code' => $request->section_code,
@@ -211,7 +200,6 @@ class Section extends Controller
             'faculty:id,faculty_name,faculty_code',
             'department:id,name,department_code',
             'program:id,program_name,program_code',
-            'batch:id,batch_name,batch_code',
             'semester:id,semester_name,semester_order',
         ]);
 

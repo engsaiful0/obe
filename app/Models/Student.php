@@ -12,7 +12,7 @@ class Student extends Model
     protected $fillable = [
         'program_id',
         'batch_id',
-        'section',
+        'section_id',
         'student_code',
         'student_name',
         'picture',
@@ -47,6 +47,7 @@ class Student extends Model
     protected $casts = [
         'date_of_birth' => 'date',
         'admission_date' => 'date',
+        'section_id' => 'integer',
     ];
 
     public function program()
@@ -57,6 +58,11 @@ class Student extends Model
     public function batch()
     {
         return $this->belongsTo(Batch::class);
+    }
+
+    public function section()
+    {
+        return $this->belongsTo(Section::class);
     }
 
     public function gender()

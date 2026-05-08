@@ -26,7 +26,6 @@
                         <th>Faculty</th>
                         <th>Department</th>
                         <th>Program</th>
-                        <th>Batch</th>
                         <th>Semester</th>
                         <th>Name</th>
                         <th>Code</th>
@@ -66,12 +65,7 @@
                         <option value="">Select department first</option>
                     </select>
                 </div>
-                <div class="col-sm-12">
-                    <label class="form-label" for="batch_id">Batch</label>
-                    <select id="batch_id" name="batch_id" class="form-select dt-batch-id" required disabled>
-                        <option value="">Select program first</option>
-                    </select>
-                </div>
+             
                 <div class="col-sm-12">
                     <label class="form-label" for="semester_id">Semester</label>
                     <select id="semester_id" name="semester_id" class="form-select dt-semester-id" required disabled>

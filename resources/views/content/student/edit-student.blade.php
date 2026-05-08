@@ -122,6 +122,19 @@
                                 </select>
                             </div>
                             <div class="col-12 col-md-4">
+                                <label class="form-label" for="section_id">Section <span class="text-danger">*</span></label>
+                                <select name="section_id" id="section_id" class="form-select" required>
+                                    <option value="">— Load sections —</option>
+                                    @foreach ($sections ?? [] as $s)
+                                        <option value="{{ $s->id }}" @selected(old('section_id', $student->section_id) == $s->id)>
+                                            {{ $s->section_name }}@if ($s->section_code)
+                                                ({{ $s->section_code }})
+                                            @endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-4">
                                 <label class="form-label" for="student_code">Student ID <span
                                         class="text-danger">*</span></label>
                                 <input type="text" name="student_code" id="student_code" class="form-control"

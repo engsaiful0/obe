@@ -429,13 +429,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }
             },
-            batch_id: {
-                validators: {
-                    notEmpty: {
-                        message: 'Please select a batch'
-                    }
-                }
-            },
+           
             semester_id: {
                 validators: {
                     notEmpty: {

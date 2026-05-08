@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('faculty_id')->constrained('faculties')->restrictOnDelete();
             $table->foreignId('department_id')->constrained('departments')->restrictOnDelete();
             $table->foreignId('program_id')->constrained('programs')->restrictOnDelete();
-            $table->foreignId('batch_id')->constrained('batches')->restrictOnDelete();
+         
             $table->foreignId('semester_id')->constrained('semesters')->restrictOnDelete();
             $table->string('section_name');
             $table->string('section_code', 80);
@@ -24,7 +24,7 @@ return new class extends Migration
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->timestamps();
 
-            $table->unique(['program_id', 'batch_id', 'semester_id', 'section_code']);
+            $table->unique(['program_id', 'semester_id', 'section_code']);
         });
     }
 

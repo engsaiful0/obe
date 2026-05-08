@@ -46,13 +46,15 @@ class TeacherCourseMarksService
             ->where('batch_id', (int) $assignment->batch_id);
 
         if ((int) $assignment->section_id > 0) {
-            $section = $assignment->relationLoaded('section')
-                ? $assignment->section
-                : Section::query()->find((int) $assignment->section_id);
+            if (Schema::hasColumn('students', 'section_id')) {
+                $query->where('section_id', (int) $assignment->section_id);
+            } elseif (Schema::hasColumn('students', 'section')) {
+                $section = $assignment->relationLoaded('section')
+                    ? $assignment->section
+                    : Section::query()->find((int) $assignment->section_id);
 
-            $code = trim((string) ($section?->section_code ?? ''));
-            $name = trim((string) ($section?->section_name ?? ''));
-            if (Schema::hasColumn('students', 'section')) {
+                $code = trim((string) ($section?->section_code ?? ''));
+                $name = trim((string) ($section?->section_name ?? ''));
                 $query->where(function ($sub) use ($code, $name) {
                     if ($code !== '') {
                         $sub->where('section', $code);
@@ -61,8 +63,6 @@ class TeacherCourseMarksService
                         $sub->orWhere('section', $name);
                     }
                 });
-            } elseif (Schema::hasColumn('students', 'section_id')) {
-                $query->where('section_id', (int) $assignment->section_id);
             }
         }
 

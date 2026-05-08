@@ -9,6 +9,7 @@
     <script>
         window.studentListUrl = @json(route('student.list'));
         window.studentBatchesUrl = @json(route('student.batches-by-program'));
+        window.studentBatchSectionsUrlTpl = @json(url('/ajax/batch/__BATCH_ID__/sections'));
     </script>
     <script src="{{ asset('assets/js/student-index.js') }}?v={{ time() }}"></script>
 @endsection

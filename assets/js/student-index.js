@@ -277,8 +277,14 @@
         if (!batchId) {
             return;
         }
+        var sectionsTpl =
+            typeof window.studentBatchSectionsUrlTpl !== 'undefined' && window.studentBatchSectionsUrlTpl
+                ? window.studentBatchSectionsUrlTpl
+                : '/ajax/batch/__BATCH_ID__/sections';
+        var sectionsUrl = String(sectionsTpl).split('__BATCH_ID__').join(String(batchId));
+
         $.ajax({
-            url: '/ajax/batch/' + encodeURIComponent(batchId) + '/sections',
+            url: sectionsUrl,
             type: 'GET',
             dataType: 'json',
             headers: {

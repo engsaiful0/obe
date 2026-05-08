@@ -1220,19 +1220,6 @@ class StudentMarkController extends Controller
                 ->value('id');
         }
 
-        $sectionLabel = null;
-        $sidRaw = $validatedImport['section_id'] ?? null;
-        if ($sidRaw !== null && $sidRaw !== '') {
-            $sec = Section::query()->find((int) $sidRaw);
-            if ($sec instanceof Section) {
-                $code = trim((string) $sec->section_code);
-                $sectionLabel = $code !== '' ? $code : trim((string) $sec->section_name);
-                if ($sectionLabel === '') {
-                    $sectionLabel = null;
-                }
-            }
-        }
-
         $displayName = ($preferredName !== null && trim($preferredName) !== '') ? trim($preferredName) : $studentCode;
 
         $payload = [
@@ -1243,8 +1230,25 @@ class StudentMarkController extends Controller
             'father_name' => '—',
             'gender_id' => (int) $genderId,
             'status_id' => $activeStatusId,
-            'section' => $sectionLabel,
         ];
+
+        $sidRaw = $validatedImport['section_id'] ?? null;
+        if (Schema::hasColumn('students', 'section_id')) {
+            $payload['section_id'] = ($sidRaw !== null && $sidRaw !== '') ? (int) $sidRaw : null;
+        } else {
+            $sectionLabel = null;
+            if ($sidRaw !== null && $sidRaw !== '') {
+                $sec = Section::query()->find((int) $sidRaw);
+                if ($sec instanceof Section) {
+                    $code = trim((string) $sec->section_code);
+                    $sectionLabel = $code !== '' ? $code : trim((string) $sec->section_name);
+                    if ($sectionLabel === '') {
+                        $sectionLabel = null;
+                    }
+                }
+            }
+            $payload['section'] = $sectionLabel;
+        }
 
         try {
             $student = Student::query()->create(array_merge(['student_code' => $studentCode], $payload));
@@ -1420,6 +1424,12 @@ class StudentMarkController extends Controller
             ->where('program_id', (int) $context['program_id'])
             ->where('batch_id', (int) $context['batch_id'])
             ->when($section, function ($q) use ($section) {
+                if (Schema::hasColumn('students', 'section_id')) {
+                    $q->where('students.section_id', (int) $section->getKey());
+
+                    return;
+                }
+
                 $code = trim((string) $section->section_code);
                 $name = trim((string) $section->section_name);
                 $q->where(function ($w) use ($code, $name) {

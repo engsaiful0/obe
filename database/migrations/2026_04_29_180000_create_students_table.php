@@ -9,6 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('students', function (Blueprint $table) {
+
+            // Primary Key
             $table->id();
 
             // Academic Relations
@@ -22,6 +24,10 @@ return new class extends Migration
 
             $table->foreignId('academic_session_id')
                 ->constrained('academic_sessions')
+                ->restrictOnDelete();
+
+            $table->foreignId('section_id')
+                ->constrained('sections')
                 ->restrictOnDelete();
 
             // Student Identity
@@ -51,7 +57,11 @@ return new class extends Migration
                 ->constrained('genders')
                 ->restrictOnDelete();
 
-            $table->unsignedBigInteger('religion_id')->nullable();
+            // FIXED RELATION
+            $table->foreignId('religion_id')
+                ->nullable()
+                ->constrained('religions')
+                ->nullOnDelete();
 
             $table->foreignId('nationality_id')
                 ->nullable()
@@ -75,7 +85,6 @@ return new class extends Migration
             // Admission / Academic Tracking
             $table->date('admission_date')->nullable();
             $table->unsignedTinyInteger('current_semester')->nullable();
-            $table->string('section', 20)->nullable();
 
             $table->enum('shift', ['Morning', 'Evening', 'Weekend'])
                 ->default('Morning');
@@ -90,17 +99,17 @@ return new class extends Migration
             $table->string('guardian_email')->nullable();
             $table->text('guardian_address')->nullable();
 
-            // User Login Relation
+            // User Relation
             $table->foreignId('user_id')
                 ->nullable()
                 ->constrained('users')
                 ->nullOnDelete();
 
-            // Status
+            // Status Relation
             $table->foreignId('status_id')
-            ->nullable()
-            ->constrained('statuses')
-            ->nullOnDelete();
+                ->nullable()
+                ->constrained('statuses')
+                ->nullOnDelete();
 
             // System Columns
             $table->timestamps();
@@ -110,6 +119,7 @@ return new class extends Migration
             $table->index('program_id');
             $table->index('batch_id');
             $table->index('academic_session_id');
+            $table->index('section_id');
             $table->index('gender_id');
             $table->index('religion_id');
             $table->index('nationality_id');

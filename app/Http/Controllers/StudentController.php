@@ -91,6 +91,7 @@ class StudentController extends Controller
                 'program:id,program_name,program_code',
                 'batch:id,batch_name,batch_code',
                 'academicSession:id,session_name,academic_year',
+                'section:id,section_name,section_code',
                 'gender:id,gender_name',
                 'religion:id,religion_name',
             ]);
@@ -117,20 +118,7 @@ class StudentController extends Controller
         }
 
         if ($request->filled('section_id')) {
-            $sectionId = (int) $request->input('section_id');
-            $section = Section::query()->find($sectionId);
-            if ($section) {
-                $code = trim((string) ($section->section_code ?? ''));
-                $name = trim((string) ($section->section_name ?? ''));
-                $query->where(function ($w) use ($code, $name) {
-                    if ($code !== '') {
-                        $w->where('students.section', $code);
-                    }
-                    if ($name !== '') {
-                        $w->orWhere('students.section', $name);
-                    }
-                });
-            }
+            $query->where('students.section_id', (int) $request->input('section_id'));
         }
 
         if ($request->filled('academic_session_id')) {
@@ -189,7 +177,7 @@ class StudentController extends Controller
                 'student_type' => $s->student_type,
                 'program' => $s->program,
                 'batch' => $s->batch,
-                'section' => $s->section,
+                'section' => $this->formatStudentSectionLabel($s),
                 'academic_session' => $s->academicSession,
                 'gender' => $s->gender,
                 'religion' => $s->religion,
@@ -648,6 +636,24 @@ class StudentController extends Controller
         return response()->json([
             'message' => 'Student deleted successfully.',
         ]);
+    }
+
+    private function formatStudentSectionLabel(Student $student): string
+    {
+        $section = $student->relationLoaded('section') ? $student->section : null;
+
+        if ($section) {
+            $code = trim((string) ($section->section_code ?? ''));
+            
+
+            if ($code !== '') {
+                return $code;
+            }
+
+            return '—';
+        }
+
+        return $student->section_id ? (string) $student->section_id : '';
     }
 
     private function normalizeOptionalLogin(Request $request): void
