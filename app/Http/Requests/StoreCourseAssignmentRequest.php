@@ -50,7 +50,6 @@ class StoreCourseAssignmentRequest extends FormRequest
                 'required',
                 Rule::exists('sections', 'id')->where(function ($q) use ($programId) {
                     $q->where('program_id', $programId)
-                        ->where('batch_id', (int) $this->input('batch_id'))
                         ->where('semester_id', (int) $this->input('semester_id'));
                 }),
             ],

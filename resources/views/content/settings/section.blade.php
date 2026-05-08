@@ -9,7 +9,6 @@
             facultyList: @json(url('app/settings/get-faculty')),
             departments: @json(url('app/settings/section/departments-by-faculty')),
             programs: @json(url('app/settings/section/programs-by-department')),
-            batches: @json(url('app/settings/section/batches-by-program')),
             semesters: @json(url('app/settings/section/semesters-by-program')),
         };
     </script>

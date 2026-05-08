@@ -61,7 +61,7 @@ class StudentMarkController extends Controller
             'programs' => Program::query()->orderBy('program_name')->get(['id', 'program_name', 'program_code']),
             'courses' => Course::query()->orderBy('course_code')->get(['id', 'course_code', 'course_title', 'program_id']),
             'batches' => Batch::query()->orderBy('batch_name')->get(['id', 'batch_name', 'batch_code', 'program_id']),
-            'sections' => Section::query()->orderBy('section_name')->get(['id', 'section_name', 'section_code', 'program_id', 'batch_id']),
+            'sections' => Section::query()->orderBy('section_name')->get(['id', 'section_name', 'section_code', 'program_id']),
             'assessmentComponents' => AssessmentComponent::query()->orderBy('component_name')->get(['id', 'component_name', 'marks', 'course_id']),
             'academicSessions' => AcademicSession::query()->orderByDesc('academic_year')->orderBy('session_name')->get(['id', 'session_name', 'academic_year']),
             'statuses' => $this->obeStatuses(),
@@ -348,7 +348,7 @@ class StudentMarkController extends Controller
 
     public function bulkEntry(): View
     {
-        $sections = Section::query()->orderBy('section_name')->get(['id', 'section_name', 'section_code', 'program_id', 'batch_id']);
+        $sections = Section::query()->orderBy('section_name')->get(['id', 'section_name', 'section_code', 'program_id']);
         return view('content.student-marks.bulk', array_merge($this->indexLookups(), compact('sections')));
     }
 
@@ -1666,7 +1666,6 @@ class StudentMarkController extends Controller
         $payload ??= request()->all();
         $programId = (int) ($payload['program_id'] ?? 0);
         $courseId = (int) ($payload['course_id'] ?? 0);
-        $batchId = (int) ($payload['batch_id'] ?? 0);
 
         $rules = [
             'academic_session_id' => ['required', 'integer', 'exists:academic_sessions,id'],
@@ -1684,9 +1683,7 @@ class StudentMarkController extends Controller
             'section_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('sections', 'id')->where(function ($q) use ($programId, $batchId) {
-                    return $q->where('program_id', $programId)->where('batch_id', $batchId);
-                }),
+                Rule::exists('sections', 'id')->where(fn ($q) => $q->where('program_id', $programId)),
             ],
         ];
 

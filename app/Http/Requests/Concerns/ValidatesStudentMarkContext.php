@@ -43,7 +43,6 @@ trait ValidatesStudentMarkContext
     {
         $programId = (int) $this->input('program_id');
         $courseId = (int) $this->input('course_id');
-        $batchId = (int) $this->input('batch_id');
 
         return [
             'academic_session_id' => ['required', 'integer', 'exists:academic_sessions,id'],
@@ -61,9 +60,7 @@ trait ValidatesStudentMarkContext
             'section_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('sections', 'id')->where(function ($q) use ($programId, $batchId) {
-                    return $q->where('program_id', $programId)->where('batch_id', $batchId);
-                }),
+                Rule::exists('sections', 'id')->where(fn ($q) => $q->where('program_id', $programId)),
             ],
             'assessment_component_id' => [
                 'required',
@@ -81,7 +78,6 @@ trait ValidatesStudentMarkContext
     protected function studentMarkContextWithoutComponentRules(): array
     {
         $programId = (int) $this->input('program_id');
-        $batchId = (int) $this->input('batch_id');
 
         return [
             'academic_session_id' => ['required', 'integer', 'exists:academic_sessions,id'],
@@ -99,15 +95,13 @@ trait ValidatesStudentMarkContext
             'section_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('sections', 'id')->where(function ($q) use ($programId, $batchId) {
-                    return $q->where('program_id', $programId)->where('batch_id', $batchId);
-                }),
+                Rule::exists('sections', 'id')->where(fn ($q) => $q->where('program_id', $programId)),
             ],
         ];
     }
 
     /**
-     * Bulk marks: session + program + course + batch; optional section scoped to batch.
+     * Bulk marks: session + program + course + batch; optional section scoped to program.
      *
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
@@ -115,7 +109,6 @@ trait ValidatesStudentMarkContext
     public static function bulkMarksContextRules(array $payload): array
     {
         $programId = (int) ($payload['program_id'] ?? 0);
-        $batchId = (int) ($payload['batch_id'] ?? 0);
 
         return [
             'academic_session_id' => ['required', 'integer', 'exists:academic_sessions,id'],
@@ -133,9 +126,7 @@ trait ValidatesStudentMarkContext
             'section_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('sections', 'id')->where(function ($q) use ($programId, $batchId) {
-                    return $q->where('program_id', $programId)->where('batch_id', $batchId);
-                }),
+                Rule::exists('sections', 'id')->where(fn ($q) => $q->where('program_id', $programId)),
             ],
         ];
     }
@@ -149,9 +140,6 @@ trait ValidatesStudentMarkContext
     public static function bulkMarksImportContextRules(array $payload): array
     {
         $programId = (int) ($payload['program_id'] ?? 0);
-        $batchIdForSection = isset($payload['batch_id']) && $payload['batch_id'] !== '' && $payload['batch_id'] !== null
-            ? (int) $payload['batch_id']
-            : 0;
 
         return [
             'academic_session_id' => ['required', 'integer', 'exists:academic_sessions,id'],
@@ -169,14 +157,7 @@ trait ValidatesStudentMarkContext
             'section_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('sections', 'id')->where(function ($q) use ($programId, $batchIdForSection) {
-                    $q->where('program_id', $programId);
-                    if ($batchIdForSection > 0) {
-                        $q->where('batch_id', $batchIdForSection);
-                    }
-
-                    return $q;
-                }),
+                Rule::exists('sections', 'id')->where(fn ($q) => $q->where('program_id', $programId)),
             ],
         ];
     }

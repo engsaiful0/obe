@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\settings;
 
 use App\Http\Controllers\Controller;
-use App\Models\Batch;
 use App\Models\Department;
 use App\Models\Faculty;
 use App\Models\Program;
@@ -58,18 +57,6 @@ class Section extends Controller
             ->where('status', 'Active')
             ->orderBy('program_name')
             ->get(['id', 'program_name', 'program_code', 'department_id', 'faculty_id']);
-
-        return response()->json(['data' => $items]);
-    }
-
-    public function batchesByProgram(Request $request)
-    {
-        $request->validate(['program_id' => 'required|exists:programs,id']);
-
-        $items = Batch::query()
-            ->where('program_id', $request->program_id)
-            ->orderBy('batch_name')
-            ->get(['id', 'batch_name', 'batch_code', 'program_id']);
 
         return response()->json(['data' => $items]);
     }

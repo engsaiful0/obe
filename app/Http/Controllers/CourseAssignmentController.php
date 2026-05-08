@@ -72,7 +72,7 @@ class CourseAssignmentController extends Controller
         $programs = Program::query()->orderBy('program_name')->get(['id', 'program_name', 'program_code']);
         $batches = Batch::query()->orderBy('batch_name')->get(['id', 'batch_name', 'program_id']);
         $semesters = Semester::query()->orderBy('semester_order')->get(['id', 'semester_name', 'program_id']);
-        $sections = Section::query()->orderBy('section_name')->get(['id', 'section_name', 'program_id', 'batch_id']);
+        $sections = Section::query()->orderBy('section_name')->get(['id', 'section_name', 'program_id']);
 
         return view('content.course-assignments.index', compact(
             'assignments',

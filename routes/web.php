@@ -516,7 +516,6 @@ Route::get('/app/settings/section', [SectionSettingsController::class, 'index'])
 Route::get('/app/settings/get-section', [SectionSettingsController::class, 'getSections'])->name('app-settings-get-section');
 Route::get('/app/settings/section/departments-by-faculty', [SectionSettingsController::class, 'departmentsByFaculty'])->name('section.departments-by-faculty');
 Route::get('/app/settings/section/programs-by-department', [SectionSettingsController::class, 'programsByDepartment'])->name('section.programs-by-department');
-Route::get('/app/settings/section/batches-by-program', [SectionSettingsController::class, 'batchesByProgram'])->name('section.batches-by-program');
 Route::get('/app/settings/section/semesters-by-program', [SectionSettingsController::class, 'semestersByProgram'])->name('section.semesters-by-program');
 Route::post('/app/settings/section', [SectionSettingsController::class, 'store'])->name('app-settings-section.store');
 Route::put('/app/settings/section/{id}', [SectionSettingsController::class, 'update'])->name('app-settings-section.update');

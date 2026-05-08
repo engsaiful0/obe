@@ -64,7 +64,7 @@ class StudentController extends Controller
             'studentStatuses' => $studentStatuses,
             'sections' => Section::query()
                 ->orderBy('section_name')
-                ->get(['id', 'section_name', 'section_code', 'batch_id']),
+                ->get(['id', 'section_name', 'section_code', 'program_id']),
         ]);
     }
 

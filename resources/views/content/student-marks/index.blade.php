@@ -62,7 +62,7 @@
                             <option value="">{{ __('All') }}</option>
                             @foreach ($sections as $sec)
                                 <option value="{{ $sec->id }}" data-program-id="{{ $sec->program_id }}"
-                                    data-batch-id="{{ $sec->batch_id }}" @selected(request('section_id') == $sec->id)>
+                                    @selected(request('section_id') == $sec->id)>
                                     {{ $sec->section_code ?? $sec->section_name }}</option>
                             @endforeach
                         </select>

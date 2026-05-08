@@ -61,7 +61,6 @@ class CourseAssignmentCascadeController extends Controller
     {
         $items = Section::query()
             ->where('program_id', $batch->program_id)
-            ->where('batch_id', $batch->getKey())
             ->orderBy('section_name')
             ->get(['id', 'section_name', 'section_code', 'semester_id'])
             ->map(fn ($s) => [

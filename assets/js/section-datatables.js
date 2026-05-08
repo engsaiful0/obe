@@ -1,5 +1,5 @@
 /**
- * Section CRUD — AJAX + spinners + Faculty → Department → Program → Batch / Semester cascade
+ * Section CRUD — AJAX + spinners + Faculty → Department → Program → Semester cascade
  */
 'use strict';
 
@@ -160,25 +160,6 @@ function fillProgramSelect(rows, preserveRow) {
     }
 }
 
-function fillBatchSelect(rows, preserveRow) {
-    var $sel = $('.section-form .dt-batch-id');
-    $sel.empty().append('<option value="">Select batch</option>');
-    (rows || []).forEach(function (b) {
-        var label =
-            (b.batch_name || '') + (b.batch_code ? ' (' + b.batch_code + ')' : '');
-        $sel.append($('<option></option>').attr('value', b.id).text(label));
-    });
-    if (preserveRow && preserveRow.batch) {
-        appendMissingOption($sel, preserveRow.batch_id, preserveRow.batch, function (e) {
-            return (e.batch_name || '') + (e.batch_code ? ' (' + e.batch_code + ')' : '');
-        });
-    }
-    $sel.prop('disabled', false);
-    if (preserveRow && preserveRow.batch_id != null) {
-        $sel.val(String(preserveRow.batch_id));
-    }
-}
-
 function fillSemesterSelect(rows, preserveRow) {
     var $sel = $('.section-form .dt-semester-id');
     $sel.empty().append('<option value="">Select semester</option>');
@@ -215,14 +196,10 @@ function resetProgramChain() {
         .empty()
         .append('<option value="">Select department first</option>')
         .prop('disabled', true);
-    resetBatchSemesterChain();
+    resetSemesterChain();
 }
 
-function resetBatchSemesterChain() {
-    $('.section-form .dt-batch-id')
-        .empty()
-        .append('<option value="">Select program first</option>')
-        .prop('disabled', true);
+function resetSemesterChain() {
     $('.section-form .dt-semester-id')
         .empty()
         .append('<option value="">Select program first</option>')
@@ -269,7 +246,7 @@ function loadProgramsForDepartment(departmentId, preserveRow) {
         .done(function (res) {
             fillProgramSelect(res.data || [], preserveRow || null);
             if (!preserveRow) {
-                resetBatchSemesterChain();
+                resetSemesterChain();
             }
         })
         .fail(function () {
@@ -277,23 +254,18 @@ function loadProgramsForDepartment(departmentId, preserveRow) {
         });
 }
 
-function loadBatchesAndSemesters(programId, preserveRow) {
+function loadSemestersForProgram(programId, preserveRow) {
     if (!programId) {
-        resetBatchSemesterChain();
+        resetSemesterChain();
         return $.Deferred().resolve().promise();
     }
-    $('.section-form .dt-batch-id, .section-form .dt-semester-id').prop('disabled', true);
-    var p1 = getJson(window.sectionCascadeUrls.batches, { program_id: programId });
-    var p2 = getJson(window.sectionCascadeUrls.semesters, { program_id: programId });
-    return $.when(p1, p2)
-        .done(function (batchRes, semRes) {
-            var batches = batchRes[0].data || [];
-            var sems = semRes[0].data || [];
-            fillBatchSelect(batches, preserveRow || null);
-            fillSemesterSelect(sems, preserveRow || null);
+    $('.section-form .dt-semester-id').prop('disabled', true);
+    return getJson(window.sectionCascadeUrls.semesters, { program_id: programId })
+        .done(function (res) {
+            fillSemesterSelect(res.data || [], preserveRow || null);
         })
         .fail(function () {
-            resetBatchSemesterChain();
+            resetSemesterChain();
         });
 }
 
@@ -332,7 +304,7 @@ function openEditSection(rd, $btn) {
             return loadProgramsForDepartment(rd.department_id, rd);
         })
         .then(function () {
-            return loadBatchesAndSemesters(rd.program_id, rd);
+            return loadSemestersForProgram(rd.program_id, rd);
         })
         .then(function () {
             applySectionRowToFields(rd);
@@ -399,10 +371,10 @@ document.addEventListener('DOMContentLoaded', function () {
             .on('change.sectionCascade', function () {
                 var pid = $(this).val();
                 if (!pid) {
-                    resetBatchSemesterChain();
+                    resetSemesterChain();
                     return;
                 }
-                loadBatchesAndSemesters(pid, null);
+                loadSemestersForProgram(pid, null);
             });
     }, 250);
 
@@ -553,18 +525,6 @@ $(function () {
                 {
                     data: null,
                     render: function (data, type, row) {
-                        if (!row.batch) {
-                            return '—';
-                        }
-                        return (
-                            (row.batch.batch_name || '') +
-                            (row.batch.batch_code ? ' (' + row.batch.batch_code + ')' : '')
-                        );
-                    }
-                },
-                {
-                    data: null,
-                    render: function (data, type, row) {
                         return row.semester && row.semester.semester_name
                             ? row.semester.semester_name
                             : '—';
@@ -611,7 +571,7 @@ $(function () {
                     }
                 }
             ],
-            order: [[6, 'asc']],
+            order: [[5, 'asc']],
             responsive: true,
             dom:
                 '<"card-header flex-column flex-md-row"<"head-label text-center"><"dt-action-buttons text-end pt-6 pt-md-0"B>><"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-center justify-content-md-end mt-n6 mt-md-0"f>>t<"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
@@ -650,7 +610,6 @@ $(function () {
                 faculty_id: $('.section-form .dt-faculty-id').val(),
                 department_id: $('.section-form .dt-department-id').val(),
                 program_id: $('.section-form .dt-program-id').val(),
-                batch_id: $('.section-form .dt-batch-id').val(),
                 semester_id: $('.section-form .dt-semester-id').val(),
                 section_name: $('.section-form .dt-section-name').val(),
                 section_code: $('.section-form .dt-section-code').val(),
