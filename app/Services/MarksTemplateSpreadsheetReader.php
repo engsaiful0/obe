@@ -2,11 +2,12 @@
 
 namespace App\Services;
 
+use App\Support\SpreadsheetImportSupport;
+use App\Imports\StudentMarksWorksheetImport;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Imports\StudentMarksWorksheetImport;
 
 class MarksTemplateSpreadsheetReader
 {
@@ -35,9 +36,9 @@ class MarksTemplateSpreadsheetReader
      */
     private function readExcel(UploadedFile $file): array
     {
-        if (! extension_loaded('zip') && ! class_exists(\ZipArchive::class)) {
+        if (! SpreadsheetImportSupport::zipAvailable()) {
             throw ValidationException::withMessages([
-                'file' => [__('Excel import requires the PHP zip extension. Enable extension=zip in php.ini or upload a .csv file.')],
+                'file' => [__('Excel import requires the PHP zip extension. Enable extension=zip in php.ini, restart Apache, or upload a .csv file.')],
             ]);
         }
 
@@ -53,7 +54,7 @@ class MarksTemplateSpreadsheetReader
             }
 
             $header = $sheet->shift()->map(fn ($cell) => trim((string) $cell))->values()->all();
-            $header = $this->filterEmptyHeader($header);
+            $header = $this->normalizeHeaderRow($header);
 
             return [$header, $sheet];
         } catch (ValidationException $e) {
@@ -99,7 +100,11 @@ class MarksTemplateSpreadsheetReader
             ]);
         }
 
-        $header = $this->filterEmptyHeader($rows[0]->values()->all());
+        try {
+            $header = $this->normalizeHeaderRow($rows[0]->values()->all());
+        } catch (\InvalidArgumentException $e) {
+            throw ValidationException::withMessages(['file' => [$e->getMessage()]]);
+        }
         array_shift($rows);
 
         return [$header, collect($rows)->values()];
@@ -109,17 +114,13 @@ class MarksTemplateSpreadsheetReader
      * @param  array<int, mixed>  $header
      * @return array<int, string>
      */
-    private function filterEmptyHeader(array $header): array
+    private function normalizeHeaderRow(array $header): array
     {
-        $filtered = array_values(array_filter($header, fn ($cell) => trim((string) $cell) !== ''));
-
-        if ($filtered === []) {
-            throw ValidationException::withMessages([
-                'file' => [__('The file header row is empty or invalid.')],
-            ]);
+        try {
+            return SpreadsheetImportSupport::normalizeHeaderRow($header);
+        } catch (\InvalidArgumentException $e) {
+            throw ValidationException::withMessages(['file' => [$e->getMessage()]]);
         }
-
-        return array_map(fn ($cell) => trim((string) $cell), $filtered);
     }
 
     /**

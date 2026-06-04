@@ -187,6 +187,7 @@ Route::prefix('/app/my-courses')->name('my-courses.')->group(function () {
     Route::get('/', [MyCourseController::class, 'courseList'])->name('course-list');
     Route::get('/{courseAssignment}/marks', [MyCourseController::class, 'marksEntry'])->name('marks-entry');
     Route::get('/{courseAssignment}/import', [MyCourseController::class, 'importPage'])->name('import');
+    Route::get('/{courseAssignment}/import/capabilities', [MyCourseController::class, 'importCapabilities'])->name('import.capabilities');
     Route::get('/{courseAssignment}/grade-sheet', [MyCourseController::class, 'gradeSheet'])->name('grade-sheet');
     Route::get('/{courseAssignment}/grade-sheet/data', [MyCourseController::class, 'gradeSheetData'])->name('grade-sheet.data');
     Route::get('/{courseAssignment}/grade-sheet/pdf', [MyCourseController::class, 'gradeSheetPdf'])->name('grade-sheet.pdf');

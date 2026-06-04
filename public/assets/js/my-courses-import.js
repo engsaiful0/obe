@@ -155,11 +155,47 @@
     });
   }
 
+  function updateZipWarning(ready, diagnostics) {
+    var el = document.getElementById('import-zip-warning');
+    if (!el) return;
+    if (ready) {
+      el.classList.add('d-none');
+      el.textContent = '';
+      return;
+    }
+    var hint = 'Excel (.xlsx) needs the PHP zip extension in the Apache PHP that serves this site (not only CLI). ';
+    if (diagnostics && diagnostics.php_ini) {
+      hint += 'Loaded php.ini: ' + diagnostics.php_ini + '. ';
+    }
+    hint += 'Restart Apache in XAMPP after enabling extension=zip, or upload a .csv file.';
+    el.textContent = hint;
+    el.classList.remove('d-none');
+  }
+
   function initImportPage() {
     var config = getConfig();
     if (!config.previewRoute || !config.bulkSaveRoute) {
       showStatus('Import routes are not configured on this page.', 'danger');
       return;
+    }
+
+    updateZipWarning(config.excelImportReady !== false, null);
+
+    if (config.capabilitiesRoute) {
+      fetch(config.capabilitiesRoute, {
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin',
+      })
+        .then(function (res) {
+          return res.json();
+        })
+        .then(function (data) {
+          config.excelImportReady = !!data.excel_ready;
+          updateZipWarning(config.excelImportReady, data);
+        })
+        .catch(function () {
+          /* keep server-rendered flag */
+        });
     }
 
     var fileInput = document.getElementById('marks-import-file');
@@ -252,14 +288,6 @@
         }
 
         var file = fileInput.files[0];
-        var ext = (file.name.split('.').pop() || '').toLowerCase();
-        if (['xlsx', 'xls'].indexOf(ext) !== -1 && config.excelImportReady === false) {
-          notifyError(
-            'Excel not supported',
-            'This server cannot read .xlsx files (PHP zip extension is off). Download the CSV template, save as .csv, and upload that file.'
-          );
-          return;
-        }
 
         var fd = new FormData();
         fd.append('file', file);
@@ -306,8 +334,21 @@
               bulkSaveBtn.disabled = pendingSaveRows.length < 1;
             }
 
-            showStatus(data.message || 'Preview loaded. Review the table, then click Bulk Save All.', 'success');
-            notifySuccess('Preview ready', data.message || 'Review the data and save.');
+            var summary = data.summary || {};
+            var statusMsg = data.message || 'Preview loaded.';
+            if ((summary.valid_rows || 0) < 1 && (summary.total_rows || 0) > 0) {
+              statusMsg =
+                'No rows passed validation. Check failed rows below (wrong student code, non-numeric marks, or total exceeds course maximum ' +
+                (config.maxMarks || '') +
+                ').';
+              showStatus(statusMsg, 'warning');
+              notifyError('Preview: no valid rows', statusMsg);
+            } else if (pendingSaveRows.length > 0) {
+              showStatus(statusMsg + ' Click Bulk Save All to store ' + pendingSaveRows.length + ' row(s).', 'success');
+              notifySuccess('Preview ready', statusMsg);
+            } else {
+              showStatus(statusMsg, 'info');
+            }
           })
           .catch(function (err) {
             hideProgress('import-upload-progress-wrap', 'import-upload-progress-bar');

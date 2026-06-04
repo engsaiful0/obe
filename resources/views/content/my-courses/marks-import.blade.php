@@ -21,23 +21,18 @@
             ])
 
             <div id="import-status-alert" class="alert d-none" role="alert"></div>
+            <div id="import-zip-warning" class="alert alert-warning mb-3 d-none" role="alert"></div>
 
             @if (!empty($marksUnavailableMessage))
                 <div class="alert alert-warning">{{ $marksUnavailableMessage }}</div>
             @else
-                @if (empty($excelImportReady))
-                    <div class="alert alert-warning mb-3">
-                        {{ __('Excel (.xlsx) import needs the PHP zip extension. It is disabled on this server — use CSV instead: download the CSV template, fill it in Excel, and upload the .csv file.') }}
-                    </div>
-                @endif
-
                 <div class="border rounded p-3 mb-3">
                     <div class="row g-2 align-items-end">
                         <div class="col-md-6">
                             <label class="form-label small mb-1" for="marks-import-file">{{ __('Marks Template File') }}</label>
                             <input type="file" id="marks-import-file" class="form-control form-control-sm"
                                 accept=".xlsx,.xls,.csv">
-                            <small class="text-muted">{{ __('Use the template from this page. Do not change column headers.') }}</small>
+                            <small class="text-muted">{{ __('Use the template from this page. Keep the header row unchanged.') }}</small>
                         </div>
                         <div class="col-md-6 d-flex gap-2 flex-wrap align-items-end">
                             <a href="{{ route('my-courses.download-template', $courseAssignment) }}" class="btn btn-outline-primary btn-sm">
@@ -109,6 +104,7 @@
             markColumnLabels: @json($markColumnLabels ?? []),
             maxMarks: @json($maxMarks ?? 100),
             excelImportReady: @json($excelImportReady ?? true),
+            capabilitiesRoute: @json(route('my-courses.import.capabilities', $courseAssignment)),
             previewRoute: @json(route('my-courses.import.preview', $courseAssignment)),
             bulkSaveRoute: @json(route('my-courses.import.bulk-save', $courseAssignment)),
             csrfToken: @json(csrf_token())

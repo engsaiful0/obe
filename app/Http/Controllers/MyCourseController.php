@@ -9,6 +9,7 @@ use App\Http\Requests\TeacherCourseMarksImportRequest;
 use App\Http\Requests\TeacherCourseMarksSingleRequest;
 use App\Http\Requests\TeacherCourseMarksUpdateRequest;
 use App\Models\AppSetting;
+use App\Support\SpreadsheetImportSupport;
 use App\Services\MarksTemplateSpreadsheetReader;
 use App\Models\CourseAssignment;
 use App\Models\Teacher;
@@ -138,8 +139,16 @@ class MyCourseController extends Controller
             'maxMarks' => $maxMarks,
             'batchLabels' => $this->marksService->batchLabelsForAssignment($courseAssignment),
             'marksUnavailableMessage' => $marksUnavailableMessage,
-            'excelImportReady' => extension_loaded('zip') || class_exists(\ZipArchive::class),
+            'excelImportReady' => SpreadsheetImportSupport::zipAvailable(),
+            'importDiagnostics' => SpreadsheetImportSupport::diagnostics(),
         ]);
+    }
+
+    public function importCapabilities(CourseAssignment $courseAssignment): JsonResponse
+    {
+        Gate::authorize('view', $courseAssignment);
+
+        return response()->json(SpreadsheetImportSupport::diagnostics());
     }
 
     public function gradeSheet(Request $request, CourseAssignment $courseAssignment): View

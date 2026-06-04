@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\SpreadsheetImportSupport;
 use App\Models\CourseAssignment;
 use App\Models\RelatedTo;
 use App\Models\Section;
@@ -370,6 +371,7 @@ class TeacherCourseMarksService
         }
 
         $index = array_flip($header);
+        $columnWidth = count($header);
         $studentsByCode = $this->allStudentsForAssignment($assignment)
             ->keyBy(fn ($s) => strtolower(trim((string) $s->student_code)));
 
@@ -379,11 +381,12 @@ class TeacherCourseMarksService
         $valid = 0;
 
         foreach ($sheetRows as $rowIndex => $row) {
-            $cells = $row->values()->all();
+            $cells = SpreadsheetImportSupport::padCellsToWidth($row->values()->all(), $columnWidth);
             if ($this->rowCellsEmpty($cells)) {
                 continue;
             }
             $rawCode = trim((string) ($cells[$index['student_code']] ?? ''));
+            $rawCode = preg_replace('/^\xEF\xBB\xBF/u', '', $rawCode) ?? $rawCode;
             if ($rawCode === '') {
                 continue;
             }
@@ -665,17 +668,15 @@ class TeacherCourseMarksService
     {
         $header = $this->normalizeImportHeaderForAssignment($header, $assignment);
         $markColumns = $this->markColumnsForAssignment($assignment);
-        $requiredHeader = array_merge(['student_code'], $markColumns);
 
-        foreach ($requiredHeader as $required) {
-            if (! in_array($required, $header, true)) {
-                throw ValidationException::withMessages([
-                    'file' => [__('Missing required column: :column', ['column' => $required])],
-                ]);
-            }
+        if (! in_array('student_code', $header, true)) {
+            throw ValidationException::withMessages([
+                'file' => [__('Missing required column: Student Code. Use the downloaded template.')],
+            ]);
         }
 
         $index = array_flip($header);
+        $columnWidth = count($header);
         $studentsByCode = $this->allStudentsForAssignment($assignment)
             ->keyBy(fn ($s) => strtolower(trim((string) $s->student_code)));
 
@@ -683,8 +684,9 @@ class TeacherCourseMarksService
         $errors = [];
 
         foreach ($sheetRows as $rowIndex => $row) {
-            $cells = $row->values()->all();
+            $cells = SpreadsheetImportSupport::padCellsToWidth($row->values()->all(), $columnWidth);
             $studentCode = strtolower(trim((string) ($cells[$index['student_code']] ?? '')));
+            $studentCode = strtolower(trim(preg_replace('/^\xEF\xBB\xBF/u', '', $studentCode) ?? $studentCode));
             if ($studentCode === '') {
                 continue;
             }
