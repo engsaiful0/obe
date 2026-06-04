@@ -186,6 +186,7 @@ Route::resource('teachers', TeacherController::class);
 Route::prefix('/app/my-courses')->name('my-courses.')->group(function () {
     Route::get('/', [MyCourseController::class, 'courseList'])->name('course-list');
     Route::get('/{courseAssignment}/marks', [MyCourseController::class, 'marksEntry'])->name('marks-entry');
+    Route::get('/{courseAssignment}/import', [MyCourseController::class, 'importPage'])->name('import');
     Route::get('/{courseAssignment}/grade-sheet', [MyCourseController::class, 'gradeSheet'])->name('grade-sheet');
     Route::get('/{courseAssignment}/grade-sheet/data', [MyCourseController::class, 'gradeSheetData'])->name('grade-sheet.data');
     Route::get('/{courseAssignment}/grade-sheet/pdf', [MyCourseController::class, 'gradeSheetPdf'])->name('grade-sheet.pdf');
@@ -195,8 +196,10 @@ Route::prefix('/app/my-courses')->name('my-courses.')->group(function () {
     Route::post('/{courseAssignment}/save-marks', [MyCourseController::class, 'saveMarks'])->name('save-marks');
     Route::post('/{courseAssignment}/save-single-mark', [MyCourseController::class, 'saveSingleMark'])->name('save-single-mark');
     Route::get('/{courseAssignment}/template', [MyCourseController::class, 'downloadTemplate'])->name('download-template');
+    Route::get('/{courseAssignment}/template/csv', [MyCourseController::class, 'downloadTemplateCsv'])->name('download-template-csv');
     Route::post('/{courseAssignment}/import/preview', [MyCourseController::class, 'previewImport'])->name('import.preview');
-    Route::post('/{courseAssignment}/import', [MyCourseController::class, 'importMarks'])->name('import');
+    Route::post('/{courseAssignment}/import/bulk-save', [MyCourseController::class, 'bulkSaveImport'])->name('import.bulk-save');
+    Route::post('/{courseAssignment}/import', [MyCourseController::class, 'importMarks'])->name('import.save');
 });
 
 Route::prefix('ajax')->group(function () {

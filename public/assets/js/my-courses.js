@@ -34,6 +34,11 @@
     }).join(' ');
   }
 
+  function parseMarkValue(raw) {
+    var v = parseFloat(String(raw || '').replace(',', '.'));
+    return isFinite(v) ? v : 0;
+  }
+
   function initCourseListPage() {
     var routes = window.__myCoursesRoutes || {};
     var search = document.getElementById('my-course-search');
@@ -75,102 +80,143 @@
     if (!config.studentsRoute || !Array.isArray(config.columns)) return;
 
     var body = document.getElementById('marks-student-body');
+    var table = document.getElementById('marks-excel-table');
     var loading = document.getElementById('marks-loading');
     var feedback = document.getElementById('my-course-feedback');
     var pagination = document.getElementById('marks-pagination');
     var searchInput = document.getElementById('marks-student-search');
     var saveBtn = document.getElementById('marks-save-btn');
-    var previewBtn = document.getElementById('marks-preview-btn');
-    var importBtn = document.getElementById('marks-import-btn');
-    var importConfirmBtn = document.getElementById('marks-import-confirm-btn');
-    var importForm = document.getElementById('my-course-import-form');
-    var previewModalEl = document.getElementById('importPreviewModal');
-    var previewModal = previewModalEl && window.bootstrap ? new window.bootstrap.Modal(previewModalEl) : null;
 
     var currentRows = [];
     var currentPage = 1;
-    var lastPage = 1;
-    var pendingImportRows = null;
 
-    function columnLabel(column) {
-      return column.replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+    function columnMax(column) {
+      if (config.maxByColumn && config.maxByColumn[column] !== undefined) {
+        return config.maxByColumn[column];
+      }
+      return config.maxMarks || 100;
+    }
+
+    function resolveGrade(percentage) {
+      var scale = config.gradeScale || [];
+      for (var i = 0; i < scale.length; i++) {
+        var g = scale[i];
+        if (percentage >= g.from_marks && percentage <= g.to_marks) {
+          return g.grade_name || '';
+        }
+      }
+      return '';
+    }
+
+    function recalcRow(tr) {
+      if (!tr) return;
+      var studentId = tr.dataset.studentId;
+      var total = 0;
+      tr.querySelectorAll('input.mark-input').forEach(function (inp) {
+        var max = parseFloat(inp.getAttribute('data-max') || '0');
+        var v = parseMarkValue(inp.value);
+        if (v < 0) v = 0;
+        if (isFinite(max) && max > 0 && v > max) {
+          inp.classList.add('is-over-max');
+        } else {
+          inp.classList.remove('is-over-max');
+        }
+        total += v;
+      });
+      total = Math.round(total * 100) / 100;
+      var maxMarks = parseFloat(config.maxMarks || 100);
+      var pct = maxMarks > 0 ? Math.round((total / maxMarks) * 10000) / 100 : 0;
+      var grade = resolveGrade(pct);
+
+      var totalCell = tr.querySelector('td[data-field="total_marks"][data-student-id="' + studentId + '"]');
+      var pctCell = tr.querySelector('td[data-field="total_marks_percentage"][data-student-id="' + studentId + '"]');
+      var gradeCell = tr.querySelector('td[data-field="total_marks_grade_name"][data-student-id="' + studentId + '"]');
+      if (totalCell) totalCell.textContent = total.toFixed(2);
+      if (pctCell) pctCell.textContent = pct.toFixed(2);
+      if (gradeCell) gradeCell.textContent = grade;
     }
 
     function collectMarksForStudent(studentId) {
       var marks = {};
       config.columns.forEach(function (column) {
-        var input = body.querySelector('input.mark-input[data-student-id="' + studentId + '"][data-column="' + column + '"]');
-        marks[column] = input ? parseFloat(input.value || 0) : 0;
+        var input = body.querySelector(
+          'input.mark-input[data-student-id="' + studentId + '"][data-column="' + column + '"]'
+        );
+        marks[column] = input ? parseMarkValue(input.value) : 0;
       });
       return marks;
     }
 
+    function appendIdentityCells(tr, student, rowIndex) {
+      var tdSl = document.createElement('td');
+      tdSl.className = 'col-sl';
+      tdSl.textContent = String(rowIndex);
+      tr.appendChild(tdSl);
+
+      var tdId = document.createElement('td');
+      tdId.className = 'col-id text-nowrap';
+      tdId.textContent = student.student_code || '';
+      tr.appendChild(tdId);
+
+      var tdName = document.createElement('td');
+      tdName.className = 'col-name';
+      tdName.textContent = student.student_name || '';
+      tr.appendChild(tdName);
+    }
+
+    function appendCalcCells(tr, student) {
+      var fields = [
+        { key: 'total_marks', fmt: function (v) { return (v || 0).toFixed(2); } },
+        { key: 'total_marks_percentage', fmt: function (v) { return (v || 0).toFixed(2); } },
+        { key: 'total_marks_grade_name', fmt: function (v) { return v || ''; } }
+      ];
+      fields.forEach(function (f) {
+        var td = document.createElement('td');
+        td.className = 'col-calc';
+        td.dataset.field = f.key;
+        td.dataset.studentId = student.id;
+        td.textContent = f.fmt(student[f.key]);
+        tr.appendChild(td);
+      });
+    }
+
     function renderRows(payload) {
       currentRows = payload.students || [];
-      lastPage = (payload.pagination && payload.pagination.last_page) || 1;
       currentPage = (payload.pagination && payload.pagination.current_page) || 1;
       body.innerHTML = '';
 
-      currentRows.forEach(function (student) {
+      currentRows.forEach(function (student, idx) {
         var tr = document.createElement('tr');
         tr.dataset.studentId = student.id;
+        appendIdentityCells(tr, student, idx + 1);
 
-        var td = document.createElement('td');
-        td.className = 'sticky-col';
-        td.innerHTML = '<div class="fw-semibold small">' + (student.student_code || '') + '</div>';
-        tr.appendChild(td);
-
+        var studentMarks = student.marks || {};
         config.columns.forEach(function (column) {
           var markTd = document.createElement('td');
+          markTd.className = 'col-mark';
           var input = document.createElement('input');
-          input.type = 'number';
-          input.min = '0';
-          input.max = String(config.maxMarks || 100);
-          input.step = '0.01';
-          input.className = 'form-control form-control-sm mark-input';
+          input.type = 'text';
+          input.inputMode = 'decimal';
+          input.className = 'mark-input excel-cell-input';
           input.dataset.studentId = student.id;
           input.dataset.column = column;
-          input.value = student.marks[column] || 0;
+          input.setAttribute('data-max', String(columnMax(column)));
+          input.autocomplete = 'off';
+          input.placeholder = '0';
+          var val = studentMarks[column];
+          input.value = val === 0 || val === '0' ? '' : (val !== undefined && val !== null ? String(val) : '');
           markTd.appendChild(input);
           tr.appendChild(markTd);
         });
 
-        ['total_marks', 'total_marks_percentage', 'total_marks_grade_name'].forEach(function (field, idx) {
-          var calcTd = document.createElement('td');
-          calcTd.className = 'calc-cell text-nowrap small';
-          calcTd.dataset.field = field;
-          calcTd.dataset.studentId = student.id;
-          if (field === 'total_marks') {
-            calcTd.textContent = (student.total_marks || 0).toFixed(2);
-          } else if (field === 'total_marks_percentage') {
-            calcTd.textContent = (student.total_marks_percentage || 0).toFixed(2);
-          } else {
-            calcTd.textContent = student.total_marks_grade_name || '-';
-          }
-          tr.appendChild(calcTd);
-        });
-
-        var actionTd = document.createElement('td');
-        actionTd.className = 'sticky-col-end';
-        var saveOne = document.createElement('button');
-        saveOne.type = 'button';
-        saveOne.className = 'btn btn-outline-primary btn-sm save-one-btn';
-        saveOne.dataset.studentId = student.id;
-        saveOne.textContent = 'Save';
-        actionTd.appendChild(saveOne);
-        tr.appendChild(actionTd);
-
+        appendCalcCells(tr, student);
         body.appendChild(tr);
+        recalcRow(tr);
       });
 
       if (pagination) {
-        pagination.innerHTML =
-          '<button type="button" class="btn btn-outline-secondary btn-sm me-2" id="marks-prev-page" ' +
-          (currentPage <= 1 ? 'disabled' : '') + '>Prev</button>' +
-          '<span>Page ' + currentPage + ' of ' + lastPage + ' (Total: ' +
-          ((payload.pagination && payload.pagination.total) || 0) + ')</span>' +
-          '<button type="button" class="btn btn-outline-secondary btn-sm ms-2" id="marks-next-page" ' +
-          (currentPage >= lastPage ? 'disabled' : '') + '>Next</button>';
+        var total = (payload.pagination && payload.pagination.total) || currentRows.length;
+        pagination.textContent = total > 0 ? total + ' student(s) loaded' : '';
       }
     }
 
@@ -200,13 +246,22 @@
         });
     }
 
-    if (pagination) {
-      pagination.addEventListener('click', function (e) {
-        if (e.target.id === 'marks-next-page' && currentPage < lastPage) {
-          loadStudents(currentPage + 1);
-        }
-        if (e.target.id === 'marks-prev-page' && currentPage > 1) {
-          loadStudents(currentPage - 1);
+    if (table && !table.__marksExcelBound) {
+      table.__marksExcelBound = true;
+      table.addEventListener('input', function (e) {
+        var inp = e.target.closest('input.mark-input');
+        if (!inp) return;
+        recalcRow(inp.closest('tr'));
+      });
+      table.addEventListener('keydown', function (e) {
+        var inp = e.target.closest('input.mark-input');
+        if (!inp || e.key !== 'Enter') return;
+        e.preventDefault();
+        var inputs = Array.prototype.slice.call(table.querySelectorAll('input.mark-input'));
+        var idx = inputs.indexOf(inp);
+        if (idx >= 0 && idx < inputs.length - 1) {
+          inputs[idx + 1].focus();
+          inputs[idx + 1].select();
         }
       });
     }
@@ -222,40 +277,7 @@
     }
 
     if (body) {
-      body.addEventListener('click', function (e) {
-        var btn = e.target.closest('.save-one-btn');
-        if (!btn) return;
-        var studentId = parseInt(btn.dataset.studentId, 10);
-        if (!studentId) return;
-
-        btn.disabled = true;
-        fetch(config.saveSingleRoute, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRF-TOKEN': csrfToken()
-          },
-          body: JSON.stringify({
-            student_id: studentId,
-            marks: collectMarksForStudent(studentId)
-          })
-        })
-          .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
-          .then(function (pack) {
-            if (pack.ok) {
-              showFeedback(feedback, pack.data.message || 'Saved.', 'success');
-              loadStudents(currentPage);
-              return;
-            }
-            showFeedback(feedback, flattenErrors(pack.data.errors) || pack.data.message || 'Save failed.', 'danger');
-          })
-          .finally(function () {
-            btn.disabled = false;
-          });
-      });
+      body.querySelectorAll('tr').forEach(recalcRow);
     }
 
     if (saveBtn) {
@@ -292,117 +314,19 @@
       });
     }
 
-    function renderPreviewTable(preview) {
-      var table = document.getElementById('import-preview-table');
-      if (!table) return;
-      var thead = table.querySelector('thead');
-      var tbody = table.querySelector('tbody');
-      thead.innerHTML = '';
-      tbody.innerHTML = '';
-      if (!preview || !preview.length) return;
-
-      var headers = ['student_code', 'student_name', 'total_marks', 'total_marks_percentage', 'total_marks_grade_name'];
-      var trh = document.createElement('tr');
-      headers.forEach(function (h) {
-        var th = document.createElement('th');
-        th.textContent = columnLabel(h);
-        trh.appendChild(th);
-      });
-      thead.appendChild(trh);
-
-      preview.forEach(function (row) {
-        var tr = document.createElement('tr');
-        headers.forEach(function (h) {
-          var td = document.createElement('td');
-          td.textContent = row[h] != null ? row[h] : '';
-          tr.appendChild(td);
-        });
-        tbody.appendChild(tr);
-      });
-    }
-
-    if (previewBtn && importForm) {
-      previewBtn.addEventListener('click', function () {
-        var fileInput = document.getElementById('marks-import-file');
-        if (!fileInput || !fileInput.files.length) {
-          showFeedback(feedback, 'Please choose an Excel file first.', 'warning');
-          return;
-        }
-        var fd = new FormData(importForm);
-        previewBtn.disabled = true;
-        fetch(config.importPreviewRoute, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            Accept: 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRF-TOKEN': csrfToken()
-          },
-          body: fd
-        })
-          .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
-          .then(function (pack) {
-            if (!pack.ok) {
-              showFeedback(feedback, flattenErrors(pack.data.errors) || pack.data.message || 'Preview failed.', 'danger');
-              return;
-            }
-            pendingImportRows = pack.data.rows || [];
-            renderPreviewTable(pack.data.preview || []);
-            if (previewModal) previewModal.show();
-            if (importBtn) importBtn.classList.remove('d-none');
-          })
-          .finally(function () {
-            previewBtn.disabled = false;
-          });
-      });
-    }
-
-    function confirmImport() {
-      if (!pendingImportRows || !pendingImportRows.length) {
-        showFeedback(feedback, 'No preview data to import.', 'warning');
-        return;
+    var initial = config.initialStudents || { students: [], pagination: {} };
+    if (!initial.students || initial.students.length === 0) {
+      renderRows(initial);
+    } else {
+      currentRows = initial.students || [];
+      if (pagination) {
+        var total = (initial.pagination && initial.pagination.total) || currentRows.length;
+        pagination.textContent = total > 0 ? total + ' student(s) loaded' : '';
       }
-      var fd = new FormData();
-      fd.append('confirmed_rows', JSON.stringify(pendingImportRows));
-      fd.append('_token', csrfToken());
-
-      var activeBtn = importConfirmBtn || importBtn;
-      if (activeBtn) activeBtn.disabled = true;
-
-      fetch(config.importRoute, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          Accept: 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRF-TOKEN': csrfToken()
-        },
-        body: fd
-      })
-        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
-        .then(function (pack) {
-          if (pack.ok) {
-            showFeedback(feedback, pack.data.message || 'Imported successfully.', 'success');
-            pendingImportRows = null;
-            if (previewModal) previewModal.hide();
-            loadStudents(1);
-            return;
-          }
-          showFeedback(feedback, flattenErrors(pack.data.errors) || pack.data.message || 'Import failed.', 'danger');
-        })
-        .finally(function () {
-          if (activeBtn) activeBtn.disabled = false;
-        });
+      if (body) {
+        body.querySelectorAll('tr').forEach(recalcRow);
+      }
     }
-
-    if (importConfirmBtn) {
-      importConfirmBtn.addEventListener('click', confirmImport);
-    }
-    if (importBtn) {
-      importBtn.addEventListener('click', confirmImport);
-    }
-
-    renderRows(config.initialStudents || { students: [], pagination: {} });
   }
 
   document.addEventListener('DOMContentLoaded', function () {

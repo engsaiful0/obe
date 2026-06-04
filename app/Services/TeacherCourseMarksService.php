@@ -27,6 +27,30 @@ class TeacherCourseMarksService
         return $this->gradeCalculator->editableMarkColumns();
     }
 
+    /**
+     * @return array<int, string>
+     */
+    public function markColumnsForAssignment(CourseAssignment $assignment): array
+    {
+        return $this->markFieldsForAssignment($assignment)['columns'];
+    }
+
+    /**
+     * All student_marks table columns for manual entry and Excel import.
+     *
+     * @return array{
+     *     columns: array<int, string>,
+     *     labels: array<string, string>,
+     *     max_by_column: array<string, float>
+     * }
+     */
+    public function markFieldsForAssignment(CourseAssignment $assignment): array
+    {
+        $courseMax = $this->gradeCalculator->courseMaxMarks((int) $assignment->course_id);
+
+        return $this->gradeCalculator->allMarkFields($courseMax);
+    }
+
     public function studentsForAssignment(CourseAssignment $assignment, ?string $search = null, int $perPage = 15): LengthAwarePaginator
     {
         $query = Student::query()
@@ -116,14 +140,14 @@ class TeacherCourseMarksService
     /**
      * @return array<int, string>
      */
-    public function excelTemplateHeadings(): array
+    public function excelTemplateHeadings(CourseAssignment $assignment): array
     {
-        $markLabels = array_map(
-            fn (string $column) => ucwords(str_replace('_', ' ', $column)),
-            $this->markColumns()
-        );
+        $fields = $this->markFieldsForAssignment($assignment);
 
-        return array_merge(['Student Code'], $markLabels);
+        return array_merge(
+            ['Student Code'],
+            array_map(fn (string $column) => $fields['labels'][$column] ?? $column, $fields['columns'])
+        );
     }
 
     /**
@@ -133,6 +157,60 @@ class TeacherCourseMarksService
     public function normalizeImportHeader(array $rawHeader): array
     {
         return array_map(fn ($cell) => $this->normalizeHeaderKey((string) $cell), $rawHeader);
+    }
+
+    /**
+     * @param  array<int, string>  $rawHeader
+     * @return array<int, string>
+     */
+    public function normalizeImportHeaderForAssignment(array $rawHeader, CourseAssignment $assignment): array
+    {
+        $fields = $this->markFieldsForAssignment($assignment);
+        $labelToColumn = [
+            'student id' => 'student_code',
+            'student_code' => 'student_code',
+            'student code' => 'student_code',
+            'student name' => 'student_name',
+            'student_name' => 'student_name',
+            'name' => 'student_name',
+            'total' => '__summary_total__',
+            'percentage' => '__summary_percentage__',
+            '%' => '__summary_percentage__',
+            'grade' => '__summary_grade__',
+        ];
+
+        foreach ($fields['columns'] as $column) {
+            $labelToColumn[$column] = $column;
+            $label = $fields['labels'][$column] ?? $column;
+            $labelToColumn[strtolower(trim($label))] = $column;
+            $labelToColumn[strtolower(trim($this->normalizeHeaderKey($label)))] = $column;
+        }
+
+        return array_map(function (string $cell) use ($labelToColumn, $fields): string {
+            $trimmed = trim($cell);
+            $normalized = strtolower(trim($this->normalizeHeaderKey($trimmed)));
+
+            if (isset($labelToColumn[$normalized])) {
+                return $labelToColumn[$normalized];
+            }
+
+            if (isset($labelToColumn[strtolower($trimmed)])) {
+                return $labelToColumn[strtolower($trimmed)];
+            }
+
+            if (preg_match('/^(.+?)\s*\(([\d.]+)\)\s*$/u', $trimmed, $headerMatch)) {
+                $headerName = strtolower(trim($headerMatch[1]));
+                foreach ($fields['labels'] as $column => $label) {
+                    if (preg_match('/^(.+?)\s*\(([\d.]+)\)\s*$/u', (string) $label, $labelMatch)) {
+                        if (strtolower(trim($labelMatch[1])) === $headerName) {
+                            return $column;
+                        }
+                    }
+                }
+            }
+
+            return $normalized;
+        }, $rawHeader);
     }
 
     public function normalizeHeaderKey(string $header): string
@@ -173,7 +251,7 @@ class TeacherCourseMarksService
 
     /**
      * @param  array<int, array{student_id?:int, student_code?:string, marks:array<string, mixed>}>  $rows
-     * @return array{updated:int}
+     * @return array{processed:int, inserted:int, updated:int, failed:int, errors:array<int, string>}
      */
     public function saveMarks(CourseAssignment $assignment, array $rows): array
     {
@@ -196,42 +274,52 @@ class TeacherCourseMarksService
                 ->pluck('batch_id', 'id')
                 ->all();
 
-        DB::transaction(function () use ($rows, $assignment, $defaultStatusId, $componentId, $courseId, $allowedStudentIds, $batchByStudentId): void {
+        $inserted = 0;
+        $updated = 0;
+        $failed = 0;
+        $errors = [];
+
+        DB::transaction(function () use (
+            $rows,
+            $assignment,
+            $defaultStatusId,
+            $componentId,
+            $courseId,
+            $allowedStudentIds,
+            $batchByStudentId,
+            &$inserted,
+            &$updated,
+            &$failed,
+            &$errors
+        ): void {
             foreach ($rows as $row) {
                 $studentId = (int) ($row['student_id'] ?? 0);
                 if ($studentId < 1 || ! in_array($studentId, $allowedStudentIds, true)) {
-                    throw ValidationException::withMessages([
-                        'student_id' => [__('One or more students do not belong to this course assignment.')],
-                    ]);
+                    $failed++;
+                    $errors[] = __('Student does not belong to this course assignment.');
+
+                    continue;
                 }
 
                 $batchId = (int) ($batchByStudentId[$studentId] ?? 0);
                 if ($batchId < 1) {
-                    throw ValidationException::withMessages([
-                        'student_id' => [__('Student :id must have a batch assigned to save marks.', ['id' => $studentId])],
-                    ]);
+                    $failed++;
+                    $errors[] = __('Student :id must have a batch assigned.', ['id' => $studentId]);
+
+                    continue;
                 }
 
-                $marks = $this->gradeCalculator->buildPersistedMarks($row['marks'] ?? [], $courseId);
+                $built = $this->gradeCalculator->tryBuildPersistedMarks($row['marks'] ?? [], $courseId);
+                if (! $built['success']) {
+                    $failed++;
+                    $errors[] = (string) ($built['error'] ?? __('Invalid marks.'));
 
-                $existing = DB::table('student_marks')
-                    ->where('academic_session_id', (int) $assignment->academic_session_id)
-                    ->where('course_id', $courseId)
-                    ->where('student_id', $studentId)
-                    ->where('batch_id', $batchId)
-                    ->when(
-                        $assignment->section_id,
-                        fn ($q) => $q->where('section_id', (int) $assignment->section_id),
-                        fn ($q) => $q->whereNull('section_id')
-                    )
-                    ->first()
-                    ?? DB::table('student_marks')
-                        ->where('academic_session_id', (int) $assignment->academic_session_id)
-                        ->where('student_id', $studentId)
-                        ->where('assessment_component_id', $componentId)
-                        ->first();
+                    continue;
+                }
 
-                $payload = array_merge($marks, [
+                $existing = $this->findExistingMarkRow($assignment, $courseId, $studentId, $batchId, $componentId);
+
+                $payload = array_merge($built['marks'], [
                     'program_id' => (int) $assignment->program_id,
                     'course_id' => $courseId,
                     'batch_id' => $batchId,
@@ -245,17 +333,203 @@ class TeacherCourseMarksService
                     DB::table('student_marks')
                         ->where('id', (int) $existing->id)
                         ->update($payload);
+                    $updated++;
                 } else {
                     DB::table('student_marks')->insert(array_merge($payload, [
                         'academic_session_id' => (int) $assignment->academic_session_id,
                         'student_id' => $studentId,
                         'created_at' => now(),
                     ]));
+                    $inserted++;
                 }
             }
         });
 
-        return ['updated' => count($rows)];
+        return [
+            'processed' => count($rows),
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'failed' => $failed,
+            'errors' => $errors,
+        ];
+    }
+
+    /**
+     * @return array{preview: array<int, array<string, mixed>>, rows: array<int, array<string, mixed>>, summary: array<string, int>}
+     */
+    public function parseImportSheetForPreview(CourseAssignment $assignment, array $header, Collection $sheetRows): array
+    {
+        $header = $this->normalizeImportHeaderForAssignment($header, $assignment);
+        $markColumns = $this->markColumnsForAssignment($assignment);
+        $courseId = (int) $assignment->course_id;
+
+        if (! in_array('student_code', $header, true)) {
+            throw ValidationException::withMessages([
+                'file' => [__('Missing required column: Student Code. Use the downloaded template.')],
+            ]);
+        }
+
+        $index = array_flip($header);
+        $studentsByCode = $this->allStudentsForAssignment($assignment)
+            ->keyBy(fn ($s) => strtolower(trim((string) $s->student_code)));
+
+        $preview = [];
+        $saveRows = [];
+        $failed = 0;
+        $valid = 0;
+
+        foreach ($sheetRows as $rowIndex => $row) {
+            $cells = $row->values()->all();
+            if ($this->rowCellsEmpty($cells)) {
+                continue;
+            }
+            $rawCode = trim((string) ($cells[$index['student_code']] ?? ''));
+            if ($rawCode === '') {
+                continue;
+            }
+
+            $line = $rowIndex + 2;
+            $studentCodeKey = strtolower($rawCode);
+            $student = $studentsByCode->get($studentCodeKey);
+
+            $marks = [];
+            $rowErrors = [];
+
+            foreach ($markColumns as $column) {
+                if (! array_key_exists($column, $index)) {
+                    $marks[$column] = 0;
+
+                    continue;
+                }
+                $value = $cells[$index[$column]] ?? 0;
+                if ($value === '' || $value === null) {
+                    $marks[$column] = 0;
+
+                    continue;
+                }
+                if (! is_numeric($value)) {
+                    $rowErrors[] = __(':column must be numeric.', ['column' => $column]);
+
+                    continue;
+                }
+                $marks[$column] = (float) $value;
+            }
+
+            if (! $student) {
+                $failed++;
+                $preview[] = $this->previewRowPayload($line, $rawCode, $marks, 'failed', __('Student code not found in this course.'));
+                continue;
+            }
+
+            if ($rowErrors !== []) {
+                $failed++;
+                $preview[] = $this->previewRowPayload($line, $rawCode, $marks, 'failed', implode(' ', $rowErrors));
+                continue;
+            }
+
+            $built = $this->gradeCalculator->tryBuildPersistedMarks($marks, $courseId);
+            if (! $built['success']) {
+                $failed++;
+                $preview[] = $this->previewRowPayload($line, $rawCode, $marks, 'failed', (string) $built['error']);
+                continue;
+            }
+
+            $valid++;
+            $preview[] = $this->previewRowPayload($line, $rawCode, $marks, 'ok', null);
+            $saveRows[] = [
+                'student_id' => (int) $student->id,
+                'student_code' => (string) $student->student_code,
+                'marks' => $marks,
+            ];
+        }
+
+        if ($preview === []) {
+            throw ValidationException::withMessages([
+                'file' => [__('No student rows found in the uploaded file.')],
+            ]);
+        }
+
+        return [
+            'preview' => $preview,
+            'rows' => $saveRows,
+            'summary' => [
+                'total_rows' => count($preview),
+                'valid_rows' => $valid,
+                'failed_rows' => $failed,
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<int, array{student_id:int, marks:array<string, mixed>}>  $rows
+     * @return array{processed:int, inserted:int, updated:int, failed:int, errors:array<int, string>}
+     */
+    public function bulkSaveImportedMarks(CourseAssignment $assignment, array $rows): array
+    {
+        if ($rows === []) {
+            throw ValidationException::withMessages([
+                'rows' => [__('No valid rows to save.')],
+            ]);
+        }
+
+        return $this->saveMarks($assignment, $rows);
+    }
+
+    private function findExistingMarkRow(
+        CourseAssignment $assignment,
+        int $courseId,
+        int $studentId,
+        int $batchId,
+        int $componentId
+    ): ?object {
+        return DB::table('student_marks')
+            ->where('academic_session_id', (int) $assignment->academic_session_id)
+            ->where('program_id', (int) $assignment->program_id)
+            ->where('course_id', $courseId)
+            ->where('batch_id', $batchId)
+            ->where('student_id', $studentId)
+            ->when(
+                $assignment->section_id,
+                fn ($q) => $q->where('section_id', (int) $assignment->section_id),
+                fn ($q) => $q->whereNull('section_id')
+            )
+            ->first()
+            ?? DB::table('student_marks')
+                ->where('academic_session_id', (int) $assignment->academic_session_id)
+                ->where('student_id', $studentId)
+                ->where('assessment_component_id', $componentId)
+                ->first();
+    }
+
+    /**
+     * @param  array<string, float>  $marks
+     * @return array<string, mixed>
+     */
+    /**
+     * @param  array<int, mixed>  $cells
+     */
+    private function rowCellsEmpty(array $cells): bool
+    {
+        foreach ($cells as $cell) {
+            if (trim((string) $cell) !== '') {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function previewRowPayload(
+        int $line,
+        string $studentCode,
+        array $marks,
+        string $status,
+        ?string $error
+    ): array {
+        return array_merge(
+            ['row' => $line, 'student_code' => $studentCode, 'status' => $status, 'error' => $error],
+            $marks
+        );
     }
 
     /**
@@ -389,8 +663,8 @@ class TeacherCourseMarksService
      */
     public function parseImportRows(CourseAssignment $assignment, array $header, Collection $sheetRows): array
     {
-        $header = $this->normalizeImportHeader($header);
-        $markColumns = $this->markColumns();
+        $header = $this->normalizeImportHeaderForAssignment($header, $assignment);
+        $markColumns = $this->markColumnsForAssignment($assignment);
         $requiredHeader = array_merge(['student_code'], $markColumns);
 
         foreach ($requiredHeader as $required) {

@@ -23,7 +23,22 @@ class TeacherCourseMarksImportRequest extends FormRequest
         }
 
         return [
-            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
+            'file' => [
+                'required',
+                'file',
+                'max:10240',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! $value instanceof \Illuminate\Http\UploadedFile) {
+                        $fail(__('Invalid upload.'));
+
+                        return;
+                    }
+                    $ext = strtolower($value->getClientOriginalExtension());
+                    if (! in_array($ext, ['xlsx', 'xls', 'csv', 'txt'], true)) {
+                        $fail(__('File must be .xlsx, .xls, or .csv.'));
+                    }
+                },
+            ],
         ];
     }
 }

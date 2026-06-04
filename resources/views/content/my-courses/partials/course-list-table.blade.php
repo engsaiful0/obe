@@ -40,7 +40,7 @@
                             <a href="{{ route('my-courses.marks-entry', $assignment) }}" class="btn btn-primary">
                                 {{ __('Marks Entry') }}
                             </a>
-                            <a href="{{ route('my-courses.marks-entry', $assignment) }}#import" class="btn btn-success">
+                            <a href="{{ route('my-courses.import', $assignment) }}" class="btn btn-success">
                                 {{ __('Excel Import') }}
                             </a>
                             <a href="{{ route('my-courses.download-template', $assignment) }}" class="btn btn-outline-primary">

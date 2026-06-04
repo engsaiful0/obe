@@ -4,11 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Exports\GradeSheetExport;
 use App\Exports\StudentMarksTemplateExport;
+use App\Http\Requests\TeacherCourseMarksBulkSaveRequest;
 use App\Http\Requests\TeacherCourseMarksImportRequest;
 use App\Http\Requests\TeacherCourseMarksSingleRequest;
 use App\Http\Requests\TeacherCourseMarksUpdateRequest;
-use App\Imports\StudentMarksWorksheetImport;
 use App\Models\AppSetting;
+use App\Services\MarksTemplateSpreadsheetReader;
 use App\Models\CourseAssignment;
 use App\Models\Teacher;
 use App\Services\StudentMarksGradeCalculator;
@@ -29,6 +30,7 @@ class MyCourseController extends Controller
     public function __construct(
         protected TeacherCourseMarksService $marksService,
         protected StudentMarksGradeCalculator $gradeCalculator,
+        protected MarksTemplateSpreadsheetReader $spreadsheetReader,
     ) {}
 
     public function courseList(Request $request): View
@@ -78,24 +80,65 @@ class MyCourseController extends Controller
     {
         Gate::authorize('view', $courseAssignment);
 
-        $markColumns = $this->marksService->markColumns();
-        $studentsPayload = ['students' => [], 'pagination' => ['current_page' => 1, 'last_page' => 1, 'per_page' => 20, 'total' => 0]];
+        $markFields = ['columns' => [], 'labels' => [], 'max_by_column' => []];
+        $studentsPayload = ['students' => [], 'pagination' => ['current_page' => 1, 'last_page' => 1, 'per_page' => 5000, 'total' => 0]];
         $marksUnavailableMessage = null;
-        $maxMarks = $this->gradeCalculator->courseMaxMarks((int) $courseAssignment->course_id);
+        $maxMarks = 100.0;
 
         try {
+            $markFields = $this->marksService->markFieldsForAssignment($courseAssignment);
+            $maxMarks = $this->gradeCalculator->courseMaxMarks((int) $courseAssignment->course_id);
             $studentsPayload = $this->studentsResponsePayload($courseAssignment, null);
         } catch (Throwable $e) {
             $marksUnavailableMessage = $this->friendlyMarksMessage($e);
         }
 
+        $gradeScale = $this->gradeCalculator->gradeScale()
+            ->map(fn ($g) => [
+                'grade_name' => $g->grade_name,
+                'from_marks' => (float) $g->from_marks,
+                'to_marks' => (float) $g->to_marks,
+            ])
+            ->values()
+            ->all();
+
         return view('content.my-courses.marks-entry', [
             'courseAssignment' => $courseAssignment->load(['course', 'program', 'semester', 'academicSession', 'section', 'teacher']),
-            'markColumns' => $markColumns,
+            'markColumns' => $markFields['columns'],
+            'markColumnLabels' => $markFields['labels'],
+            'markColumnMax' => $markFields['max_by_column'],
             'students' => $studentsPayload,
             'marksUnavailableMessage' => $marksUnavailableMessage,
             'maxMarks' => $maxMarks,
+            'gradeScale' => $gradeScale,
             'batchLabels' => $this->marksService->batchLabelsForAssignment($courseAssignment),
+        ]);
+    }
+
+    public function importPage(CourseAssignment $courseAssignment): View
+    {
+        Gate::authorize('view', $courseAssignment);
+
+        $markFields = ['columns' => [], 'labels' => []];
+        $maxMarks = 100.0;
+        $marksUnavailableMessage = null;
+
+        try {
+            $markFields = $this->marksService->markFieldsForAssignment($courseAssignment);
+            $maxMarks = $this->gradeCalculator->courseMaxMarks((int) $courseAssignment->course_id);
+            $this->marksService->allStudentsForAssignment($courseAssignment);
+        } catch (Throwable $e) {
+            $marksUnavailableMessage = $this->friendlyMarksMessage($e);
+        }
+
+        return view('content.my-courses.marks-import', [
+            'courseAssignment' => $courseAssignment->load(['course', 'program', 'semester', 'academicSession', 'section', 'teacher']),
+            'markColumns' => $markFields['columns'],
+            'markColumnLabels' => $markFields['labels'],
+            'maxMarks' => $maxMarks,
+            'batchLabels' => $this->marksService->batchLabelsForAssignment($courseAssignment),
+            'marksUnavailableMessage' => $marksUnavailableMessage,
+            'excelImportReady' => extension_loaded('zip') || class_exists(\ZipArchive::class),
         ]);
     }
 
@@ -193,7 +236,7 @@ class MyCourseController extends Controller
     {
         Gate::authorize('view', $courseAssignment);
 
-        return $this->persistMarksResponse($courseAssignment, $this->normalizeMarkRows($request->validated()['students'] ?? []));
+        return $this->persistMarksResponse($courseAssignment, $this->normalizeMarkRows($request->validated()['students'] ?? [], $courseAssignment));
     }
 
     public function saveSingleMark(CourseAssignment $courseAssignment, TeacherCourseMarksSingleRequest $request): JsonResponse
@@ -212,7 +255,7 @@ class MyCourseController extends Controller
     {
         Gate::authorize('view', $courseAssignment);
 
-        $markColumns = $this->marksService->markColumns();
+        $markColumns = $this->marksService->markColumnsForAssignment($courseAssignment);
         try {
             $students = $this->marksService->allStudentsForAssignment($courseAssignment);
             $existing = $this->marksService->existingMarksByStudent($courseAssignment, $students);
@@ -222,8 +265,8 @@ class MyCourseController extends Controller
                 ->with('error', $this->friendlyMarksMessage($e));
         }
 
-        $headings = $this->marksService->excelTemplateHeadings();
-        $rows = $students->map(function ($student) use ($markColumns, $existing) {
+        $headings = $this->marksService->excelTemplateHeadings($courseAssignment);
+        $rows = $students->values()->map(function ($student) use ($markColumns, $existing) {
             $studentMarks = $existing[(int) $student->id] ?? [];
             $row = [(string) $student->student_code];
             foreach ($markColumns as $column) {
@@ -244,17 +287,24 @@ class MyCourseController extends Controller
         Gate::authorize('view', $courseAssignment);
 
         try {
-            $rows = $this->parseUploadedRows($courseAssignment, $request);
-            $preview = $this->buildImportPreview($courseAssignment, $rows);
+            [$header, $sheetRows] = $this->readUploadedSheet($request);
+            $result = $this->marksService->parseImportSheetForPreview($courseAssignment, $header, $sheetRows);
 
             return response()->json([
-                'message' => __('Preview generated. Review the data before importing.'),
-                'preview' => $preview,
-                'rows' => $rows,
+                'message' => __('Preview generated. Review the data before saving.'),
+                'preview' => $result['preview'],
+                'rows' => $result['rows'],
+                'summary' => $result['summary'],
+                'mark_columns' => $this->marksService->markColumnsForAssignment($courseAssignment),
+                'mark_column_labels' => $this->marksService->markFieldsForAssignment($courseAssignment)['labels'],
             ]);
         } catch (ValidationException $e) {
+            $messages = collect($e->errors())->flatten()->filter()->values();
+
             return response()->json([
-                'message' => __('Validation failed in uploaded file.'),
+                'message' => $messages->isNotEmpty()
+                    ? (string) $messages->first()
+                    : __('Validation failed in uploaded file.'),
                 'errors' => $e->errors(),
             ], 422);
         } catch (Throwable $e) {
@@ -264,32 +314,34 @@ class MyCourseController extends Controller
         }
     }
 
-    public function importMarks(CourseAssignment $courseAssignment, TeacherCourseMarksImportRequest $request): JsonResponse
+    public function bulkSaveImport(CourseAssignment $courseAssignment, TeacherCourseMarksBulkSaveRequest $request): JsonResponse
     {
         Gate::authorize('view', $courseAssignment);
 
-        try {
-            $rows = $request->filled('confirmed_rows')
-                ? json_decode((string) $request->input('confirmed_rows'), true, 512, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE)
-                : $this->parseUploadedRows($courseAssignment, $request);
+        $rows = $this->normalizeMarkRows($request->validated()['rows'] ?? [], $courseAssignment);
 
-            if (! is_array($rows) || $rows === []) {
-                return response()->json(['message' => __('No rows to import.')], 422);
-            }
+        return $this->persistMarksResponse($courseAssignment, $rows, __('Imported marks saved successfully.'));
+    }
 
-            $normalized = $this->normalizeMarkRows($rows);
+    public function importMarks(CourseAssignment $courseAssignment, Request $request): JsonResponse
+    {
+        Gate::authorize('view', $courseAssignment);
 
-            return $this->persistMarksResponse($courseAssignment, $normalized, __('Excel marks imported successfully.'));
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => __('Validation failed in uploaded file.'),
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (Throwable $e) {
-            return response()->json([
-                'message' => $this->friendlyMarksMessage($e),
-            ], 422);
+        if ($request->has('rows') && is_array($request->input('rows'))) {
+            $validated = $request->validate((new TeacherCourseMarksBulkSaveRequest)->rules());
+
+            return $this->persistMarksResponse(
+                $courseAssignment,
+                $this->normalizeMarkRows($validated['rows'], $courseAssignment),
+                __('Imported marks saved successfully.')
+            );
         }
+
+        if ($request->filled('confirmed_rows')) {
+            return $this->bulkSaveImportFromConfirmedJson($courseAssignment, $request);
+        }
+
+        return response()->json(['message' => __('No import data provided.')], 422);
     }
 
     /**
@@ -297,8 +349,8 @@ class MyCourseController extends Controller
      */
     private function studentsResponsePayload(CourseAssignment $courseAssignment, ?string $search): array
     {
-        $markColumns = $this->marksService->markColumns();
-        $students = $this->marksService->studentsForAssignment($courseAssignment, $search, 20);
+        $markColumns = $this->marksService->markColumnsForAssignment($courseAssignment);
+        $students = $this->marksService->studentsForAssignment($courseAssignment, $search, 5000);
         $studentCollection = collect($students->items());
         $existing = $this->marksService->existingMarksByStudent($courseAssignment, $studentCollection);
 
@@ -336,14 +388,17 @@ class MyCourseController extends Controller
      * @param  array<int, array<string, mixed>>  $rows
      * @return array<int, array{student_id:int, marks:array<string, mixed>}>
      */
-    private function normalizeMarkRows(array $rows): array
+    private function normalizeMarkRows(array $rows, ?CourseAssignment $courseAssignment = null): array
     {
-        $markColumns = $this->marksService->markColumns();
+        $markColumns = $courseAssignment !== null
+            ? $this->marksService->markColumnsForAssignment($courseAssignment)
+            : $this->marksService->markColumns();
 
         return collect($rows)->map(function (array $row) use ($markColumns) {
+            $rawMarks = is_array($row['marks'] ?? null) ? $row['marks'] : [];
             $marks = [];
             foreach ($markColumns as $column) {
-                $raw = $row['marks'][$column] ?? 0;
+                $raw = $rawMarks[$column] ?? 0;
                 $marks[$column] = is_numeric($raw) ? (float) $raw : 0;
             }
 
@@ -374,49 +429,87 @@ class MyCourseController extends Controller
 
         return response()->json([
             'message' => $successMessage ?? __('Marks updated successfully.'),
-            'updated_rows' => $result['updated'],
+            'summary' => [
+                'processed' => $result['processed'],
+                'inserted' => $result['inserted'],
+                'updated' => $result['updated'],
+                'failed' => $result['failed'],
+            ],
+            'errors' => $result['errors'],
+            'updated_rows' => $result['inserted'] + $result['updated'],
+        ]);
+    }
+
+    private function bulkSaveImportFromConfirmedJson(CourseAssignment $courseAssignment, Request $request): JsonResponse
+    {
+        try {
+            $decoded = json_decode((string) $request->input('confirmed_rows', '[]'), true, 512, JSON_THROW_ON_ERROR);
+            if (! is_array($decoded) || $decoded === []) {
+                return response()->json(['message' => __('No rows to import.')], 422);
+            }
+
+            return $this->persistMarksResponse(
+                $courseAssignment,
+                $this->normalizeMarkRows($decoded, $courseAssignment),
+                __('Imported marks saved successfully.')
+            );
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => __('Validation failed.'),
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (Throwable $e) {
+            return response()->json([
+                'message' => $this->friendlyMarksMessage($e),
+            ], 422);
+        }
+    }
+
+    public function downloadTemplateCsv(CourseAssignment $courseAssignment)
+    {
+        Gate::authorize('view', $courseAssignment);
+
+        $markColumns = $this->marksService->markColumnsForAssignment($courseAssignment);
+        try {
+            $students = $this->marksService->allStudentsForAssignment($courseAssignment);
+            $existing = $this->marksService->existingMarksByStudent($courseAssignment, $students);
+        } catch (Throwable $e) {
+            return redirect()
+                ->route('my-courses.import', $courseAssignment)
+                ->with('error', $this->friendlyMarksMessage($e));
+        }
+
+        $headings = $this->marksService->excelTemplateHeadings($courseAssignment);
+        $rows = $students->values()->map(function ($student) use ($markColumns, $existing) {
+            $studentMarks = $existing[(int) $student->id] ?? [];
+            $row = [(string) $student->student_code];
+            foreach ($markColumns as $column) {
+                $row[] = isset($studentMarks[$column]) ? (float) $studentMarks[$column] : '';
+            }
+
+            return $row;
+        });
+
+        $filename = 'teacher_marks_template_'.$courseAssignment->id.'_'.now()->format('Ymd_His').'.csv';
+
+        return response()->streamDownload(function () use ($headings, $rows): void {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, $headings);
+            foreach ($rows as $row) {
+                fputcsv($out, $row);
+            }
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv',
         ]);
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * @return array{0: array<int, string>, 1: \Illuminate\Support\Collection}
      */
-    private function parseUploadedRows(CourseAssignment $courseAssignment, TeacherCourseMarksImportRequest $request): array
+    private function readUploadedSheet(TeacherCourseMarksImportRequest $request): array
     {
-        $reader = new StudentMarksWorksheetImport;
-        Excel::import($reader, $request->file('file'));
-
-        $sheet = $reader->rows;
-        if ($sheet->isEmpty()) {
-            throw ValidationException::withMessages([
-                'file' => [__('The uploaded sheet is empty.')],
-            ]);
-        }
-
-        $header = $sheet->shift()->map(fn ($cell) => trim((string) $cell))->values()->all();
-        $header = $this->marksService->normalizeImportHeader($header);
-
-        return $this->marksService->parseImportRows($courseAssignment, $header, $sheet);
-    }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $rows
-     * @return array<int, array<string, mixed>>
-     */
-    private function buildImportPreview(CourseAssignment $courseAssignment, array $rows): array
-    {
-        $courseId = (int) $courseAssignment->course_id;
-
-        return collect($rows)->map(function (array $row) use ($courseId) {
-            $computed = $this->gradeCalculator->buildPersistedMarks($row['marks'] ?? [], $courseId);
-
-            return array_merge($row, [
-                'total_marks' => $computed['total_marks'],
-                'total_marks_percentage' => $computed['total_marks_percentage'],
-                'total_marks_grade_name' => $computed['total_marks_grade_name'],
-                'total_marks_grade_points' => $computed['total_marks_grade_points'],
-            ]);
-        })->values()->all();
+        return $this->spreadsheetReader->read($request->file('file'));
     }
 
     private function resolveTeacherOrFail(): Teacher
