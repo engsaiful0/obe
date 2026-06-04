@@ -117,10 +117,7 @@
 
         var td = document.createElement('td');
         td.className = 'sticky-col';
-        td.innerHTML =
-          '<div class="fw-semibold small">' + (student.student_code || '') + '</div>' +
-          '<div class="text-muted small">' + (student.registration_no || '') + '</div>' +
-          '<div class="small">' + (student.student_name || '') + '</div>';
+        td.innerHTML = '<div class="fw-semibold small">' + (student.student_code || '') + '</div>';
         tr.appendChild(td);
 
         config.columns.forEach(function (column) {

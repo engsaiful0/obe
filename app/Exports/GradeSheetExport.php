@@ -25,7 +25,6 @@ class GradeSheetExport implements FromCollection, WithHeadings, WithTitle
         return [
             'Student ID',
             'Student Code',
-            'Registration Number',
             'Student Name',
             'Total Marks',
             'Percentage',
@@ -39,7 +38,6 @@ class GradeSheetExport implements FromCollection, WithHeadings, WithTitle
         return collect($this->rows)->map(fn (array $row) => [
             $row['student_id'] ?? '',
             $row['student_code'] ?? '',
-            $row['registration_no'] ?? '',
             $row['student_name'] ?? '',
             $row['total_marks'] ?? 0,
             $row['total_marks_percentage'] ?? 0,

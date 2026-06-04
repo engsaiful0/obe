@@ -214,7 +214,7 @@ class MyCourseController extends Controller
 
         $markColumns = $this->marksService->markColumns();
         try {
-            $students = collect($this->marksService->studentsForAssignment($courseAssignment, null, 10000)->items());
+            $students = $this->marksService->allStudentsForAssignment($courseAssignment);
             $existing = $this->marksService->existingMarksByStudent($courseAssignment, $students);
         } catch (Throwable $e) {
             return redirect()
@@ -222,7 +222,7 @@ class MyCourseController extends Controller
                 ->with('error', $this->friendlyMarksMessage($e));
         }
 
-        $headings = array_merge(['student_code'], $markColumns);
+        $headings = $this->marksService->excelTemplateHeadings();
         $rows = $students->map(function ($student) use ($markColumns, $existing) {
             $studentMarks = $existing[(int) $student->id] ?? [];
             $row = [(string) $student->student_code];
@@ -394,6 +394,7 @@ class MyCourseController extends Controller
         }
 
         $header = $sheet->shift()->map(fn ($cell) => trim((string) $cell))->values()->all();
+        $header = $this->marksService->normalizeImportHeader($header);
 
         return $this->marksService->parseImportRows($courseAssignment, $header, $sheet);
     }

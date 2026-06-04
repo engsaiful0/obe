@@ -39,12 +39,12 @@ class TeacherCourseMarksService
                 'section_id',
             ])
             ->with('batch:id,batch_name,batch_code')
-            ->where('academic_session_id', (int) $assignment->academic_session_id)
-            ->where('program_id', (int) $assignment->program_id);
+            ->where('students.academic_session_id', (int) $assignment->academic_session_id)
+            ->where('students.program_id', (int) $assignment->program_id);
 
         if ((int) $assignment->section_id > 0) {
             if (Schema::hasColumn('students', 'section_id')) {
-                $query->where('section_id', (int) $assignment->section_id);
+                $query->where('students.section_id', (int) $assignment->section_id);
             } elseif (Schema::hasColumn('students', 'section')) {
                 $section = $assignment->relationLoaded('section')
                     ? $assignment->section
@@ -72,7 +72,83 @@ class TeacherCourseMarksService
             });
         }
 
-        return $query->orderBy('student_name')->paginate($perPage)->withQueryString();
+        return $query->orderBy('students.student_name')->paginate($perPage)->withQueryString();
+    }
+
+    /**
+     * All students for this assignment (for Excel template export).
+     *
+     * @return Collection<int, Student>
+     */
+    public function allStudentsForAssignment(CourseAssignment $assignment): Collection
+    {
+        $query = Student::query()
+            ->select([
+                'students.id',
+                'students.student_code',
+                'students.registration_no',
+                'students.student_name',
+            ])
+            ->where('students.academic_session_id', (int) $assignment->academic_session_id)
+            ->where('students.program_id', (int) $assignment->program_id);
+
+        if ((int) $assignment->section_id > 0) {
+            if (Schema::hasColumn('students', 'section_id')) {
+                $query->where('students.section_id', (int) $assignment->section_id);
+            } elseif (Schema::hasColumn('students', 'section')) {
+                $section = Section::query()->find((int) $assignment->section_id);
+                $code = trim((string) ($section?->section_code ?? ''));
+                $name = trim((string) ($section?->section_name ?? ''));
+                $query->where(function ($sub) use ($code, $name) {
+                    if ($code !== '') {
+                        $sub->where('students.section', $code);
+                    }
+                    if ($name !== '') {
+                        $sub->orWhere('students.section', $name);
+                    }
+                });
+            }
+        }
+
+        return $query->orderBy('students.student_code')->get();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function excelTemplateHeadings(): array
+    {
+        $markLabels = array_map(
+            fn (string $column) => ucwords(str_replace('_', ' ', $column)),
+            $this->markColumns()
+        );
+
+        return array_merge(['Student Code'], $markLabels);
+    }
+
+    /**
+     * @param  array<int, string>  $rawHeader
+     * @return array<int, string>
+     */
+    public function normalizeImportHeader(array $rawHeader): array
+    {
+        return array_map(fn ($cell) => $this->normalizeHeaderKey((string) $cell), $rawHeader);
+    }
+
+    public function normalizeHeaderKey(string $header): string
+    {
+        $key = strtolower(trim(preg_replace('/\s+/', '_', $header) ?? $header));
+
+        if (in_array($key, $this->markColumns(), true)) {
+            return $key;
+        }
+
+        return match ($key) {
+            'student_code', 'student_id' => 'student_code',
+            'student_name', 'name' => 'student_name',
+            'registration_no', 'registration_number', 'reg_no' => 'registration_no',
+            default => $key,
+        };
     }
 
     /**
@@ -313,6 +389,7 @@ class TeacherCourseMarksService
      */
     public function parseImportRows(CourseAssignment $assignment, array $header, Collection $sheetRows): array
     {
+        $header = $this->normalizeImportHeader($header);
         $markColumns = $this->markColumns();
         $requiredHeader = array_merge(['student_code'], $markColumns);
 
@@ -325,13 +402,7 @@ class TeacherCourseMarksService
         }
 
         $index = array_flip($header);
-        $studentsByCode = Student::query()
-            ->where('academic_session_id', (int) $assignment->academic_session_id)
-            ->where('program_id', (int) $assignment->program_id)
-            ->when((int) $assignment->section_id > 0 && Schema::hasColumn('students', 'section_id'), function ($q) use ($assignment) {
-                $q->where('section_id', (int) $assignment->section_id);
-            })
-            ->get(['id', 'student_code', 'student_name', 'registration_no'])
+        $studentsByCode = $this->allStudentsForAssignment($assignment)
             ->keyBy(fn ($s) => strtolower(trim((string) $s->student_code)));
 
         $rows = [];
