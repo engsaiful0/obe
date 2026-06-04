@@ -3,6 +3,9 @@
 @section('title', 'Teachers')
 
 @section('content')
+@php
+    $canSignInAsTeacher = in_array(auth()->user()?->rule?->name ?? '', ['Super Admin', 'Admin'], true);
+@endphp
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Teacher Management</h5>
@@ -52,7 +55,17 @@
                             <td>{{ $teacher->email }}</td>
                             @php $statusName = $teacher->teacherStatus->status_name ?? ''; @endphp
                             <td><span class="badge {{ $statusName === 'Active' ? 'bg-success' : 'bg-secondary' }}">{{ $statusName ?: 'N/A' }}</span></td>
-                            <td class="d-flex gap-1">
+                            <td class="d-flex flex-wrap gap-1">
+                                @if($canSignInAsTeacher)
+                                    @if($teacher->user_id)
+                                        <form method="POST" action="{{ route('teachers.sign-in', $teacher->id) }}" onsubmit="return confirm('Sign in as {{ $teacher->teacher_name }}?')">
+                                            @csrf
+                                            <button type="submit" class="btn btn-primary btn-sm">Sign In</button>
+                                        </form>
+                                    @else
+                                        <button type="button" class="btn btn-primary btn-sm" disabled title="No login account">Sign In</button>
+                                    @endif
+                                @endif
                                 <a class="btn btn-info btn-sm" href="{{ route('teachers.show', $teacher->id) }}">View</a>
                                 <a class="btn btn-warning btn-sm" href="{{ route('teachers.edit', $teacher->id) }}">Edit</a>
                                 <form method="POST" action="{{ route('teachers.destroy', $teacher->id) }}" onsubmit="return confirm('Delete this teacher?')">

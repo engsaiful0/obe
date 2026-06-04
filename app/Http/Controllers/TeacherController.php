@@ -18,7 +18,9 @@ use App\Models\Status;
 use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -158,7 +160,7 @@ class TeacherController extends Controller
                 'name' => $data['teacher_name'],
                 'email' => $data['login_email'],
                 'password' => Hash::make($data['password']),
-                'rule_id' => Rule::where('name', 'Teacher')->value('id'),
+                'rule_id' => $this->resolveTeacherRule()->id,
             ]);
             if (method_exists($user, 'assignRole')) {
                 $user->assignRole('Teacher');
@@ -318,5 +320,72 @@ class TeacherController extends Controller
         $teacher->delete();
 
         return redirect()->route('teachers.index')->with('success', 'Teacher deleted successfully.');
+    }
+
+    public function signIn(Request $request, Teacher $teacher): RedirectResponse
+    {
+        abort_unless($this->canSignInAsTeacher(), 403, 'Only administrators can sign in as a teacher.');
+
+        $teacher->load('user.rule');
+        $teacherUser = $teacher->user;
+        abort_if(! $teacherUser, 403, 'This teacher does not have a login account.');
+
+        $this->ensureTeacherRoleOnUser($teacherUser);
+
+        $request->session()->put('impersonator_id', Auth::id());
+        Auth::login($teacherUser);
+        $request->session()->regenerate();
+
+        return redirect()
+            ->route('my-courses.course-list')
+            ->with('success', 'You are now signed in as '.$teacher->teacher_name.'.');
+    }
+
+    public function stopImpersonating(Request $request): RedirectResponse
+    {
+        $impersonatorId = $request->session()->pull('impersonator_id');
+        abort_if(! $impersonatorId, 403);
+
+        $admin = User::find($impersonatorId);
+        abort_if(! $admin, 403);
+
+        Auth::login($admin);
+        $request->session()->regenerate();
+
+        return redirect()
+            ->route('teachers.index')
+            ->with('success', 'Returned to your admin account.');
+    }
+
+    private function canSignInAsTeacher(): bool
+    {
+        $role = Auth::user()?->rule?->name ?? '';
+
+        return in_array($role, ['Super Admin', 'Admin'], true);
+    }
+
+    private function resolveTeacherRule(): Rule
+    {
+        $rule = Rule::query()->where('name', 'Teacher')->first();
+        if ($rule !== null) {
+            return $rule;
+        }
+
+        $rule = new Rule(['name' => 'Teacher']);
+        $rule->id = (int) Rule::query()->max('id') + 1;
+        $rule->save();
+
+        return $rule;
+    }
+
+    private function ensureTeacherRoleOnUser(User $user): void
+    {
+        $teacherRule = $this->resolveTeacherRule();
+        if ((int) $user->rule_id === (int) $teacherRule->id) {
+            return;
+        }
+
+        $user->update(['rule_id' => $teacherRule->id]);
+        $user->unsetRelation('rule');
     }
 }

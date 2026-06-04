@@ -63,6 +63,8 @@ $container = (isset($configData['contentLayout']) && $configData['contentLayout'
           <div class="{{$container}} flex-grow-1 container-p-y">
             @endif
 
+            @include('layouts.sections.impersonation-banner')
+
             @yield('content')
 
           </div>

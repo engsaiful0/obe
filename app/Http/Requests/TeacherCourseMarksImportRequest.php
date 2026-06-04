@@ -16,6 +16,12 @@ class TeacherCourseMarksImportRequest extends FormRequest
      */
     public function rules(): array
     {
+        if ($this->filled('confirmed_rows')) {
+            return [
+                'confirmed_rows' => ['required', 'string'],
+            ];
+        }
+
         return [
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
         ];

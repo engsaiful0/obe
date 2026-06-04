@@ -179,14 +179,23 @@ Route::get('/app/student/{student}/show', [StudentController::class, 'show'])->n
 Route::get('/app/student/{student}/edit', [StudentController::class, 'edit'])->name('student.edit');
 Route::put('/app/student/{student}', [StudentController::class, 'update'])->name('student.update');
 Route::delete('/app/student/{student}', [StudentController::class, 'destroy'])->name('student.destroy');
+Route::post('teachers/stop-impersonating', [TeacherController::class, 'stopImpersonating'])->name('teachers.stop-impersonating');
+Route::post('teachers/{teacher}/sign-in', [TeacherController::class, 'signIn'])->name('teachers.sign-in');
 Route::resource('teachers', TeacherController::class);
 
 Route::prefix('/app/my-courses')->name('my-courses.')->group(function () {
     Route::get('/', [MyCourseController::class, 'courseList'])->name('course-list');
     Route::get('/{courseAssignment}/marks', [MyCourseController::class, 'marksEntry'])->name('marks-entry');
+    Route::get('/{courseAssignment}/grade-sheet', [MyCourseController::class, 'gradeSheet'])->name('grade-sheet');
+    Route::get('/{courseAssignment}/grade-sheet/data', [MyCourseController::class, 'gradeSheetData'])->name('grade-sheet.data');
+    Route::get('/{courseAssignment}/grade-sheet/pdf', [MyCourseController::class, 'gradeSheetPdf'])->name('grade-sheet.pdf');
+    Route::get('/{courseAssignment}/grade-sheet/print', [MyCourseController::class, 'gradeSheetPrint'])->name('grade-sheet.print');
+    Route::get('/{courseAssignment}/grade-sheet/excel', [MyCourseController::class, 'gradeSheetExcel'])->name('grade-sheet.excel');
     Route::get('/{courseAssignment}/students', [MyCourseController::class, 'students'])->name('students');
     Route::post('/{courseAssignment}/save-marks', [MyCourseController::class, 'saveMarks'])->name('save-marks');
+    Route::post('/{courseAssignment}/save-single-mark', [MyCourseController::class, 'saveSingleMark'])->name('save-single-mark');
     Route::get('/{courseAssignment}/template', [MyCourseController::class, 'downloadTemplate'])->name('download-template');
+    Route::post('/{courseAssignment}/import/preview', [MyCourseController::class, 'previewImport'])->name('import.preview');
     Route::post('/{courseAssignment}/import', [MyCourseController::class, 'importMarks'])->name('import');
 });
 
