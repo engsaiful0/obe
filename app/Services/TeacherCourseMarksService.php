@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Support\DbExceptionMessages;
 use App\Support\SpreadsheetImportSupport;
+use Illuminate\Database\QueryException;
 use App\Models\CourseAssignment;
 use App\Models\RelatedTo;
 use App\Models\Section;
@@ -256,6 +258,8 @@ class TeacherCourseMarksService
      */
     public function saveMarks(CourseAssignment $assignment, array $rows): array
     {
+        $rows = $this->dedupeMarkRowsByStudent($rows);
+
         $defaultStatusId = $this->defaultObeStatusId();
         $componentId = $this->defaultAssessmentComponentId((int) $assignment->course_id);
         $courseId = (int) $assignment->course_id;
@@ -336,12 +340,30 @@ class TeacherCourseMarksService
                         ->update($payload);
                     $updated++;
                 } else {
-                    DB::table('student_marks')->insert(array_merge($payload, [
-                        'academic_session_id' => (int) $assignment->academic_session_id,
-                        'student_id' => $studentId,
-                        'created_at' => now(),
-                    ]));
-                    $inserted++;
+                    try {
+                        DB::table('student_marks')->insert(array_merge($payload, [
+                            'academic_session_id' => (int) $assignment->academic_session_id,
+                            'student_id' => $studentId,
+                            'created_at' => now(),
+                        ]));
+                        $inserted++;
+                    } catch (QueryException $e) {
+                        if (! DbExceptionMessages::isDuplicateKey($e)) {
+                            throw $e;
+                        }
+
+                        $retry = $this->findExistingMarkRow($assignment, $courseId, $studentId, $batchId, $componentId);
+                        if ($retry) {
+                            DB::table('student_marks')
+                                ->where('id', (int) $retry->id)
+                                ->update($payload);
+                            $updated++;
+                        } else {
+                            $failed++;
+                            $errors[] = DbExceptionMessages::humanize($e, 'student_marks')
+                                ?? __('Marks for this student are already saved for this course.');
+                        }
+                    }
                 }
             }
         });
@@ -379,6 +401,7 @@ class TeacherCourseMarksService
         $saveRows = [];
         $failed = 0;
         $valid = 0;
+        $seenStudentLines = [];
 
         foreach ($sheetRows as $rowIndex => $row) {
             $cells = SpreadsheetImportSupport::padCellsToWidth($row->values()->all(), $columnWidth);
@@ -424,6 +447,21 @@ class TeacherCourseMarksService
                 continue;
             }
 
+            if (isset($seenStudentLines[$studentCodeKey])) {
+                $failed++;
+                $preview[] = $this->previewRowPayload(
+                    $line,
+                    $rawCode,
+                    $marks,
+                    'failed',
+                    __('Student code :code appears more than once in this file (first on row :row). Keep only one row per student.', [
+                        'code' => $rawCode,
+                        'row' => $seenStudentLines[$studentCodeKey],
+                    ])
+                );
+                continue;
+            }
+
             if ($rowErrors !== []) {
                 $failed++;
                 $preview[] = $this->previewRowPayload($line, $rawCode, $marks, 'failed', implode(' ', $rowErrors));
@@ -437,6 +475,7 @@ class TeacherCourseMarksService
                 continue;
             }
 
+            $seenStudentLines[$studentCodeKey] = $line;
             $valid++;
             $preview[] = $this->previewRowPayload($line, $rawCode, $marks, 'ok', null);
             $saveRows[] = [
@@ -485,6 +524,16 @@ class TeacherCourseMarksService
         int $batchId,
         int $componentId
     ): ?object {
+        $byUniqueKey = DB::table('student_marks')
+            ->where('academic_session_id', (int) $assignment->academic_session_id)
+            ->where('student_id', $studentId)
+            ->where('assessment_component_id', $componentId)
+            ->first();
+
+        if ($byUniqueKey) {
+            return $byUniqueKey;
+        }
+
         return DB::table('student_marks')
             ->where('academic_session_id', (int) $assignment->academic_session_id)
             ->where('program_id', (int) $assignment->program_id)
@@ -496,12 +545,25 @@ class TeacherCourseMarksService
                 fn ($q) => $q->where('section_id', (int) $assignment->section_id),
                 fn ($q) => $q->whereNull('section_id')
             )
-            ->first()
-            ?? DB::table('student_marks')
-                ->where('academic_session_id', (int) $assignment->academic_session_id)
-                ->where('student_id', $studentId)
-                ->where('assessment_component_id', $componentId)
-                ->first();
+            ->first();
+    }
+
+    /**
+     * @param  array<int, array{student_id?:int, student_code?:string, marks:array<string, mixed>}>  $rows
+     * @return array<int, array{student_id?:int, student_code?:string, marks:array<string, mixed>}>
+     */
+    private function dedupeMarkRowsByStudent(array $rows): array
+    {
+        $byStudentId = [];
+
+        foreach ($rows as $row) {
+            $studentId = (int) ($row['student_id'] ?? 0);
+            if ($studentId > 0) {
+                $byStudentId[$studentId] = $row;
+            }
+        }
+
+        return array_values($byStudentId);
     }
 
     /**

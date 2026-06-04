@@ -56,4 +56,9 @@ class CourseAssignment extends Model
     {
         return $this->belongsTo(Status::class);
     }
+
+    public function courseFile(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(CourseFile::class);
+    }
 }

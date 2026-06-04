@@ -111,14 +111,26 @@
     showStatus((title ? title + ': ' : '') + (text || ''), icon === 'error' ? 'danger' : icon === 'success' ? 'success' : 'info');
   }
 
+  function humanizeErrorText(text) {
+    if (!text) return text;
+    var lower = String(text).toLowerCase();
+    if (lower.indexOf('duplicate entry') !== -1 || lower.indexOf('unique constraint') !== -1) {
+      if (lower.indexOf('student_marks') !== -1) {
+        return 'Marks for this student are already saved for this course. Save again to update existing marks, or remove duplicate rows from your file.';
+      }
+      return 'This record already exists. Please update the existing entry instead of creating a duplicate.';
+    }
+    return text;
+  }
+
   function extractErrorMessage(err) {
     if (!err) return 'Request failed.';
     if (err.data && err.data.errors) {
-      var flat = flattenErrors(err.data.errors);
+      var flat = humanizeErrorText(flattenErrors(err.data.errors));
       if (flat) return flat;
     }
-    if (err.data && err.data.message) return err.data.message;
-    return err.message || 'Request failed.';
+    if (err.data && err.data.message) return humanizeErrorText(err.data.message);
+    return humanizeErrorText(err.message || 'Request failed.');
   }
 
   function uploadWithProgress(url, formData, token, onProgress) {

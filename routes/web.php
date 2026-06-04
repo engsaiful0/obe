@@ -201,6 +201,15 @@ Route::prefix('/app/my-courses')->name('my-courses.')->group(function () {
     Route::post('/{courseAssignment}/import/preview', [MyCourseController::class, 'previewImport'])->name('import.preview');
     Route::post('/{courseAssignment}/import/bulk-save', [MyCourseController::class, 'bulkSaveImport'])->name('import.bulk-save');
     Route::post('/{courseAssignment}/import', [MyCourseController::class, 'importMarks'])->name('import.save');
+
+    Route::get('/{courseAssignment}/course-file', [\App\Http\Controllers\CourseFileController::class, 'index'])->name('course-file');
+    Route::post('/{courseAssignment}/course-file/documents', [\App\Http\Controllers\CourseFileController::class, 'uploadDocument'])->name('course-file.documents.upload');
+    Route::delete('/{courseAssignment}/course-file/documents/{document}', [\App\Http\Controllers\CourseFileController::class, 'deleteDocument'])->name('course-file.documents.delete');
+    Route::get('/{courseAssignment}/course-file/documents/{document}/download', [\App\Http\Controllers\CourseFileController::class, 'downloadDocument'])->name('course-file.documents.download');
+    Route::get('/{courseAssignment}/course-file/documents/{document}/preview', [\App\Http\Controllers\CourseFileController::class, 'previewDocument'])->name('course-file.documents.preview');
+    Route::post('/{courseAssignment}/course-file/cqi', [\App\Http\Controllers\CourseFileController::class, 'saveCqi'])->name('course-file.cqi.save');
+    Route::get('/{courseAssignment}/course-file/pdf', [\App\Http\Controllers\CourseFileController::class, 'exportPdf'])->name('course-file.pdf');
+    Route::get('/{courseAssignment}/course-file/print', [\App\Http\Controllers\CourseFileController::class, 'printSection'])->name('course-file.print');
 });
 
 Route::prefix('ajax')->group(function () {

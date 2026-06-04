@@ -9,6 +9,7 @@ use App\Http\Requests\TeacherCourseMarksImportRequest;
 use App\Http\Requests\TeacherCourseMarksSingleRequest;
 use App\Http\Requests\TeacherCourseMarksUpdateRequest;
 use App\Models\AppSetting;
+use App\Support\DbExceptionMessages;
 use App\Support\SpreadsheetImportSupport;
 use App\Services\MarksTemplateSpreadsheetReader;
 use App\Models\CourseAssignment;
@@ -542,9 +543,18 @@ class MyCourseController extends Controller
             }
         }
 
+        $humanDb = DbExceptionMessages::humanize($e, 'student_marks');
+        if ($humanDb !== null) {
+            return $humanDb;
+        }
+
         $raw = trim((string) $e->getMessage());
         if (stripos($raw, 'No assessment component found') !== false) {
             return __('Marks entry is not available for this course yet. Please create at least one assessment component first.');
+        }
+
+        if (stripos($raw, 'duplicate entry') !== false || stripos($raw, 'unique constraint') !== false) {
+            return __('Marks for this student are already saved for this course. Save again to update existing marks, or remove duplicate rows from your file.');
         }
 
         if ($raw !== '') {

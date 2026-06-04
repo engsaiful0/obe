@@ -24,14 +24,30 @@
     el.textContent = message;
   }
 
+  function humanizeErrorText(text) {
+    if (!text) return text;
+    var lower = String(text).toLowerCase();
+    if (lower.indexOf('duplicate entry') !== -1 || lower.indexOf('unique constraint') !== -1) {
+      if (lower.indexOf('student_marks') !== -1) {
+        return 'Marks for this student are already saved for this course. Save again to update existing marks.';
+      }
+      return 'This record already exists. Please update the existing entry instead of creating a duplicate.';
+    }
+    return text;
+  }
+
   function flattenErrors(errors) {
     if (!errors) return '';
-    if (typeof errors === 'string') return errors;
-    if (Array.isArray(errors)) return errors.join(' ');
-    return Object.keys(errors).map(function (k) {
-      var v = errors[k];
-      return Array.isArray(v) ? v.join(' ') : String(v);
-    }).join(' ');
+    if (typeof errors === 'string') return humanizeErrorText(errors);
+    if (Array.isArray(errors)) return humanizeErrorText(errors.join(' '));
+    return humanizeErrorText(
+      Object.keys(errors)
+        .map(function (k) {
+          var v = errors[k];
+          return Array.isArray(v) ? v.join(' ') : String(v);
+        })
+        .join(' ')
+    );
   }
 
   function parseMarkValue(raw) {
@@ -306,7 +322,11 @@
               loadStudents(currentPage);
               return;
             }
-            showFeedback(feedback, flattenErrors(pack.data.errors) || pack.data.message || 'Failed to save.', 'danger');
+            showFeedback(
+              feedback,
+              flattenErrors(pack.data.errors) || humanizeErrorText(pack.data.message) || 'Failed to save.',
+              'danger'
+            );
           })
           .finally(function () {
             saveBtn.disabled = false;

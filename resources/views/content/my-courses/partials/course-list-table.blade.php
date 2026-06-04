@@ -37,6 +37,9 @@
                     <td class="text-center">{{ (int) ($assignment->total_students ?? 0) }}</td>
                     <td class="text-end">
                         <div class="btn-group btn-group-sm" role="group">
+                            <a href="{{ route('my-courses.course-file', $assignment) }}" class="btn btn-warning">
+                                {{ __('Course File') }}
+                            </a>
                             <a href="{{ route('my-courses.marks-entry', $assignment) }}" class="btn btn-primary">
                                 {{ __('Marks Entry') }}
                             </a>
