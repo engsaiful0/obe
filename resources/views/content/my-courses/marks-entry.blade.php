@@ -236,7 +236,10 @@
             };
         </script>
         @php
-            $marksJsPath = public_path('assets/js/my-courses.js');
+            $marksJsRel = 'assets/js/my-courses.js';
+            $marksJsPath = file_exists(base_path($marksJsRel))
+                ? base_path($marksJsRel)
+                : public_path($marksJsRel);
             $marksJsVersion = file_exists($marksJsPath) ? filemtime($marksJsPath) : time();
         @endphp
         <script src="{{ asset('assets/js/my-courses.js') }}?v={{ $marksJsVersion }}"></script>
