@@ -26,3 +26,7 @@
         </div>
     </div>
 @endsection
+
+@section('page-script')
+    <script src="{{ asset('assets/js/teacher-course-attendance.js') }}"></script>
+@endsection

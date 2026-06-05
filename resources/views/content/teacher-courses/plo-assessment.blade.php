@@ -17,7 +17,11 @@
             <a href="{{ route('teacher-courses.dashboard', $courseAssignment) }}" class="btn btn-sm btn-outline-primary">{{ __('Dashboard') }}</a>
         </div>
         <div class="card-body">
-            @include('content.teacher-courses.partials.tab-plo', ['assignment' => $courseAssignment, 'readonly' => $readonly ?? false])
+            @include('content.teacher-courses.partials.tab-plo', [
+                'assignment' => $courseAssignment,
+                'dashboard' => $dashboard,
+                'readonly' => $readonly ?? false,
+            ])
         </div>
     </div>
 @endsection

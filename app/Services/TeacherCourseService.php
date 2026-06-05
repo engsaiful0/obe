@@ -15,6 +15,8 @@ class TeacherCourseService
 {
     public function __construct(
         protected TeacherCourseMarksService $marksService,
+        protected CourseFileService $courseFileService,
+        protected StudentAttendanceService $attendanceService,
     ) {}
 
     public function isCurrentAssignment(CourseAssignment $assignment): bool
@@ -121,7 +123,7 @@ class TeacherCourseService
     {
         $totalStudents = $this->marksService->studentsForAssignment($assignment, null, 1)->total();
         $batchLabels = $this->marksService->batchLabelsForAssignment($assignment);
-        $stats = $this->progressStats($assignment, $totalStudents);
+        $stats = $this->progressStats($assignment, $totalStudents, false);
 
         $assignment->setAttribute('total_students', $totalStudents);
         $assignment->setAttribute('batch_labels', $batchLabels);
@@ -149,7 +151,7 @@ class TeacherCourseService
         $assignment->loadMissing(['teacher', 'academicSession', 'program', 'course', 'section', 'semester']);
 
         $totalStudents = (int) $assignment->getAttribute('total_students');
-        $stats = $this->progressStats($assignment, $totalStudents);
+        $stats = $this->progressStats($assignment, $totalStudents, true);
 
         return [
             'assignment' => $assignment,
@@ -180,30 +182,91 @@ class TeacherCourseService
             ],
             'is_readonly' => $this->isPreviousAssignment($assignment),
             'is_current' => $this->isCurrentAssignment($assignment),
+            'clo_attainment' => $stats['clo_attainment'] ?? ['rows' => [], 'chart' => []],
+            'plo_attainment' => $stats['plo_attainment'] ?? ['rows' => [], 'chart' => []],
+            'clos_achieved' => $stats['clos_achieved'] ?? 0,
+            'clos_total' => $stats['clos_total'] ?? 0,
+        ];
+    }
+
+    /**
+     * @return array{clo_attainment: array<string, mixed>, plo_attainment: array<string, mixed>, clos_achieved: int, clos_total: int, clo_assessment_progress: float}
+     */
+    public function attainmentData(CourseAssignment $assignment): array
+    {
+        try {
+            $gradeReport = $this->marksService->buildGradeSheetReport($assignment);
+            $cloAttainment = $this->courseFileService->cloAttainment($assignment, $gradeReport);
+            $ploAttainment = $this->courseFileService->ploAttainment($assignment, $gradeReport);
+        } catch (\Throwable) {
+            return [
+                'clo_attainment' => ['rows' => [], 'chart' => []],
+                'plo_attainment' => ['rows' => [], 'chart' => []],
+                'clos_achieved' => 0,
+                'clos_total' => 0,
+                'clo_assessment_progress' => 0,
+            ];
+        }
+
+        $cloRows = $cloAttainment['rows'] ?? [];
+        $closTotal = count($cloRows);
+        $closAchieved = collect($cloRows)->where('status', 'Achieved')->count();
+        $cloProgress = $closTotal > 0 ? round(($closAchieved / $closTotal) * 100, 1) : 0;
+
+        return [
+            'clo_attainment' => $cloAttainment,
+            'plo_attainment' => $ploAttainment,
+            'clos_achieved' => $closAchieved,
+            'clos_total' => $closTotal,
+            'clo_assessment_progress' => $cloProgress,
         ];
     }
 
     /**
      * @return array<string, mixed>
      */
-    protected function progressStats(CourseAssignment $assignment, int $totalStudents): array
+    protected function progressStats(CourseAssignment $assignment, int $totalStudents, bool $withAttainment = false): array
     {
-        $classesTaken = $this->countAttendanceDocuments($assignment);
-        $totalClasses = max($classesTaken, 0);
+        $attendanceSummary = $this->attendanceService->summary($assignment);
+        $classesTaken = (int) ($attendanceSummary['classes_taken'] ?? 0);
+        if ($classesTaken === 0) {
+            $classesTaken = $this->countAttendanceDocuments($assignment);
+        }
 
         $marksStats = $this->marksProgress($assignment, $totalStudents);
-        $attendancePct = $this->estimateAttendancePercentage($assignment, $totalStudents);
+        $attendancePct = (float) ($attendanceSummary['attendance_percentage'] ?? 0);
+        if ($attendancePct <= 0) {
+            $attendancePct = $this->estimateAttendancePercentage($assignment, $totalStudents);
+        }
+
+        $attainment = $withAttainment
+            ? $this->attainmentData($assignment)
+            : [
+                'clo_assessment_progress' => 0,
+                'clo_attainment' => ['rows' => [], 'chart' => []],
+                'plo_attainment' => ['rows' => [], 'chart' => []],
+                'clos_achieved' => 0,
+                'clos_total' => 0,
+            ];
 
         return [
-            'total_classes' => $totalClasses,
+            'total_classes' => max($classesTaken, 0),
             'classes_taken' => $classesTaken,
             'attendance_percentage' => $attendancePct,
-            'attendance_status' => $this->statusFromProgress($attendancePct, 80),
+            'attendance_status' => $classesTaken > 0
+                ? $this->statusFromProgress($attendancePct, 75)
+                : 'Pending',
             'marks_entry_progress' => $marksStats['progress'],
             'marks_entry_status' => $this->statusFromProgress($marksStats['progress'], 100),
             'grade_submission_status' => $marksStats['graded'] >= $totalStudents && $totalStudents > 0 ? 'Submitted' : ($marksStats['graded'] > 0 ? 'In Progress' : 'Pending'),
             'grade_submission_date' => $marksStats['last_updated'],
-            'clo_assessment_progress' => $marksStats['progress'],
+            'clo_assessment_progress' => $withAttainment
+                ? $attainment['clo_assessment_progress']
+                : $marksStats['progress'],
+            'clo_attainment' => $attainment['clo_attainment'],
+            'plo_attainment' => $attainment['plo_attainment'],
+            'clos_achieved' => $attainment['clos_achieved'],
+            'clos_total' => $attainment['clos_total'],
         ];
     }
 

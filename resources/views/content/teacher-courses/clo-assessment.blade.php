@@ -19,6 +19,7 @@
         <div class="card-body">
             @include('content.teacher-courses.partials.tab-clo', [
                 'assignment' => $courseAssignment,
+                'dashboard' => $dashboard,
                 'readonly' => $readonly ?? false,
             ])
         </div>

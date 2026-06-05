@@ -42,6 +42,7 @@ use App\Http\Controllers\MissionController;
 use App\Http\Controllers\MonthlyBillController;
 use App\Http\Controllers\MonthlySalarySettingController;
 use App\Http\Controllers\MyCourseController;
+use App\Http\Controllers\StudentAttendanceController;
 use App\Http\Controllers\TeacherCourseController;
 use App\Http\Controllers\PeoController;
 use App\Http\Controllers\ProgramOutcomeController;
@@ -193,6 +194,10 @@ Route::prefix('/app/courses')->name('teacher-courses.')->group(function () {
     Route::get('/{courseAssignment}/students', [TeacherCourseController::class, 'studentsPage'])->name('students');
     Route::get('/{courseAssignment}/students/json', [TeacherCourseController::class, 'studentsJson'])->name('students.json');
     Route::get('/{courseAssignment}/attendance', [TeacherCourseController::class, 'attendancePage'])->name('attendance');
+    Route::get('/{courseAssignment}/attendance/roster', [StudentAttendanceController::class, 'roster'])->name('attendance.roster');
+    Route::post('/{courseAssignment}/attendance', [StudentAttendanceController::class, 'store'])->name('attendance.store');
+    Route::get('/{courseAssignment}/attendance/history', [StudentAttendanceController::class, 'history'])->name('attendance.history');
+    Route::get('/{courseAssignment}/attendance/summary', [StudentAttendanceController::class, 'summary'])->name('attendance.summary');
     Route::get('/{courseAssignment}/reports', [TeacherCourseController::class, 'reportsPage'])->name('reports');
     Route::get('/{courseAssignment}/clo', [TeacherCourseController::class, 'cloPage'])->name('clo');
     Route::get('/{courseAssignment}/plo', [TeacherCourseController::class, 'ploPage'])->name('plo');

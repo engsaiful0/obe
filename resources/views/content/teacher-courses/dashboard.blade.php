@@ -84,10 +84,10 @@
                     </div>
                     @break
                 @case('clo')
-                    @include('content.teacher-courses.partials.tab-clo', ['assignment' => $assignment, 'readonly' => $readonly])
+                    @include('content.teacher-courses.partials.tab-clo', ['assignment' => $assignment, 'dashboard' => $dashboard, 'readonly' => $readonly])
                     @break
                 @case('plo')
-                    @include('content.teacher-courses.partials.tab-plo', ['assignment' => $assignment, 'readonly' => $readonly])
+                    @include('content.teacher-courses.partials.tab-plo', ['assignment' => $assignment, 'dashboard' => $dashboard, 'readonly' => $readonly])
                     @break
                 @case('reports')
                     @include('content.teacher-courses.partials.tab-reports', ['assignment' => $assignment, 'readonly' => $readonly])
@@ -112,5 +112,8 @@
             window.__teacherCourseStudentsRoute = @json(route('teacher-courses.students.json', $assignment));
         </script>
         <script src="{{ asset('assets/js/teacher-course-dashboard.js') }}"></script>
+    @endif
+    @if (($tab ?? 'overview') === 'attendance')
+        <script src="{{ asset('assets/js/teacher-course-attendance.js') }}"></script>
     @endif
 @endsection
