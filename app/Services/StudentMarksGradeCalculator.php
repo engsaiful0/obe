@@ -335,11 +335,65 @@ class StudentMarksGradeCalculator
 
     public function resolveGrade(float $percentage): ?Grade
     {
-        return Grade::query()
+        if ($percentage < 0) {
+            return null;
+        }
+
+        $exact = Grade::query()
             ->where('from_marks', '<=', $percentage)
             ->where('to_marks', '>=', $percentage)
             ->orderByDesc('from_marks')
             ->first();
+
+        if ($exact) {
+            return $exact;
+        }
+
+        // Percentage falls in a gap between bands (e.g. 74.44% between A- 70–74 and A 75–79).
+        return Grade::query()
+            ->where('from_marks', '<=', $percentage)
+            ->orderByDesc('from_marks')
+            ->first();
+    }
+
+    /**
+     * Derive total, percentage, letter grade, and GPA from a student_marks row.
+     *
+     * @param  array<string, mixed>  $marksRow
+     * @return array{total_marks: float, total_marks_percentage: float, total_marks_grade_name: ?string, total_marks_grade_points: ?float}
+     */
+    public function resolveGradeOutcomeFromMarksRow(array $marksRow, int $courseId): array
+    {
+        $columns = $this->editableMarkColumns();
+        $maxMarks = $this->courseMaxMarks($courseId);
+
+        $computedTotal = round(collect($columns)->sum(fn (string $col) => (float) ($marksRow[$col] ?? 0)), 2);
+        $storedTotal = isset($marksRow['total_marks']) ? (float) $marksRow['total_marks'] : 0.0;
+        $total = $storedTotal > 0 ? $storedTotal : $computedTotal;
+        if ($computedTotal > 0 && ($storedTotal <= 0 || abs($storedTotal - $computedTotal) > 0.01)) {
+            $total = $computedTotal;
+        }
+
+        $storedPct = isset($marksRow['total_marks_percentage']) ? (float) $marksRow['total_marks_percentage'] : 0.0;
+        $percentage = $storedPct > 0
+            ? $storedPct
+            : ($maxMarks > 0 ? round(($total / $maxMarks) * 100, 2) : 0.0);
+
+        $gradeName = $marksRow['total_marks_grade_name'] ?? null;
+        $gradePoints = isset($marksRow['total_marks_grade_points']) ? (float) $marksRow['total_marks_grade_points'] : null;
+
+        if (($gradeName === null || $gradeName === '') && $percentage > 0) {
+            $grade = $this->resolveGrade($percentage);
+            $gradeName = $grade?->grade_name;
+            $gradePoints = $grade?->grade_point !== null ? round((float) $grade->grade_point, 2) : null;
+        }
+
+        return [
+            'total_marks' => $total,
+            'total_marks_percentage' => $percentage,
+            'total_marks_grade_name' => $gradeName,
+            'total_marks_grade_points' => $gradePoints,
+        ];
     }
 
     /**

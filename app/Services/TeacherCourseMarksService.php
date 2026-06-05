@@ -646,8 +646,11 @@ class TeacherCourseMarksService
         $gradeScale = $this->gradeCalculator->gradeScale();
         $groupedColumns = $this->gradeCalculator->gradeSheetGroupedColumns();
 
-        $rows = $studentCollection->values()->map(function ($student, int $index) use ($existing, $groupedColumns) {
+        $courseId = (int) $assignment->course_id;
+
+        $rows = $studentCollection->values()->map(function ($student, int $index) use ($existing, $groupedColumns, $courseId) {
             $marks = $existing[(int) $student->id] ?? [];
+            $outcome = $this->gradeCalculator->resolveGradeOutcomeFromMarksRow($marks, $courseId);
 
             $row = [
                 'serial' => $index + 1,
@@ -655,10 +658,10 @@ class TeacherCourseMarksService
                 'student_code' => (string) $student->student_code,
                 'student_name' => (string) $student->student_name,
                 'batch_name' => (string) ($student->batch?->batch_name ?? ''),
-                'total_marks' => isset($marks['total_marks']) ? (float) $marks['total_marks'] : 0.0,
-                'total_marks_percentage' => isset($marks['total_marks_percentage']) ? (float) $marks['total_marks_percentage'] : 0.0,
-                'total_marks_grade_name' => $marks['total_marks_grade_name'] ?? null,
-                'total_marks_grade_points' => isset($marks['total_marks_grade_points']) ? (float) $marks['total_marks_grade_points'] : null,
+                'total_marks' => $outcome['total_marks'],
+                'total_marks_percentage' => $outcome['total_marks_percentage'],
+                'total_marks_grade_name' => $outcome['total_marks_grade_name'],
+                'total_marks_grade_points' => $outcome['total_marks_grade_points'],
             ];
 
             foreach ($groupedColumns as $group) {
