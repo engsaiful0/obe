@@ -1,5 +1,5 @@
 <div class="table-responsive">
-    <table class="table table-sm table-striped table-hover align-middle mb-0 teacher-course-datatable" id="teacher-course-table">
+    <table class="table table-sm table-striped table-hover align-middle mb-0">
         <thead class="table-light">
             <tr>
                 <th data-sort="id">{{ __('Serial No.') }}</th>

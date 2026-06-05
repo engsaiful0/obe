@@ -55,6 +55,14 @@ class AppServiceProvider extends ServiceProvider
             return Auth::check() && Auth::user()->hasPermissionTo($permission);
         });
 
+        Blade::if('teacher', function () {
+            if (! Auth::check()) {
+                return false;
+            }
+
+            return strtolower((string) (Auth::user()->rule?->name ?? '')) === 'teacher';
+        });
+
         // Configure pagination to use Bootstrap 5
         Paginator::defaultView('vendor.pagination.custom-bootstrap-5');
         Paginator::defaultSimpleView('vendor.pagination.simple-bootstrap-5');

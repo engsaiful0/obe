@@ -31,26 +31,10 @@
         .then(function (res) { return res.text(); })
         .then(function (html) {
           container.innerHTML = html;
-          initDataTable();
         })
         .finally(function () {
           if (loading) loading.classList.add('d-none');
         });
-    }
-
-    function initDataTable() {
-      var table = container.querySelector('#teacher-course-table');
-      if (!table || typeof $ === 'undefined' || !$.fn.DataTable) return;
-      if ($.fn.DataTable.isDataTable(table)) {
-        $(table).DataTable().destroy();
-      }
-      $(table).DataTable({
-        paging: false,
-        searching: false,
-        info: false,
-        order: [],
-        responsive: true
-      });
     }
 
     var timer;
@@ -69,8 +53,6 @@
       e.preventDefault();
       loadPage(link.href);
     });
-
-    initDataTable();
   }
 
   document.addEventListener('DOMContentLoaded', initTeacherCourseList);

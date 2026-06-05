@@ -58,15 +58,14 @@ return '';
                 <div>{{ __('Dashboards') }}</div>
             </a>
         </li>
- <!-- Teacher Course Module -->
- @permission('my-courses')
+ <!-- Teacher Course Module (permission or Teacher role) -->
+ @if (auth()->check() && (auth()->user()->hasPermissionTo('my-courses') || strtolower((string) (auth()->user()->rule?->name ?? '')) === 'teacher'))
  <li class="menu-item {{ isMenuActive(['teacher-courses', 'my-courses'], $currentRouteName) }}">
      <a href="javascript:void(0);" class="menu-link menu-toggle">
          <i class="menu-icon tf-icons ti ti-book"></i>
          <div>{{ __('Course') }}</div>
      </a>
      <ul class="menu-sub">
-         @permission('my-course-list')
          <li class="menu-item {{ $currentRouteName === 'teacher-courses.assigned' || $currentRouteName === 'my-courses.course-list' ? 'active' : '' }}">
              <a href="{{ route('teacher-courses.assigned') }}" class="menu-link">
                  <div>{{ __('Assigned Courses') }}</div>
@@ -82,10 +81,9 @@ return '';
                  <div>{{ __('Previous Semester Courses') }}</div>
              </a>
          </li>
-         @endpermission
      </ul>
  </li>
- @endpermission
+ @endif
     
         <!-- Teacher -->
         @permission('add-teacher')
