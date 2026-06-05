@@ -42,6 +42,7 @@ use App\Http\Controllers\MissionController;
 use App\Http\Controllers\MonthlyBillController;
 use App\Http\Controllers\MonthlySalarySettingController;
 use App\Http\Controllers\MyCourseController;
+use App\Http\Controllers\TeacherCourseController;
 use App\Http\Controllers\PeoController;
 use App\Http\Controllers\ProgramOutcomeController;
 use App\Http\Controllers\PunishmentReportController;
@@ -183,8 +184,23 @@ Route::post('teachers/stop-impersonating', [TeacherController::class, 'stopImper
 Route::post('teachers/{teacher}/sign-in', [TeacherController::class, 'signIn'])->name('teachers.sign-in');
 Route::resource('teachers', TeacherController::class);
 
+Route::prefix('/app/courses')->name('teacher-courses.')->group(function () {
+    Route::get('/assigned', [TeacherCourseController::class, 'assigned'])->name('assigned');
+    Route::get('/current', [TeacherCourseController::class, 'current'])->name('current');
+    Route::get('/previous', [TeacherCourseController::class, 'previous'])->name('previous');
+    Route::get('/export-assigned', [TeacherCourseController::class, 'exportAssignedExcel'])->name('export-assigned');
+    Route::get('/{courseAssignment}/dashboard', [TeacherCourseController::class, 'dashboard'])->name('dashboard');
+    Route::get('/{courseAssignment}/students', [TeacherCourseController::class, 'studentsPage'])->name('students');
+    Route::get('/{courseAssignment}/students/json', [TeacherCourseController::class, 'studentsJson'])->name('students.json');
+    Route::get('/{courseAssignment}/attendance', [TeacherCourseController::class, 'attendancePage'])->name('attendance');
+    Route::get('/{courseAssignment}/reports', [TeacherCourseController::class, 'reportsPage'])->name('reports');
+    Route::get('/{courseAssignment}/clo', [TeacherCourseController::class, 'cloPage'])->name('clo');
+    Route::get('/{courseAssignment}/plo', [TeacherCourseController::class, 'ploPage'])->name('plo');
+    Route::get('/{courseAssignment}/export-pdf', [TeacherCourseController::class, 'exportPreviousPdf'])->name('export-previous-pdf');
+});
+
 Route::prefix('/app/my-courses')->name('my-courses.')->group(function () {
-    Route::get('/', [MyCourseController::class, 'courseList'])->name('course-list');
+    Route::get('/', fn () => redirect()->route('teacher-courses.assigned'))->name('course-list');
     Route::get('/{courseAssignment}/marks', [MyCourseController::class, 'marksEntry'])->name('marks-entry');
     Route::get('/{courseAssignment}/import', [MyCourseController::class, 'importPage'])->name('import');
     Route::get('/{courseAssignment}/import/capabilities', [MyCourseController::class, 'importCapabilities'])->name('import.capabilities');

@@ -15,7 +15,9 @@ use App\Services\MarksTemplateSpreadsheetReader;
 use App\Models\CourseAssignment;
 use App\Models\Teacher;
 use App\Services\StudentMarksGradeCalculator;
+use App\Services\TeacherActivityLogger;
 use App\Services\TeacherCourseMarksService;
+use App\Services\TeacherCourseService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,6 +35,8 @@ class MyCourseController extends Controller
         protected TeacherCourseMarksService $marksService,
         protected StudentMarksGradeCalculator $gradeCalculator,
         protected MarksTemplateSpreadsheetReader $spreadsheetReader,
+        protected TeacherCourseService $courseService,
+        protected TeacherActivityLogger $activityLogger,
     ) {}
 
     public function courseList(Request $request): View
@@ -104,6 +108,9 @@ class MyCourseController extends Controller
             ->values()
             ->all();
 
+        $readonly = $this->courseService->isPreviousAssignment($courseAssignment);
+        $this->activityLogger->log('view_marks_entry', 'Opened marks entry', $courseAssignment);
+
         return view('content.my-courses.marks-entry', [
             'courseAssignment' => $courseAssignment->load(['course', 'program', 'semester', 'academicSession', 'section', 'teacher']),
             'markColumns' => $markFields['columns'],
@@ -114,12 +121,13 @@ class MyCourseController extends Controller
             'maxMarks' => $maxMarks,
             'gradeScale' => $gradeScale,
             'batchLabels' => $this->marksService->batchLabelsForAssignment($courseAssignment),
+            'readonly' => $readonly,
         ]);
     }
 
     public function importPage(CourseAssignment $courseAssignment): View
     {
-        Gate::authorize('view', $courseAssignment);
+        Gate::authorize('manage', $courseAssignment);
 
         $markFields = ['columns' => [], 'labels' => []];
         $maxMarks = 100.0;
@@ -247,26 +255,32 @@ class MyCourseController extends Controller
 
     public function saveMarks(CourseAssignment $courseAssignment, TeacherCourseMarksUpdateRequest $request): JsonResponse
     {
-        Gate::authorize('view', $courseAssignment);
+        Gate::authorize('manage', $courseAssignment);
 
-        return $this->persistMarksResponse($courseAssignment, $this->normalizeMarkRows($request->validated()['students'] ?? [], $courseAssignment));
+        $response = $this->persistMarksResponse($courseAssignment, $this->normalizeMarkRows($request->validated()['students'] ?? [], $courseAssignment));
+        $this->activityLogger->log('save_marks', 'Saved marks (bulk)', $courseAssignment);
+
+        return $response;
     }
 
     public function saveSingleMark(CourseAssignment $courseAssignment, TeacherCourseMarksSingleRequest $request): JsonResponse
     {
-        Gate::authorize('view', $courseAssignment);
+        Gate::authorize('manage', $courseAssignment);
 
         $data = $request->validated();
 
-        return $this->persistMarksResponse($courseAssignment, [[
+        $response = $this->persistMarksResponse($courseAssignment, [[
             'student_id' => (int) $data['student_id'],
             'marks' => $data['marks'] ?? [],
         ]]);
+        $this->activityLogger->log('save_single_mark', 'Saved single mark cell', $courseAssignment);
+
+        return $response;
     }
 
     public function downloadTemplate(CourseAssignment $courseAssignment)
     {
-        Gate::authorize('view', $courseAssignment);
+        Gate::authorize('manage', $courseAssignment);
 
         $markColumns = $this->marksService->markColumnsForAssignment($courseAssignment);
         try {
@@ -297,7 +311,7 @@ class MyCourseController extends Controller
 
     public function previewImport(CourseAssignment $courseAssignment, TeacherCourseMarksImportRequest $request): JsonResponse
     {
-        Gate::authorize('view', $courseAssignment);
+        Gate::authorize('manage', $courseAssignment);
 
         try {
             [$header, $sheetRows] = $this->readUploadedSheet($request);
@@ -329,16 +343,18 @@ class MyCourseController extends Controller
 
     public function bulkSaveImport(CourseAssignment $courseAssignment, TeacherCourseMarksBulkSaveRequest $request): JsonResponse
     {
-        Gate::authorize('view', $courseAssignment);
+        Gate::authorize('manage', $courseAssignment);
 
         $rows = $this->normalizeMarkRows($request->validated()['rows'] ?? [], $courseAssignment);
+        $response = $this->persistMarksResponse($courseAssignment, $rows, __('Imported marks saved successfully.'));
+        $this->activityLogger->log('bulk_import_marks', 'Bulk imported marks', $courseAssignment);
 
-        return $this->persistMarksResponse($courseAssignment, $rows, __('Imported marks saved successfully.'));
+        return $response;
     }
 
     public function importMarks(CourseAssignment $courseAssignment, Request $request): JsonResponse
     {
-        Gate::authorize('view', $courseAssignment);
+        Gate::authorize('manage', $courseAssignment);
 
         if ($request->has('rows') && is_array($request->input('rows'))) {
             $validated = $request->validate((new TeacherCourseMarksBulkSaveRequest)->rules());

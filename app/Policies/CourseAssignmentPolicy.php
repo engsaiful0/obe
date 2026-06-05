@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\CourseAssignment;
 use App\Models\User;
+use App\Services\TeacherCourseService;
 
 class CourseAssignmentPolicy
 {
@@ -26,7 +27,15 @@ class CourseAssignmentPolicy
 
     public function manage(User $user, CourseAssignment $courseAssignment): bool
     {
-        return $this->isAssignedTeacher($user, $courseAssignment);
+        if ($this->isAdminRole($user)) {
+            return true;
+        }
+
+        if (! $this->isAssignedTeacher($user, $courseAssignment)) {
+            return false;
+        }
+
+        return app(TeacherCourseService::class)->isCurrentAssignment($courseAssignment);
     }
 
     private function isAssignedTeacher(User $user, CourseAssignment $courseAssignment): bool

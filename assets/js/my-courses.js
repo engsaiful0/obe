@@ -221,6 +221,10 @@
           input.placeholder = '0';
           var val = studentMarks[column];
           input.value = val === 0 || val === '0' ? '' : (val !== undefined && val !== null ? String(val) : '');
+          if (config.readonly) {
+            input.readOnly = true;
+            input.classList.add('bg-light');
+          }
           markTd.appendChild(input);
           tr.appendChild(markTd);
         });

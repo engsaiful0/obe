@@ -58,22 +58,31 @@ return '';
                 <div>{{ __('Dashboards') }}</div>
             </a>
         </li>
- <!-- Teacher -->
+ <!-- Teacher Course Module -->
  @permission('my-courses')
- <li class="menu-item {{ isMenuActive('teachers', $currentRouteName) }}">
+ <li class="menu-item {{ isMenuActive(['teacher-courses', 'my-courses'], $currentRouteName) }}">
      <a href="javascript:void(0);" class="menu-link menu-toggle">
-         <i class="menu-icon tf-icons ti ti-users"></i>
-         <div>{{ __('My Courses') }}</div>
+         <i class="menu-icon tf-icons ti ti-book"></i>
+         <div>{{ __('Course') }}</div>
      </a>
      <ul class="menu-sub">
          @permission('my-course-list')
-         <li class="menu-item {{ $currentRouteName === 'my-courses.course-list' ? 'active' : '' }}">
-             <a href="{{ route('my-courses.course-list') }}" class="menu-link">
-                 <div>{{ __('Course List') }}</div>
+         <li class="menu-item {{ $currentRouteName === 'teacher-courses.assigned' || $currentRouteName === 'my-courses.course-list' ? 'active' : '' }}">
+             <a href="{{ route('teacher-courses.assigned') }}" class="menu-link">
+                 <div>{{ __('Assigned Courses') }}</div>
+             </a>
+         </li>
+         <li class="menu-item {{ $currentRouteName === 'teacher-courses.current' ? 'active' : '' }}">
+             <a href="{{ route('teacher-courses.current') }}" class="menu-link">
+                 <div>{{ __('Current Semester Courses') }}</div>
+             </a>
+         </li>
+         <li class="menu-item {{ $currentRouteName === 'teacher-courses.previous' ? 'active' : '' }}">
+             <a href="{{ route('teacher-courses.previous') }}" class="menu-link">
+                 <div>{{ __('Previous Semester Courses') }}</div>
              </a>
          </li>
          @endpermission
-        
      </ul>
  </li>
  @endpermission

@@ -153,19 +153,26 @@
             @if (!empty($marksUnavailableMessage))
                 <div class="alert alert-warning" role="alert">{{ $marksUnavailableMessage }}</div>
             @else
+                @if (!empty($readonly))
+                    <div class="alert alert-warning py-2 mb-3">
+                        <i class="ti ti-lock"></i> {{ __('This is a previous semester course. Marks entry is read-only.') }}
+                    </div>
+                @endif
                 <div class="row g-2 mb-3 align-items-end">
                     <div class="col-md-5">
                         <input type="text" id="marks-student-search" class="form-control form-control-sm"
                             placeholder="{{ __('Search by name, code, or registration no...') }}">
                     </div>
-                    <div class="col-md-7 text-md-end">
-                        <a href="{{ route('my-courses.download-template', $courseAssignment) }}" class="btn btn-outline-primary btn-sm">
-                            {{ __('Download Excel Template') }}
-                        </a>
-                        <a href="{{ route('my-courses.import', $courseAssignment) }}" class="btn btn-success btn-sm">
-                            {{ __('Import from Excel') }}
-                        </a>
-                    </div>
+                    @if (empty($readonly))
+                        <div class="col-md-7 text-md-end">
+                            <a href="{{ route('my-courses.download-template', $courseAssignment) }}" class="btn btn-outline-primary btn-sm">
+                                {{ __('Download Excel Template') }}
+                            </a>
+                            <a href="{{ route('my-courses.import', $courseAssignment) }}" class="btn btn-success btn-sm">
+                                {{ __('Import from Excel') }}
+                            </a>
+                        </div>
+                    @endif
                 </div>
 
                 <p class="small text-muted mb-2">
@@ -210,9 +217,11 @@
                             {{ __(':total student(s) loaded', ['total' => $students['pagination']['total']]) }}
                         @endif
                     </div>
-                    <button type="button" id="marks-save-btn" class="btn btn-primary">
-                        {{ __('Save All Marks') }}
-                    </button>
+                    @if (empty($readonly))
+                        <button type="button" id="marks-save-btn" class="btn btn-primary">
+                            {{ __('Save All Marks') }}
+                        </button>
+                    @endif
                 </div>
                 <p class="small text-muted mt-2 mb-0">
                     {{ __('Course maximum marks: :max', ['max' => $maxMarks ?? 100]) }}
@@ -232,7 +241,8 @@
                 initialStudents: @json($students),
                 studentsRoute: @json(route('my-courses.students', $courseAssignment)),
                 saveRoute: @json(route('my-courses.save-marks', $courseAssignment)),
-                saveSingleRoute: @json(route('my-courses.save-single-mark', $courseAssignment))
+                saveSingleRoute: @json(route('my-courses.save-single-mark', $courseAssignment)),
+                readonly: @json(!empty($readonly))
             };
         </script>
         @php
