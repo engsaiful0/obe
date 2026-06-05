@@ -221,7 +221,10 @@ class MyCourseController extends Controller
         $report = $this->marksService->buildGradeSheetReport($courseAssignment, $studentId);
 
         return Excel::download(
-            new GradeSheetExport($report['rows']),
+            new GradeSheetExport(
+                $report['rows'],
+                $report['grouped_columns'] ?? []
+            ),
             'grade-sheet-'.$courseAssignment->id.'-'.now()->format('Ymd_His').'.xlsx'
         );
     }

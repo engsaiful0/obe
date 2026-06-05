@@ -162,6 +162,58 @@ class StudentMarksGradeCalculator
         return $max > 0 ? $max : 100.0;
     }
 
+    /**
+     * Grouped columns shown on the teacher grade sheet (sums per category).
+     *
+     * @return array<int, array{key: string, label: string, columns: array<int, string>}>
+     */
+    public function gradeSheetGroupedColumns(): array
+    {
+        $pools = $this->markColumnPoolsByType();
+
+        return [
+            [
+                'key' => 'attendance_marks',
+                'label' => 'Attendance',
+                'columns' => $pools['Attendance'],
+            ],
+            [
+                'key' => 'assignment_marks',
+                'label' => 'Assignment',
+                'columns' => $pools['Assignment'],
+            ],
+            [
+                'key' => 'class_test_marks',
+                'label' => 'Class Test',
+                'columns' => $pools['Quiz'],
+            ],
+            [
+                'key' => 'midterm_marks',
+                'label' => 'Mid',
+                'columns' => $pools['Midterm'],
+            ],
+            [
+                'key' => 'final_marks',
+                'label' => 'Final',
+                'columns' => $pools['Final'],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $marksRow
+     * @param  array<int, string>  $columns
+     */
+    public function sumMarkColumns(array $marksRow, array $columns): float
+    {
+        $sum = 0.0;
+        foreach ($columns as $column) {
+            $sum += (float) ($marksRow[$column] ?? 0);
+        }
+
+        return round($sum, 2);
+    }
+
     public function markColumnDisplayLabel(string $column): string
     {
         if ($column === 'attendance_marks') {

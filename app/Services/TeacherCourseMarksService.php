@@ -644,14 +644,15 @@ class TeacherCourseMarksService
 
         $existing = $this->existingMarksByStudent($assignment, $studentCollection);
         $gradeScale = $this->gradeCalculator->gradeScale();
+        $groupedColumns = $this->gradeCalculator->gradeSheetGroupedColumns();
 
-        $rows = $studentCollection->map(function ($student) use ($existing) {
+        $rows = $studentCollection->values()->map(function ($student, int $index) use ($existing, $groupedColumns) {
             $marks = $existing[(int) $student->id] ?? [];
 
-            return [
+            $row = [
+                'serial' => $index + 1,
                 'student_id' => (int) $student->id,
                 'student_code' => (string) $student->student_code,
-                'registration_no' => (string) ($student->registration_no ?? ''),
                 'student_name' => (string) $student->student_name,
                 'batch_name' => (string) ($student->batch?->batch_name ?? ''),
                 'total_marks' => isset($marks['total_marks']) ? (float) $marks['total_marks'] : 0.0,
@@ -659,6 +660,12 @@ class TeacherCourseMarksService
                 'total_marks_grade_name' => $marks['total_marks_grade_name'] ?? null,
                 'total_marks_grade_points' => isset($marks['total_marks_grade_points']) ? (float) $marks['total_marks_grade_points'] : null,
             ];
+
+            foreach ($groupedColumns as $group) {
+                $row[$group['key']] = $this->gradeCalculator->sumMarkColumns($marks, $group['columns']);
+            }
+
+            return $row;
         })->values();
 
         $totals = $rows->pluck('total_marks')->filter(fn ($v) => $v > 0);
@@ -686,6 +693,7 @@ class TeacherCourseMarksService
             'assignment' => $assignment,
             'batch_labels' => $this->batchLabelsForAssignment($assignment),
             'grade_scale' => $gradeScale,
+            'grouped_columns' => $groupedColumns,
             'rows' => $rows->all(),
             'summary' => [
                 'total_students' => $rows->count(),
