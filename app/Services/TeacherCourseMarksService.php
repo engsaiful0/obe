@@ -635,8 +635,7 @@ class TeacherCourseMarksService
             'semester:id,semester_name',
         ]);
 
-        $students = $this->studentsForAssignment($assignment, null, 5000);
-        $studentCollection = collect($students->items());
+        $studentCollection = $this->allStudentsForAssignment($assignment);
 
         if ($studentId !== null && $studentId > 0) {
             $studentCollection = $studentCollection->where('id', $studentId)->values();
@@ -648,28 +647,36 @@ class TeacherCourseMarksService
 
         $courseId = (int) $assignment->course_id;
 
-        $rows = $studentCollection->values()->map(function ($student, int $index) use ($existing, $groupedColumns, $courseId) {
-            $marks = $existing[(int) $student->id] ?? [];
-            $outcome = $this->gradeCalculator->resolveGradeOutcomeFromMarksRow($marks, $courseId);
+        $rows = $studentCollection
+            ->sortBy('student_code', SORT_NATURAL)
+            ->values()
+            ->map(function ($student) use ($existing, $groupedColumns, $courseId) {
+                $marks = $existing[(int) $student->id] ?? [];
+                $outcome = $this->gradeCalculator->resolveGradeOutcomeFromMarksRow($marks, $courseId);
 
-            $row = [
-                'serial' => $index + 1,
-                'student_id' => (int) $student->id,
-                'student_code' => (string) $student->student_code,
-                'student_name' => (string) $student->student_name,
-                'batch_name' => (string) ($student->batch?->batch_name ?? ''),
-                'total_marks' => $outcome['total_marks'],
-                'total_marks_percentage' => $outcome['total_marks_percentage'],
-                'total_marks_grade_name' => $outcome['total_marks_grade_name'],
-                'total_marks_grade_points' => $outcome['total_marks_grade_points'],
-            ];
+                $row = [
+                    'student_id' => (int) $student->id,
+                    'student_code' => (string) $student->student_code,
+                    'student_name' => (string) $student->student_name,
+                    'batch_name' => (string) ($student->batch?->batch_name ?? ''),
+                    'total_marks' => $outcome['total_marks'],
+                    'total_marks_percentage' => $outcome['total_marks_percentage'],
+                    'total_marks_grade_name' => $outcome['total_marks_grade_name'],
+                    'total_marks_grade_points' => $outcome['total_marks_grade_points'],
+                ];
 
-            foreach ($groupedColumns as $group) {
-                $row[$group['key']] = $this->gradeCalculator->sumMarkColumns($marks, $group['columns']);
-            }
+                foreach ($groupedColumns as $group) {
+                    $row[$group['key']] = $this->gradeCalculator->sumMarkColumns($marks, $group['columns']);
+                }
 
-            return $row;
-        })->values();
+                return $row;
+            })
+            ->values()
+            ->map(function (array $row, int $index) {
+                $row['serial'] = $index + 1;
+
+                return $row;
+            });
 
         $totals = $rows->pluck('total_marks')->filter(fn ($v) => $v > 0);
         $percentages = $rows->pluck('total_marks_percentage')->filter(fn ($v) => $v > 0);

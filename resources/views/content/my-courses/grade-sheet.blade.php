@@ -157,9 +157,24 @@
 @section('page-script')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            if (window.jQuery && jQuery.fn.DataTable && document.getElementById('grade-sheet-table')) {
-                jQuery('#grade-sheet-table').DataTable({ pageLength: 25, order: [[2, 'asc']] });
+            if (!window.jQuery || !jQuery.fn.DataTable || !document.getElementById('grade-sheet-table')) {
+                return;
             }
+
+            jQuery('#grade-sheet-table').DataTable({
+                pageLength: 25,
+                order: [[2, 'asc']],
+                columnDefs: [
+                    { orderable: false, targets: 0 }
+                ],
+                drawCallback: function () {
+                    var api = this.api();
+                    var start = api.page.info().start;
+                    api.column(0, { search: 'applied', order: 'applied' }).nodes().each(function (cell, i) {
+                        cell.innerHTML = String(start + i + 1);
+                    });
+                }
+            });
         });
     </script>
 @endsection
