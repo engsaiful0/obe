@@ -13,6 +13,10 @@ use App\Http\Controllers\authentications\TwoStepsBasic;
 use App\Http\Controllers\authentications\TwoStepsCover;
 use App\Http\Controllers\authentications\VerifyEmailBasic;
 use App\Http\Controllers\authentications\VerifyEmailCover;
+use App\Http\Controllers\BacCriterionController;
+use App\Http\Controllers\BacEvidenceRequirementController;
+use App\Http\Controllers\BacSettingController;
+use App\Http\Controllers\BacStandardController;
 use App\Http\Controllers\BloomController;
 use App\Http\Controllers\BRTCBusMonthlyBillController;
 use App\Http\Controllers\BusHelperReportController;
@@ -572,6 +576,70 @@ Route::get('/app/settings/get-grade', [Grade::class, 'getGrades'])->name('grade.
 Route::post('/app/settings/grade', [Grade::class, 'store'])->name('grade.store');
 Route::put('/app/settings/grade/{id}', [Grade::class, 'update'])->name('grade.update');
 Route::delete('/app/settings/grade/{id}', [Grade::class, 'destroy'])->name('grade.destroy');
+
+Route::get('/app/settings/bac-standards', [BacStandardController::class, 'index'])
+    ->name('bac-standards.index')
+    ->middleware('permission:bac-view');
+Route::get('/app/settings/bac-standards/create', [BacStandardController::class, 'create'])
+    ->name('bac-standards.create')
+    ->middleware('permission:bac-manage');
+Route::post('/app/settings/bac-standards', [BacStandardController::class, 'store'])
+    ->name('bac-standards.store')
+    ->middleware('permission:bac-manage');
+Route::get('/app/settings/bac-standards/{bac_standard}/edit', [BacStandardController::class, 'edit'])
+    ->name('bac-standards.edit')
+    ->middleware('permission:bac-manage');
+Route::put('/app/settings/bac-standards/{bac_standard}', [BacStandardController::class, 'update'])
+    ->name('bac-standards.update')
+    ->middleware('permission:bac-manage');
+Route::delete('/app/settings/bac-standards/{bac_standard}', [BacStandardController::class, 'destroy'])
+    ->name('bac-standards.destroy')
+    ->middleware('permission:bac-manage');
+
+Route::get('/app/settings/bac-criteria', [BacCriterionController::class, 'index'])
+    ->name('bac-criteria.index')
+    ->middleware('permission:bac-view');
+Route::get('/app/settings/bac-criteria/create', [BacCriterionController::class, 'create'])
+    ->name('bac-criteria.create')
+    ->middleware('permission:bac-manage');
+Route::post('/app/settings/bac-criteria', [BacCriterionController::class, 'store'])
+    ->name('bac-criteria.store')
+    ->middleware('permission:bac-manage');
+Route::get('/app/settings/bac-criteria/{bac_criterion}/edit', [BacCriterionController::class, 'edit'])
+    ->name('bac-criteria.edit')
+    ->middleware('permission:bac-manage');
+Route::put('/app/settings/bac-criteria/{bac_criterion}', [BacCriterionController::class, 'update'])
+    ->name('bac-criteria.update')
+    ->middleware('permission:bac-manage');
+Route::delete('/app/settings/bac-criteria/{bac_criterion}', [BacCriterionController::class, 'destroy'])
+    ->name('bac-criteria.destroy')
+    ->middleware('permission:bac-manage');
+
+Route::get('/app/settings/bac-evidence-requirements', [BacEvidenceRequirementController::class, 'index'])
+    ->name('bac-evidence-requirements.index')
+    ->middleware('permission:bac-view');
+Route::get('/app/settings/bac-evidence-requirements/create', [BacEvidenceRequirementController::class, 'create'])
+    ->name('bac-evidence-requirements.create')
+    ->middleware('permission:bac-manage');
+Route::post('/app/settings/bac-evidence-requirements', [BacEvidenceRequirementController::class, 'store'])
+    ->name('bac-evidence-requirements.store')
+    ->middleware('permission:bac-manage');
+Route::get('/app/settings/bac-evidence-requirements/{bac_evidence_requirement}/edit', [BacEvidenceRequirementController::class, 'edit'])
+    ->name('bac-evidence-requirements.edit')
+    ->middleware('permission:bac-manage');
+Route::put('/app/settings/bac-evidence-requirements/{bac_evidence_requirement}', [BacEvidenceRequirementController::class, 'update'])
+    ->name('bac-evidence-requirements.update')
+    ->middleware('permission:bac-manage');
+Route::delete('/app/settings/bac-evidence-requirements/{bac_evidence_requirement}', [BacEvidenceRequirementController::class, 'destroy'])
+    ->name('bac-evidence-requirements.destroy')
+    ->middleware('permission:bac-manage');
+
+Route::get('/app/settings/bac-settings', [BacSettingController::class, 'index'])
+    ->name('bac-settings.index')
+    ->middleware('permission:bac-view');
+Route::put('/app/settings/bac-settings', [BacSettingController::class, 'update'])
+    ->name('bac-settings.update')
+    ->middleware('permission:bac-manage');
 
 Route::get('/app/settings/item', [Item::class, 'index'])->name('app-settings-item');
 Route::get('/app/settings/get-item', [Item::class, 'getItem'])->name('app-settings-get-item');

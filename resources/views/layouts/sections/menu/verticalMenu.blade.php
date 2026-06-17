@@ -197,6 +197,37 @@ return '';
            
         </li>
 
+        @permission('bac-view')
+        <li class="menu-item {{ isMenuActive(['bac-standards', 'bac-criteria', 'bac-evidence-requirements', 'bac-settings'], $currentRouteName) }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons ti ti-certificate"></i>
+                <div>{{ __('BAC') }}</div>
+            </a>
+            <ul class="menu-sub">
+                <li class="menu-item {{ request()->routeIs('bac-standards.*') ? 'active' : '' }}">
+                    <a href="{{ route('bac-standards.index') }}" class="menu-link">
+                        <div>{{ __('Standards') }}</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ request()->routeIs('bac-criteria.*') ? 'active' : '' }}">
+                    <a href="{{ route('bac-criteria.index') }}" class="menu-link">
+                        <div>{{ __('Criteria') }}</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ request()->routeIs('bac-evidence-requirements.*') ? 'active' : '' }}">
+                    <a href="{{ route('bac-evidence-requirements.index') }}" class="menu-link">
+                        <div>{{ __('Evidence Requirements') }}</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ request()->routeIs('bac-settings.*') ? 'active' : '' }}">
+                    <a href="{{ route('bac-settings.index') }}" class="menu-link">
+                        <div>{{ __('Settings') }}</div>
+                    </a>
+                </li>
+            </ul>
+        </li>
+        @endpermission
+
         <!-- Settings -->
         @permission('obe-settings-view')
         <li class="menu-item {{ isMenuActive('basic-settings', $currentRouteName) }}">
