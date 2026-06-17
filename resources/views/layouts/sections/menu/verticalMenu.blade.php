@@ -194,23 +194,7 @@ return '';
                 <i class="menu-icon tf-icons ti ti-report"></i>
                 <div>{{ __('Report') }}</div>
             </a>
-            <ul class="menu-sub">
-              
-
-                
-               
-                <li class="menu-item {{ $currentRouteName === 'student-in-report' ? 'active' : '' }}">
-                    <a href="{{ url('app/student-in-report') }}" class="menu-link">
-                        <div>{{ __('Student IN Report') }}</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ $currentRouteName === 'student-out-report' ? 'active' : '' }}">
-                    <a href="{{ url('app/student-out-report') }}" class="menu-link">
-                        <div>{{ __('Student OUT Report') }}</div>
-                    </a>
-                </li>
-                
-            </ul>
+           
         </li>
 
         <!-- Settings -->
