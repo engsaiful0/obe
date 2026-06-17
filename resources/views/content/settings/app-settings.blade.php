@@ -49,8 +49,8 @@
                             <div class="mb-3">
                                 <label class="form-label" for="logo">Logo</label>
                                 <input type="file" class="form-control" id="logo" name="logo" accept="image/*">
-                                @if($settings->logo)
-                                <img src="{{ asset('assets/img/branding/' . $settings->logo) }}" alt="logo" class="mt-2" width="100">
+                                @if($settings->logo_url)
+                                <img src="{{ $settings->logo_url }}" alt="logo" class="mt-2" width="100">
                                 @endif
                             </div>
                         </div>
@@ -188,8 +188,21 @@ $(document).ready(function() {
                     }
                     
                     // Update logo image if it was changed
-                    if (response.data.logo) {
-                        $('img[alt="logo"]').attr('src', '{{ asset("assets/img/branding/") }}/' + response.data.logo);
+                    if (response.data.logo_url) {
+                        const logoPreview = $('img[alt="logo"]');
+
+                        if (logoPreview.length) {
+                            logoPreview.attr('src', response.data.logo_url);
+                        } else {
+                            $('<img>', {
+                                src: response.data.logo_url,
+                                alt: 'logo',
+                                class: 'mt-2',
+                                width: 100
+                            }).insertAfter('#logo');
+                        }
+
+                        $('img[alt="Logo"]').attr('src', response.data.logo_url);
                     }
                 } else {
                     // Show error toast

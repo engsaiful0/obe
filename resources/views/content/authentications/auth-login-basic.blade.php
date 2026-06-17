@@ -28,7 +28,7 @@
           <div class="app-brand justify-content-center mb-6">
             <a href="{{url('/')}}" class="app-brand-link">
               <img style="height: 100px;width: 100px;"
-                src="{{ $appSettings?->logo ? asset('assets/img/branding/'.$appSettings->logo) : asset('assets/img/default-logo.png') }}"
+                src="{{ $appSettings?->logo_url ?? asset('assets/img/default-logo.png') }}"
                 alt="Logo">
             </a>
           </div>

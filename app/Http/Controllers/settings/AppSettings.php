@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AppSettings extends Controller
@@ -53,19 +54,23 @@ class AppSettings extends Controller
             
             if ($request->hasFile('logo')) {
                 $logo = $request->file('logo');
-                $logoName = 'logo.' . $logo->getClientOriginalExtension();
+                $extension = $logo->extension() ?: $logo->getClientOriginalExtension();
+                $logoName = 'logo-' . now()->format('YmdHis') . '-' . Str::random(6) . '.' . $extension;
                 $logo->move(public_path('assets/img/branding'), $logoName);
                 $data['logo'] = $logoName;
             }
 
             $settings->update($data);
+            $freshSettings = $settings->fresh();
 
             // Return JSON response for AJAX requests
             if ($request->ajax()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Settings updated successfully!',
-                    'data' => $settings->fresh()
+                    'data' => array_merge($freshSettings->toArray(), [
+                        'logo_url' => $freshSettings->logo_url,
+                    ]),
                 ]);
             }
 

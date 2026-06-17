@@ -32,8 +32,8 @@ return '';
     <div class="app-brand demo">
         <a href="{{route('dashboard-analytics')}}" class="app-brand-link">
             <span class="app-brand-logo demo">
-                @if(isset($appSettings) && $appSettings && $appSettings->logo)
-                <img style="height: 32px; width: 32px;" src="{{ asset('assets/img/branding/'.$appSettings->logo) }}" alt="Logo">
+                @if(isset($appSettings) && $appSettings && $appSettings->logo_url)
+                <img style="height: 32px; width: 32px;" src="{{ $appSettings->logo_url }}" alt="Logo">
                 @else
                 @include('_partials.macros',["height"=>20])
                 @endif

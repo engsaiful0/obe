@@ -18,7 +18,13 @@ $navbarDetached = ($navbarDetached ?? '');
       @if(isset($navbarFull))
         <div class="navbar-brand app-brand demo d-none d-xl-flex py-0 me-4">
           <a href="{{route('dashboard-analytics')}}" class="app-brand-link">
-            <span class="app-brand-logo demo"><img style="height: 100px;width: 100px;" src="{{ asset('assets/img/branding/'.$appSettings->logo) }}" alt="Logo"></span>
+            <span class="app-brand-logo demo">
+              @if($appSettings?->logo_url)
+              <img style="height: 100px;width: 100px;" src="{{ $appSettings->logo_url }}" alt="Logo">
+              @else
+              @include('_partials.macros',["height"=>20])
+              @endif
+            </span>
             <span class="app-brand-text demo menu-text fw-bold">{{config('variables.templateName')}}</span>
           </a>
           @if(isset($menuHorizontal))
