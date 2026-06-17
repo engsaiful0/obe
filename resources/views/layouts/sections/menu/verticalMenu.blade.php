@@ -38,7 +38,7 @@ return '';
                 @include('_partials.macros',["height"=>20])
                 @endif
             </span>
-            <span class="app-brand-text demo menu-text fw-bold">{{config('variables.templateName')}}</span>
+            <span class="app-brand-text demo menu-text fw-bold">{{ ($appSettings ?? null)?->brand_name ?? config('variables.templateName') }}</span>
         </a>
 
         <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">

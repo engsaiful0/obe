@@ -9,6 +9,17 @@ class AppSetting extends Model
 {
     use HasFactory;
 
+    protected $appends = [
+        'app_name',
+        'brand_name',
+        'display_name',
+        'name',
+        'institute_name',
+        'logo_path',
+        'logo_public_path',
+        'logo_url',
+    ];
+
     protected $fillable = [
         'university_name',
         'short_name',
@@ -28,14 +39,57 @@ class AppSetting extends Model
         'user_id',
     ];
 
-    public function getLogoUrlAttribute(): ?string
+    public function getAppNameAttribute(): string
     {
-        if (!$this->logo) {
+        return $this->resolvedAppName();
+    }
+
+    public function getBrandNameAttribute(): string
+    {
+        return $this->resolvedBrandName();
+    }
+
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->resolvedBrandName();
+    }
+
+    public function getNameAttribute(): string
+    {
+        return $this->resolvedAppName();
+    }
+
+    public function getInstituteNameAttribute(): string
+    {
+        return $this->resolvedAppName();
+    }
+
+    public function getLogoPathAttribute(): ?string
+    {
+        return $this->resolvedLogoPath();
+    }
+
+    public function getLogoPublicPathAttribute(): ?string
+    {
+        $path = $this->resolvedLogoPath();
+
+        if (!$path) {
             return null;
         }
 
-        $logo = ltrim($this->logo, '/');
-        $path = str_contains($logo, '/') ? $logo : 'assets/img/branding/' . $logo;
+        $absolutePath = public_path($path);
+
+        return is_file($absolutePath) ? $absolutePath : null;
+    }
+
+    public function getLogoUrlAttribute(): ?string
+    {
+        $path = $this->resolvedLogoPath();
+
+        if (!$path) {
+            return null;
+        }
+
         $url = asset($path);
         $absolutePath = public_path($path);
 
@@ -44,5 +98,30 @@ class AppSetting extends Model
         }
 
         return $url;
+    }
+
+    private function resolvedAppName(): string
+    {
+        return $this->university_name
+            ?: $this->short_name
+            ?: config('variables.templateName', config('app.name', 'Laravel'));
+    }
+
+    private function resolvedBrandName(): string
+    {
+        return $this->short_name
+            ?: $this->university_name
+            ?: config('variables.templateName', config('app.name', 'Laravel'));
+    }
+
+    private function resolvedLogoPath(): ?string
+    {
+        if (!$this->logo) {
+            return null;
+        }
+
+        $logo = ltrim($this->logo, '/');
+
+        return str_contains($logo, '/') ? $logo : 'assets/img/branding/' . $logo;
     }
 }

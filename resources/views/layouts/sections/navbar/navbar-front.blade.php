@@ -17,13 +17,13 @@ $activeClass = in_array($currentRouteName, $activeRoutes) ? 'active' : '';
         <!-- Mobile menu toggle: End-->
         <a href="{{url('front-pages/landing')}}" class="app-brand-link">
           <span class="app-brand-logo demo">
-            @if($appSettings?->logo_url)
+            @if(($appSettings ?? null)?->logo_url)
             <img style="height: 100px;width: 100px;" src="{{ $appSettings->logo_url }}" alt="Logo">
             @else
             @include('_partials.macros',["height"=>20])
             @endif
           </span>
-          <span class="app-brand-text demo menu-text fw-bold ms-2 ps-1">{{ config('variables.templateName') }}</span>
+          <span class="app-brand-text demo menu-text fw-bold ms-2 ps-1">{{ ($appSettings ?? null)?->brand_name ?? config('variables.templateName') }}</span>
         </a>
       </div>
       <!-- Menu logo wrapper: End -->

@@ -28,13 +28,13 @@
           <div class="app-brand justify-content-center mb-6">
             <a href="{{url('/')}}" class="app-brand-link">
               <img style="height: 100px;width: 100px;"
-                src="{{ $appSettings?->logo_url ?? asset('assets/img/default-logo.png') }}"
+                src="{{ ($appSettings ?? null)?->logo_url ?? asset('assets/img/default-logo.png') }}"
                 alt="Logo">
             </a>
           </div>
           <!-- /Logo -->
 
-          <h4 class="mb-1">Welcome to {{ $appSettings->app_name ?? config('app.name') }}! 👋</h4>
+          <h4 class="mb-1">Welcome to {{ ($appSettings ?? null)?->brand_name ?? config('app.name') }}! 👋</h4>
           <p class="mb-6">Please sign-in to your account and start the adventure</p>
 
           <div id="auth-error" class="alert alert-danger mt-3 d-none"></div>

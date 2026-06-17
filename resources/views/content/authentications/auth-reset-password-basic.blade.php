@@ -42,8 +42,14 @@ $customizerHidden = 'customizer-hide';
           <!-- Logo -->
           <div class="app-brand justify-content-center mb-6">
             <a href="{{url('/')}}" class="app-brand-link">
-              <span class="app-brand-logo demo">@include('_partials.macros',['height'=>20,'withbg' => "fill: #fff;"])</span>
-              <span class="app-brand-text demo text-heading fw-bold">{{ config('variables.templateName') }}</span>
+              <span class="app-brand-logo demo">
+                @if(($appSettings ?? null)?->logo_url)
+                <img style="height: 32px;width: 32px;" src="{{ $appSettings->logo_url }}" alt="Logo">
+                @else
+                @include('_partials.macros',['height'=>20,'withbg' => "fill: #fff;"])
+                @endif
+              </span>
+              <span class="app-brand-text demo text-heading fw-bold">{{ ($appSettings ?? null)?->brand_name ?? config('variables.templateName') }}</span>
             </a>
           </div>
           <!-- /Logo -->

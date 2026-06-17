@@ -6,7 +6,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         <div class="text-center mb-6">
           <h4 class="mb-2">Refer & Earn</h4>
-          <p class="text-center mb-12 m-auto">Invite your friend to {{config('variables.templateName')}}, if they sign up, you and your friend will get 30 days free trial.</p>
+          <p class="text-center mb-12 m-auto">Invite your friend to {{ ($appSettings ?? null)?->brand_name ?? config('variables.templateName') }}, if they sign up, you and your friend will get 30 days free trial.</p>
         </div>
         <div class="row row-gap-6">
           <div class="col-12 col-lg-4 px-6">
@@ -56,7 +56,7 @@
         <h5 class="mb-6">Invite your friends</h5>
         <form class="row g-4" onsubmit="return false">
           <div class="col-lg-10">
-            <label class="form-label" for="modalRnFEmail">Enter your friend’s email address and invite them to join {{config('variables.templateName')}} 😍</label>
+            <label class="form-label" for="modalRnFEmail">Enter your friend’s email address and invite them to join {{ ($appSettings ?? null)?->brand_name ?? config('variables.templateName') }} 😍</label>
             <input type="text" id="modalRnFEmail" class="form-control" placeholder="example@domain.com" aria-label="example@domain.com">
           </div>
           <div class="col-lg-2 d-flex align-items-end justify-content-end">

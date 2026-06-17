@@ -37,8 +37,14 @@ $configData = Helper::appClasses();
 <div class="authentication-wrapper authentication-cover">
   <!-- Logo -->
   <a href="{{url('/')}}" class="app-brand auth-cover-brand">
-    <span class="app-brand-logo demo">@include('_partials.macros',['height'=>20,'withbg' => "fill: #fff;"])</span>
-    <span class="app-brand-text demo text-heading fw-bold">{{ config('variables.templateName') }}</span>
+    <span class="app-brand-logo demo">
+      @if(($appSettings ?? null)?->logo_url)
+      <img style="height: 32px;width: 32px;" src="{{ $appSettings->logo_url }}" alt="Logo">
+      @else
+      @include('_partials.macros',['height'=>20,'withbg' => "fill: #fff;"])
+      @endif
+    </span>
+    <span class="app-brand-text demo text-heading fw-bold">{{ ($appSettings ?? null)?->brand_name ?? config('variables.templateName') }}</span>
   </a>
   <!-- /Logo -->
   <div class="authentication-inner row m-0">

@@ -6,8 +6,14 @@
       <div class="row gx-0 gy-6 g-lg-10">
         <div class="col-lg-5">
           <a href="{{url('front-pages/landing')}}" class="app-brand-link mb-6">
-            <span class="app-brand-logo demo">@include('_partials.macros',['height'=>20,'withbg' => "fill: #fff;"])</span>
-            <span class="app-brand-text demo footer-link fw-bold ms-2 ps-1">{{ config('variables.templateName') }}</span>
+            <span class="app-brand-logo demo">
+              @if(($appSettings ?? null)?->logo_url)
+              <img style="height: 32px;width: 32px;" src="{{ $appSettings->logo_url }}" alt="Logo">
+              @else
+              @include('_partials.macros',['height'=>20,'withbg' => "fill: #fff;"])
+              @endif
+            </span>
+            <span class="app-brand-text demo footer-link fw-bold ms-2 ps-1">{{ ($appSettings ?? null)?->brand_name ?? config('variables.templateName') }}</span>
           </a>
           <p class="footer-text footer-logo-description mb-6">
             Most developer friendly & highly customisable Admin Dashboard Template.

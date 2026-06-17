@@ -52,8 +52,8 @@
 </head>
 <body>
     <div class="header">
-        @if($appSetting && $appSetting->logo)
-            <img src="{{ public_path('profile_pictures/' . $appSetting->logo) }}" alt="logo">
+        @if($appSetting && $appSetting->logo_public_path)
+            <img src="{{ $appSetting->logo_public_path }}" alt="logo">
         @endif
         <h1>{{ $appSetting->name ?? 'Driver List' }}</h1>
         <p>{{ $appSetting->address ?? '' }}</p>

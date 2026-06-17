@@ -35,7 +35,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label" for="university_name">University Name</label>
+                                <label class="form-label" for="university_name">App Name / University Name</label>
                                 <input type="text" class="form-control" id="university_name" name="university_name" value="{{ $settings->university_name }}">
                             </div>
                         </div>
@@ -203,6 +203,10 @@ $(document).ready(function() {
                         }
 
                         $('img[alt="Logo"]').attr('src', response.data.logo_url);
+                    }
+
+                    if (response.data.brand_name) {
+                        $('.app-brand-text').text(response.data.brand_name);
                     }
                 } else {
                     // Show error toast

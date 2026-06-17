@@ -58,8 +58,8 @@
     </div>
 
     <div class="header">
-        @if($appSetting && $appSetting->logo)
-            <img src="{{ asset('profile_pictures/' . $appSetting->logo) }}" alt="logo">
+        @if($appSetting && $appSetting->logo_url)
+            <img src="{{ $appSetting->logo_url }}" alt="logo">
         @endif
         <h1>{{ $appSetting->name ?? 'Driver List' }}</h1>
         <p>{{ $appSetting->address ?? '' }}</p>

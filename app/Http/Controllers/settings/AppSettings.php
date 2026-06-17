@@ -69,6 +69,8 @@ class AppSettings extends Controller
                     'success' => true,
                     'message' => 'Settings updated successfully!',
                     'data' => array_merge($freshSettings->toArray(), [
+                        'app_name' => $freshSettings->app_name,
+                        'brand_name' => $freshSettings->brand_name,
                         'logo_url' => $freshSettings->logo_url,
                     ]),
                 ]);

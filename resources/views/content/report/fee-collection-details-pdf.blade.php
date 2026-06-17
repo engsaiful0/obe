@@ -16,8 +16,8 @@
 <body>
     <div class="container">
         <div class="header">
-            @if($appSetting && $appSetting->logo)
-                <img src="{{ public_path('profile_pictures/'.$appSetting->logo) }}" alt="logo" width="100">
+            @if($appSetting && $appSetting->logo_public_path)
+                <img src="{{ $appSetting->logo_public_path }}" alt="logo" width="100">
             @endif
             <h1>{{ $appSetting->name ?? 'School Name' }}</h1>
             <h2>Fee Collection Details</h2>
