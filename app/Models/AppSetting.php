@@ -77,7 +77,7 @@ class AppSetting extends Model
             return null;
         }
 
-        $absolutePath = public_path($path);
+        $absolutePath = base_path($path);
 
         return is_file($absolutePath) ? $absolutePath : null;
     }
@@ -91,7 +91,7 @@ class AppSetting extends Model
         }
 
         $url = asset($path);
-        $absolutePath = public_path($path);
+        $absolutePath = base_path($path);
 
         if (is_file($absolutePath)) {
             return $url . '?v=' . filemtime($absolutePath);

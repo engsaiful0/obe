@@ -56,7 +56,7 @@ class AppSettings extends Controller
                 $logo = $request->file('logo');
                 $extension = $logo->extension() ?: $logo->getClientOriginalExtension();
                 $logoName = 'logo-' . now()->format('YmdHis') . '-' . Str::random(6) . '.' . $extension;
-                $logo->move(public_path('assets/img/branding'), $logoName);
+                $logo->move(base_path('assets/img/branding'), $logoName);
                 $data['logo'] = $logoName;
             }
 
